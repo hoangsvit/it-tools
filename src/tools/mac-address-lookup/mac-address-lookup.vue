@@ -8,7 +8,7 @@ const getVendorValue = (address: string) => address.trim().replace(/[.:-]/g, '')
 const macAddress = ref('20:37:06:12:34:56');
 const details = computed<string | undefined>(() => db[getVendorValue(macAddress.value)]);
 
-const { copy } = useCopy({ source: details, text: 'Vendor info copied to the clipboard' });
+const { copy } = useCopy({ source: () => details.value ?? '', text: 'Vendor info copied to the clipboard' });
 </script>
 
 <template>
@@ -43,7 +43,7 @@ const { copy } = useCopy({ source: details, text: 'Vendor info copied to the cli
     </c-card>
 
     <div flex justify-center>
-      <c-button :disabled="!details" @click="copy">
+      <c-button :disabled="!details" @click="copy()">
         Copy vendor info
       </c-button>
     </div>

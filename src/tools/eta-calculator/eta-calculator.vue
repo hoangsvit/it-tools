@@ -4,7 +4,7 @@
 import { addMilliseconds, formatRelative } from 'date-fns';
 
 import { enGB } from 'date-fns/locale';
-import { computed, ref } from 'vue';
+
 import { formatMsDuration } from './eta-calculator.service';
 
 const unitCount = ref(3 * 62);
@@ -25,11 +25,10 @@ const endAt = computed(() =>
 
 <template>
   <div>
-    <n-text depth="3" style="text-align: justify; width: 100%; display: inline-block">
+    <div text-justify op-70>
       With a concrete example, if you wash 3 plates in 5 minutes and you have 500 plates to wash, it will take you 5
-      hours and 10 minutes to wash them all, and if you start now, you'll end
-      {{ endAt }}.
-    </n-text>
+      hours and 10 minutes to wash them all.
+    </div>
     <n-divider />
     <div flex gap-2>
       <n-form-item label="Amount of element to consume" flex-1>
@@ -40,13 +39,15 @@ const endAt = computed(() =>
       </n-form-item>
     </div>
 
-    <n-form-item label="Amount of unit consumed by time span" :show-feedback="false">
+    <p>Amount of unit consumed by time span</p>
+    <div flex flex-col items-baseline gap-y-2 md:flex-row>
       <n-input-number v-model:value="unitPerTimeSpan" :min="1" />
-      <span mx-3>in</span>
-      <n-input-group>
-        <n-input-number v-model:value="timeSpan" :min="1" />
-        <n-select
+      <div flex items-baseline gap-2>
+        <span ml-2>in</span>
+        <n-input-number v-model:value="timeSpan" min-w-130px :min="1" />
+        <c-select
           v-model:value="timeSpanUnitMultiplier"
+          min-w-130px
           :options="[
             { label: 'milliseconds', value: 1 },
             { label: 'seconds', value: 1000 },
@@ -55,8 +56,8 @@ const endAt = computed(() =>
             { label: 'days', value: 1000 * 60 * 60 * 24 },
           ]"
         />
-      </n-input-group>
-    </n-form-item>
+      </div>
+    </div>
 
     <n-divider />
     <c-card mb-2>

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import {
   MAX_ARABIC_TO_ROMAN,
   MIN_ARABIC_TO_ROMAN,
@@ -37,7 +36,7 @@ const validationRoman = useValidation({
 });
 
 const { copy: copyRoman } = useCopy({ source: outputRoman, text: 'Roman number copied to the clipboard' });
-const { copy: copyArabic } = useCopy({ source: outputNumeral, text: 'Arabic number copied to the clipboard' });
+const { copy: copyArabic } = useCopy({ source: () => String(outputNumeral), text: 'Arabic number copied to the clipboard' });
 </script>
 
 <template>
@@ -50,7 +49,7 @@ const { copy: copyArabic } = useCopy({ source: outputNumeral, text: 'Arabic numb
         <div class="result">
           {{ outputRoman }}
         </div>
-        <c-button autofocus :disabled="validationNumeral.validationStatus === 'error'" @click="copyRoman">
+        <c-button autofocus :disabled="validationNumeral.validationStatus === 'error'" @click="copyRoman()">
           Copy
         </c-button>
       </div>
@@ -62,7 +61,7 @@ const { copy: copyArabic } = useCopy({ source: outputNumeral, text: 'Arabic numb
         <div class="result">
           {{ outputNumeral }}
         </div>
-        <c-button :disabled="!validationRoman.isValid" @click="copyArabic">
+        <c-button :disabled="!validationRoman.isValid" @click="copyArabic()">
           Copy
         </c-button>
       </div>

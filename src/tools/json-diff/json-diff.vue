@@ -23,23 +23,25 @@ const jsonValidationRules = [
   <c-input-text
     v-model:value="rawLeftJson"
     :validation-rules="jsonValidationRules"
-    label="Your first json"
-    placeholder="Paste your first json here..."
+    label="Your first JSON"
+    placeholder="Paste your first JSON here..."
     rows="20"
     multiline
     test-id="leftJson"
     raw-text
+    monospace
   />
 
   <c-input-text
     v-model:value="rawRightJson"
     :validation-rules="jsonValidationRules"
-    label="Your json to compare"
-    placeholder="Paste your json to compare here..."
+    label="Your JSON to compare"
+    placeholder="Paste your JSON to compare here..."
     rows="20"
     multiline
     test-id="rightJson"
     raw-text
+    monospace
   />
 
   <DiffsViewer :left-json="leftJson" :right-json="rightJson" />

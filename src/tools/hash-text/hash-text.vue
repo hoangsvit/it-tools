@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { lib } from 'crypto-js';
 import { MD5, RIPEMD160, SHA1, SHA224, SHA256, SHA3, SHA384, SHA512, enc } from 'crypto-js';
-import { ref } from 'vue';
+
 import InputCopyable from '../../components/InputCopyable.vue';
 import { convertHexToBin } from './hash-text.service';
 import { useQueryParam } from '@/composable/queryParams';
@@ -37,33 +37,33 @@ const hashText = (algo: AlgoNames, value: string) => formatWithEncoding(algos[al
 <template>
   <div>
     <c-card>
-      <n-input v-model:value="clearText" type="textarea" placeholder="Your string to hash..." rows="3" />
+      <c-input-text v-model:value="clearText" multiline raw-text placeholder="Your string to hash..." rows="3" autosize autofocus label="Your text to hash:" />
 
       <n-divider />
 
-      <n-form-item label="Digest encoding">
-        <n-select
-          v-model:value="encoding"
-          :options="[
-            {
-              label: 'Binary (base 2)',
-              value: 'Bin',
-            },
-            {
-              label: 'Hexadecimal (base 16)',
-              value: 'Hex',
-            },
-            {
-              label: 'Base64 (base 64)',
-              value: 'Base64',
-            },
-            {
-              label: 'Base64url (base 64 with url safe chars)',
-              value: 'Base64url',
-            },
-          ]"
-        />
-      </n-form-item>
+      <c-select
+        v-model:value="encoding"
+        mb-4
+        label="Digest encoding"
+        :options="[
+          {
+            label: 'Binary (base 2)',
+            value: 'Bin',
+          },
+          {
+            label: 'Hexadecimal (base 16)',
+            value: 'Hex',
+          },
+          {
+            label: 'Base64 (base 64)',
+            value: 'Base64',
+          },
+          {
+            label: 'Base64url (base 64 with url safe chars)',
+            value: 'Base64url',
+          },
+        ]"
+      />
 
       <div v-for="algo in algoNames" :key="algo" style="margin: 5px 0">
         <n-input-group>

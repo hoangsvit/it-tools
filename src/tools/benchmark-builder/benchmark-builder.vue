@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Plus, Trash } from '@vicons/tabler';
-import { useClipboard, useStorage } from '@vueuse/core';
+import { useStorage } from '@vueuse/core';
 import _ from 'lodash';
-import { computed } from 'vue';
+
 import { arrayToMarkdownTable, computeAverage, computeVariance } from './benchmark-builder.models';
 import DynamicValues from './dynamic-values.vue';
+import { useCopy } from '@/composable/copy';
 
 const suites = useStorage('benchmark-builder:suites', [
   { title: 'Suite 1', data: [5, 10] },
@@ -47,14 +48,14 @@ const results = computed(() => {
     });
 });
 
-const { copy } = useClipboard();
+const { copy } = useCopy({ createToast: false });
 
 const header = {
+  position: 'Position',
   title: 'Suite',
   size: 'Samples',
   mean: 'Mean',
   variance: 'Variance',
-  position: 'Position',
 };
 
 function copyAsMarkdown() {
@@ -130,31 +131,13 @@ function copyAsBulletList() {
         </c-button>
       </div>
 
-      <n-table>
-        <thead>
-          <tr>
-            <th>{{ header.position }}</th>
-            <th>{{ header.title }}</th>
-            <th>{{ header.size }}</th>
-            <th>{{ header.mean }}</th>
-            <th>{{ header.variance }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="{ title, size, mean, variance, position } of results" :key="title">
-            <td>{{ position }}</td>
-            <td>{{ title }}</td>
-            <td>{{ size }}</td>
-            <td>{{ mean }}</td>
-            <td>{{ variance }}</td>
-          </tr>
-        </tbody>
-      </n-table>
+      <c-table :data="results" :headers="header" />
+
       <div mt-5 flex justify-center gap-3>
-        <c-button @click="copyAsMarkdown">
+        <c-button @click="copyAsMarkdown()">
           Copy as markdown table
         </c-button>
-        <c-button @click="copyAsBulletList">
+        <c-button @click="copyAsBulletList()">
           Copy as bullet list
         </c-button>
       </div>

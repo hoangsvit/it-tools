@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import { useCopy } from '@/composable/copy';
 import { textToBase64 } from '@/utils/base64';
 
@@ -31,7 +30,7 @@ const { copy } = useCopy({ source: header, text: 'Header copied to the clipboard
       </n-statistic>
     </c-card>
     <div mt-5 flex justify-center>
-      <c-button @click="copy">
+      <c-button @click="copy()">
         Copy header
       </c-button>
     </div>

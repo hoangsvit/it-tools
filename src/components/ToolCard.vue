@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useThemeVars } from 'naive-ui';
-import { toRefs } from 'vue';
 import FavoriteButton from './FavoriteButton.vue';
 import { useAppTheme } from '@/ui/theme/themes';
 import type { Tool } from '@/tools/tools.types';
@@ -27,7 +26,7 @@ const appTheme = useAppTheme();
             :bordered="false"
             :color="{ color: theme.primaryColor, textColor: theme.tagColor }"
           >
-            New
+            {{ $t('toolCard.new') }}
           </n-tag>
 
           <FavoriteButton :tool="tool" />

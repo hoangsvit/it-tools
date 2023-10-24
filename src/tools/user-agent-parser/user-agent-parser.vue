@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import { UAParser } from 'ua-parser-js';
 import { Adjustments, Browser, Cpu, Devices, Engine } from '@vicons/tabler';
 import UserAgentResultCards from './user-agent-result-cards.vue';
@@ -104,15 +103,18 @@ const sections: UserAgentResultSection[] = [
 
 <template>
   <div>
-    <n-form-item label="User agent string">
-      <n-input
-        v-model:value="ua"
-        type="textarea"
-        placeholder="Put your user-agent here..."
-        clearable
-        :autosize="{ minRows: 2 }"
-      />
-    </n-form-item>
+    <c-input-text
+      v-model:value="ua"
+      label="User agent string"
+      multiline
+      placeholder="Put your user-agent here..."
+      clearable
+      raw-text
+      rows="2"
+      autosize
+      monospace
+      mb-3
+    />
 
     <UserAgentResultCards :user-agent-info="userAgentInfo" :sections="sections" />
   </div>

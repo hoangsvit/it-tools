@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Coffee } from '@vicons/tabler';
 import { useHead } from '@vueuse/head';
 
 useHead({ title: 'Page not found - IT Tools' });
@@ -7,20 +6,22 @@ useHead({ title: 'Page not found - IT Tools' });
 
 <template>
   <div mt-20 flex flex-col items-center>
-    <n-icon :component="Coffee" size="100" depth="3" />
+    <span text-90px lh-1 op-50>
+      <icon-mdi:kettle-steam-outline />
+    </span>
 
-    <n-h1 m-0 mt-3>
-      404 Not Found
-    </n-h1>
-    <n-text mt-4 block depth="3">
-      Sorry, this page does not seem to exist
-    </n-text>
-    <n-text mb-8 block depth="3">
-      Maybe the cache is doing tricky things, try force-refreshing?
-    </n-text>
+    <h1 m-0 mt-3>
+      {{ $t('404.notFound') }}
+    </h1>
+    <div mt-4 op-60>
+      {{ $t('404.sorry') }}
+    </div>
+    <div mb-8 op-60>
+      {{ $t('404.maybe') }}
+    </div>
 
     <c-button to="/">
-      Back home
+      {{ $t('404.backHome') }}
     </c-button>
   </div>
 </template>

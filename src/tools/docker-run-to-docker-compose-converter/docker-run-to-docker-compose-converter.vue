@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import { MessageType, composerize } from 'composerize-ts';
 import { withDefaultOnError } from '@/utils/defaults';
 import { useDownloadFileFromBase64 } from '@/composable/downloadBase64';
@@ -11,7 +10,7 @@ const dockerRun = ref(
 );
 
 const conversionResult = computed(() =>
-  withDefaultOnError(() => composerize(dockerRun.value), { yaml: '', messages: [] }),
+  withDefaultOnError(() => composerize(dockerRun.value.trim()), { yaml: '', messages: [] }),
 );
 const dockerCompose = computed(() => conversionResult.value.yaml);
 const notImplemented = computed(() =>
@@ -31,15 +30,16 @@ const { download } = useDownloadFileFromBase64({ source: dockerComposeBase64, fi
 
 <template>
   <div>
-    <n-form-item label="Your docker run command:" :show-feedback="false">
-      <n-input
-        v-model:value="dockerRun"
-        style="font-family: monospace"
-        type="textarea"
-        placeholder="Your docker run command to convert..."
-        rows="3"
-      />
-    </n-form-item>
+    <c-input-text
+      v-model:value="dockerRun"
+      label="Your docker run command:"
+      style="font-family: monospace"
+      multiline
+      raw-text
+      monospace
+      placeholder="Your docker run command to convert..."
+      rows="3"
+    />
 
     <n-divider />
 

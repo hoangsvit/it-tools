@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import JSON5 from 'json5';
 import { useStorage } from '@vueuse/core';
 import { formatJson } from './json.models';
@@ -38,23 +37,24 @@ const rawJsonValidation = useValidation({
   </div>
 
   <n-form-item
-    label="Your raw json"
+    label="Your raw JSON"
     :feedback="rawJsonValidation.message"
     :validation-status="rawJsonValidation.status"
   >
-    <n-input
+    <c-input-text
       ref="inputElement"
       v-model:value="rawJson"
-      placeholder="Paste your raw json here..."
-      type="textarea"
+      placeholder="Paste your raw JSON here..."
       rows="20"
+      multiline
       autocomplete="off"
       autocorrect="off"
       autocapitalize="off"
       spellcheck="false"
+      monospace
     />
   </n-form-item>
-  <n-form-item label="Prettify version of your json">
+  <n-form-item label="Prettified version of your JSON">
     <TextareaCopyable :value="cleanJson" language="json" :follow-height-of="inputElement" />
   </n-form-item>
 </template>

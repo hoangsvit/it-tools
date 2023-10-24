@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import { compareSync, hashSync } from 'bcryptjs';
 import { useThemeVars } from 'naive-ui';
 import { useCopy } from '@/composable/copy';
@@ -34,7 +33,7 @@ const compareMatch = computed(() => compareSync(compareString.value, compareHash
     <c-input-text :value="hashed" readonly text-center />
 
     <div mt-5 flex justify-center>
-      <c-button @click="copy">
+      <c-button @click="copy()">
         Copy hash
       </c-button>
     </div>
@@ -46,7 +45,7 @@ const compareMatch = computed(() => compareSync(compareString.value, compareHash
         <c-input-text v-model:value="compareString" placeholder="Your string to compare..." raw-text />
       </n-form-item>
       <n-form-item label="Your hash: " label-placement="left">
-        <c-input-text v-model:value="compareHash" placeholder="Your hahs to compare..." raw-text />
+        <c-input-text v-model:value="compareHash" placeholder="Your hash to compare..." raw-text />
       </n-form-item>
       <n-form-item label="Do they match ? " label-placement="left" :show-feedback="false">
         <div class="compare-result" :class="{ positive: compareMatch }">

@@ -1,35 +1,17 @@
 <script setup lang="ts">
-import { useClipboard } from '@vueuse/core';
-import { ref, toRefs } from 'vue';
+import { useCopy } from '@/composable/copy';
 
 const props = withDefaults(defineProps<{ value?: string }>(), { value: '' });
 const { value } = toRefs(props);
 
 const initialText = 'Copy to clipboard';
-const tooltipText = ref(initialText);
 
-const { copy } = useClipboard({ source: value });
-
-function handleClick() {
-  copy();
-  tooltipText.value = 'Copied!';
-
-  setTimeout(() => (tooltipText.value = initialText), 1000);
-}
+const { copy, isJustCopied } = useCopy({ source: value, createToast: false });
+const tooltipText = computed(() => isJustCopied.value ? 'Copied!' : initialText);
 </script>
 
 <template>
-  <n-tooltip trigger="hover">
-    <template #trigger>
-      <span class="value" @click="handleClick">{{ value }}</span>
-    </template>
-    {{ tooltipText }}
-  </n-tooltip>
+  <c-tooltip :tooltip="tooltipText">
+    <span cursor-pointer font-mono @click="copy()">{{ value }}</span>
+  </c-tooltip>
 </template>
-
-<style scoped lang="less">
-.value {
-  cursor: pointer;
-  font-family: monospace;
-}
-</style>

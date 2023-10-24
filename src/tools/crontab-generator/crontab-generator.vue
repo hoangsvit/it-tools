@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import cronstrue from 'cronstrue';
 import { isValidCron } from 'cron-validator';
-import { computed, reactive, ref } from 'vue';
 import { useStyleStore } from '@/stores/style.store';
 
 function isCronValid(v: string) {
@@ -168,34 +167,8 @@ const cronValidationRules = [
         </div>
       </c-card>
     </div>
-    <n-table v-else size="small">
-      <thead>
-        <tr>
-          <th class="text-left" scope="col">
-            Symbol
-          </th>
-          <th class="text-left" scope="col">
-            Meaning
-          </th>
-          <th class="text-left" scope="col">
-            Example
-          </th>
-          <th class="text-left" scope="col">
-            Equivalent
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="{ symbol, meaning, example, equivalent } in helpers" :key="symbol">
-          <td>{{ symbol }}</td>
-          <td>{{ meaning }}</td>
-          <td>
-            <code>{{ example }}</code>
-          </td>
-          <td>{{ equivalent }}</td>
-        </tr>
-      </tbody>
-    </n-table>
+
+    <c-table v-else :data="helpers" />
   </c-card>
 </template>
 

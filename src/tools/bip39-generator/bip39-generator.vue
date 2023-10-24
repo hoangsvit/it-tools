@@ -15,7 +15,7 @@ import {
   spanishWordList,
 } from '@it-tools/bip39';
 import { Copy, Refresh } from '@vicons/tabler';
-import { computed, ref } from 'vue';
+
 import { useCopy } from '@/composable/copy';
 import { useValidation } from '@/composable/validation';
 import { isNotThrowing } from '@/utils/boolean';
@@ -84,12 +84,12 @@ const { copy: copyPassphrase } = useCopy({ source: passphrase, text: 'Passphrase
   <div>
     <n-grid cols="3" x-gap="12">
       <n-gi span="1">
-        <n-form-item label="Language:">
-          <n-select
-            v-model:value="language"
-            :options="Object.keys(languages).map((label) => ({ label, value: label }))"
-          />
-        </n-form-item>
+        <c-select
+          v-model:value="language"
+          searchable
+          label="Language:"
+          :options="Object.keys(languages)"
+        />
       </n-gi>
       <n-gi span="2">
         <n-form-item
@@ -100,12 +100,12 @@ const { copy: copyPassphrase } = useCopy({ source: passphrase, text: 'Passphrase
           <n-input-group>
             <c-input-text v-model:value="entropy" placeholder="Your string..." />
 
-            <c-button @click="refreshEntropy">
+            <c-button @click="refreshEntropy()">
               <n-icon size="22">
                 <Refresh />
               </n-icon>
             </c-button>
-            <c-button @click="copyEntropy">
+            <c-button @click="copyEntropy()">
               <n-icon size="22">
                 <Copy />
               </n-icon>
@@ -122,7 +122,7 @@ const { copy: copyPassphrase } = useCopy({ source: passphrase, text: 'Passphrase
       <n-input-group>
         <c-input-text v-model:value="passphrase" placeholder="Your mnemonic..." raw-text />
 
-        <c-button @click="copyPassphrase">
+        <c-button @click="copyPassphrase()">
           <n-icon size="22" :component="Copy" />
         </c-button>
       </n-input-group>

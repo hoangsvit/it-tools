@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { types as extensionToMimeType, extensions as mimeTypeToExtension } from 'mime-types';
-import { computed, ref } from 'vue';
 
 const mimeInfos = Object.entries(mimeTypeToExtension).map(([mimeType, extensions]) => ({ mimeType, extensions }));
 
@@ -25,17 +24,15 @@ const mimeTypeFound = computed(() => (selectedExtension.value ? extensionToMimeT
       Mime type to extension
     </n-h2>
     <div style="opacity: 0.8">
-      Now witch file extensions are associated to a mime-type
+      Know which file extensions are associated to a mime-type
     </div>
-    <n-form-item>
-      <n-select
-        v-model:value="selectedMimeType"
-        filterable
-        :options="mimeToExtensionsOptions"
-        size="large"
-        placeholder="Select your mimetype here... (ex: application/pdf)"
-      />
-    </n-form-item>
+    <c-select
+      v-model:value="selectedMimeType"
+      searchable
+      my-4
+      :options="mimeToExtensionsOptions"
+      placeholder="Select your mimetype here... (ex: application/pdf)"
+    />
 
     <div v-if="extensionsFound.length > 0">
       Extensions of files with the <n-tag round :bordered="false">
@@ -61,17 +58,15 @@ const mimeTypeFound = computed(() => (selectedExtension.value ? extensionToMimeT
       File extension to mime type
     </n-h2>
     <div style="opacity: 0.8">
-      Now witch mime type is associated to a file extension
+      Know which mime type is associated to a file extension
     </div>
-    <n-form-item>
-      <n-select
-        v-model:value="selectedExtension"
-        filterable
-        :options="extensionToMimeTypeOptions"
-        size="large"
-        placeholder="Select your mimetype here... (ex: application/pdf)"
-      />
-    </n-form-item>
+    <c-select
+      v-model:value="selectedExtension"
+      searchable
+      my-4
+      :options="extensionToMimeTypeOptions"
+      placeholder="Select your mimetype here... (ex: application/pdf)"
+    />
 
     <div v-if="selectedExtension">
       Mime type associated to the extension <n-tag round :bordered="false">

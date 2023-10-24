@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import type { QRCodeErrorCorrectionLevel } from 'qrcode';
 import { useQRCode } from './useQRCode';
 import { useDownloadFileFromBase64 } from '@/composable/downloadBase64';
@@ -28,27 +27,33 @@ const { download } = useDownloadFileFromBase64({ source: qrcode, filename: 'qr-c
   <c-card>
     <n-grid x-gap="12" y-gap="12" cols="1 600:3">
       <n-gi span="2">
+        <c-input-text
+          v-model:value="text"
+          label-position="left"
+          label-width="130px"
+          label-align="right"
+          label="Text:"
+          multiline
+          rows="1"
+          autosize
+          placeholder="Your link or text..."
+          mb-6
+        />
         <n-form label-width="130" label-placement="left">
-          <n-form-item label="Text:">
-            <n-input
-              v-model:value="text"
-              type="textarea"
-              :autosize="{ minRows: 1 }"
-              placeholder="Your link or text..."
-            />
-          </n-form-item>
           <n-form-item label="Foreground color:">
             <n-color-picker v-model:value="foreground" :modes="['hex']" />
           </n-form-item>
           <n-form-item label="Background color:">
             <n-color-picker v-model:value="background" :modes="['hex']" />
           </n-form-item>
-          <n-form-item label="Error resistance:">
-            <n-select
-              v-model:value="errorCorrectionLevel"
-              :options="errorCorrectionLevels.map((value) => ({ label: value, value }))"
-            />
-          </n-form-item>
+          <c-select
+            v-model:value="errorCorrectionLevel"
+            label="Error resistance:"
+            label-position="left"
+            label-width="130px"
+            label-align="right"
+            :options="errorCorrectionLevels.map((value) => ({ label: value, value }))"
+          />
         </n-form>
       </n-gi>
       <n-gi>
