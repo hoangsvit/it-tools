@@ -1,6 +1,6 @@
 ![logo](.github/logo.png)
 
-Useful tools for developer and people working in IT. [Have a look !](https://it-tools.tech).
+Useful tools for developer and people working in IT. [Have a look !](https://tools.eplus.dev).
 
 ## Functionalities and roadmap
 
