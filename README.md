@@ -4,7 +4,7 @@
     <img src="./.github/logo-dark.png" alt="logo">
 </picture>
 
-Useful tools for developer and people working in IT. [Have a look !](https://it-tools.tech).
+Useful tools for developer and people working in IT. [Have a look !](https://tools.eplus.dev).
 
 ## Sponsors
 
