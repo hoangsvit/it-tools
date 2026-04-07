@@ -4,9 +4,7 @@
     <img src="./.github/logo-dark.png" alt="logo">
 </picture>
 
-<p align="center">
-Useful tools for developer and people working in IT. <a href="https://it-tools.tech">Try it!</a>
-</p>
+Useful tools for developer and people working in IT. [Have a look !](https://tools.eplus.dev).
 
 ## Functionalities and roadmap
 
