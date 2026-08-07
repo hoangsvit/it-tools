@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createDeveloperWorkspace,
   getWorkspaceProgress,
+  insertWorkspaceStepAfter,
   moveWorkspaceStep,
   sendWorkspaceOutputToNext,
   usePreviousWorkspaceOutput,
@@ -42,6 +43,25 @@ describe('developer workspace model', () => {
 
     expect(moved.map(item => item.id)).toEqual(['b', 'a', 'c']);
     expect(steps.map(item => item.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('inserts a suggested step after the source and reuses an empty next step', () => {
+    const suggested = step('suggested', {
+      toolPath: '/json-viewer',
+      input: '{"sub":"123"}',
+    });
+
+    const inserted = insertWorkspaceStepAfter([step('a')], 'a', suggested);
+    expect(inserted.map(item => item.id)).toEqual(['a', 'suggested']);
+    expect(inserted[1].input).toBe('{"sub":"123"}');
+
+    const withBlankNext = insertWorkspaceStepAfter([step('a'), step('blank')], 'a', suggested);
+    expect(withBlankNext).toHaveLength(2);
+    expect(withBlankNext[1]).toMatchObject({
+      id: 'blank',
+      toolPath: '/json-viewer',
+      input: '{"sub":"123"}',
+    });
   });
 
   it('sends one step output into the next step input', () => {
