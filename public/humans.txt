@@ -1,4 +1,10 @@
-/* TEAM */
+/* SITE */
+Maintainer: David
+GitHub: https://github.com/hoangsvit
+Twitter: @david_nguyen94
+Site: https://tools.eplus.dev
+
+/* ORIGINAL PROJECT */
 Developer: Corentin Thomasset
 Site: https://github.com/CorentinTh
 Twitter: @cthmsst
