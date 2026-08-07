@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IconDragDrop, IconHeart, IconHistory } from '@tabler/icons-vue';
+import { IconDragDrop, IconHeart, IconHistory, IconLayoutDashboard } from '@tabler/icons-vue';
 import { useHead } from '@vueuse/head';
 import { computed } from 'vue';
 import Draggable from 'vuedraggable';
@@ -43,6 +43,10 @@ function onUpdateFavoriteTools() {
         <div class="edition-copy">
           Enhanced developer experience with smart tool discovery, local recent history and faster sharing.
         </div>
+        <router-link to="/workspace" class="workspace-cta">
+          <n-icon :component="IconLayoutDashboard" size="16" />
+          Developer Workspace
+        </router-link>
         <div class="edition-shortcut">
           <span>Quick search</span>
           <kbd>Ctrl / Cmd + K</kbd>
@@ -187,6 +191,27 @@ function onUpdateFavoriteTools() {
   font-size: 13px;
 }
 
+.workspace-cta {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border: 1px solid rgba(24, 160, 88, 0.24);
+  border-radius: 8px;
+  background: rgba(24, 160, 88, 0.08);
+  color: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+
+  &:hover {
+    border-color: rgba(24, 160, 88, 0.55);
+    background: rgba(24, 160, 88, 0.14);
+  }
+}
+
 .edition-shortcut {
   display: flex;
   align-items: center;
@@ -308,6 +333,16 @@ function onUpdateFavoriteTools() {
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
   transform: scale(1.1);
   animation: ghost-favorites-draggable-animation 0.2s ease-out;
+}
+
+@media (max-width: 900px) {
+  .edition-banner {
+    flex-wrap: wrap;
+  }
+
+  .edition-copy {
+    min-width: 220px;
+  }
 }
 
 @media (max-width: 700px) {
