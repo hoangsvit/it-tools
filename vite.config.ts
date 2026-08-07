@@ -57,14 +57,36 @@ export default defineConfig({
       registerType: 'autoUpdate',
       strategies: 'generateSW',
       manifest: {
-        name: 'IT Tools',
-        description: 'Aggregated set of useful tools for developers.',
+        name: 'ePlus.DEV IT Tools',
+        short_name: 'ePlus Tools',
+        description: 'Privacy-friendly developer tools enhanced by ePlus.DEV with smart discovery, recent history and quick sharing.',
         display: 'standalone',
-        lang: 'fr-FR',
+        lang: 'en',
         start_url: `${baseUrl}?utm_source=pwa&utm_medium=pwa`,
         orientation: 'any',
         theme_color: '#18a058',
         background_color: '#f1f5f9',
+        categories: ['developer', 'utilities', 'productivity'],
+        shortcuts: [
+          {
+            name: 'JWT Parser',
+            short_name: 'JWT',
+            description: 'Decode and inspect a JSON Web Token.',
+            url: `${baseUrl}jwt-parser`,
+          },
+          {
+            name: 'JSON Viewer',
+            short_name: 'JSON',
+            description: 'Format and inspect JSON data.',
+            url: `${baseUrl}json-viewer`,
+          },
+          {
+            name: 'URL Parser',
+            short_name: 'URL',
+            description: 'Inspect URL components and query parameters.',
+            url: `${baseUrl}url-parser`,
+          },
+        ],
         icons: [
           {
             src: '/favicon-16x16.png',
