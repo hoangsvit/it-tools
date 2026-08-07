@@ -2,7 +2,8 @@
 import { NIcon, useThemeVars } from 'naive-ui';
 
 import { RouterLink } from 'vue-router';
-import { Heart, Home2, Menu2 } from '@vicons/tabler';
+import { Home2, Menu2 } from '@vicons/tabler';
+import { IconBrandGithub } from '@tabler/icons-vue';
 
 import { storeToRefs } from 'pinia';
 import HeroGradient from '../assets/hero-gradient.svg?component';
@@ -40,6 +41,9 @@ const tools = computed<ToolCategory[]>(() => [
         <div class="text-wrapper">
           <div class="title">
             IT - TOOLS
+          </div>
+          <div class="edition-label">
+            ePlus.DEV Edition
           </div>
           <div class="divider" />
           <div class="subtitle">
@@ -85,6 +89,12 @@ const tools = computed<ToolCategory[]>(() => [
               David Nguyen
             </c-link>
           </div>
+          <div class="upstream-credit">
+            Based on
+            <c-link target="_blank" rel="noopener" href="https://github.com/CorentinTh/it-tools">
+              CorentinTh/it-tools
+            </c-link>
+          </div>
         </div>
       </div>
     </template>
@@ -120,18 +130,18 @@ const tools = computed<ToolCategory[]>(() => [
           <NavbarButtons v-if="!styleStore.isSmallScreen" />
         </div>
 
-        <c-tooltip position="bottom" :tooltip="$t('home.support')">
+        <c-tooltip position="bottom" tooltip="Star the ePlus.DEV fork on GitHub">
           <c-button
             round
-            href="https://www.buymeacoffee.com/cthmsst"
+            href="https://github.com/hoangsvit/it-tools"
             rel="noopener"
             target="_blank"
             class="support-button"
             :bordered="false"
-            @click="() => tracker.trackEvent({ eventName: 'Support button clicked' })"
+            @click="() => tracker.trackEvent({ eventName: 'Fork star button clicked' })"
           >
-            {{ $t('home.buyMeACoffee') }}
-            <NIcon v-if="!styleStore.isSmallScreen" :component="Heart" ml-2 />
+            Star fork
+            <NIcon v-if="!styleStore.isSmallScreen" :component="IconBrandGithub" ml-2 />
           </c-button>
         </c-tooltip>
       </div>
@@ -141,17 +151,6 @@ const tools = computed<ToolCategory[]>(() => [
 </template>
 
 <style lang="less" scoped>
-// ::v-deep(.n-layout-scroll-container) {
-//     @percent: 4%;
-//     @position: 25px;
-//     @size: 50px;
-//     @color: #eeeeee25;
-//     background-image: radial-gradient(@color @percent, transparent @percent),
-//         radial-gradient(@color @percent, transparent @percent);
-//     background-position: 0 0, @position @position;
-//     background-size: @size @size;
-// }
-
 .support-button {
   background: rgb(37, 99, 108);
   background: linear-gradient(48deg, rgba(37, 99, 108, 1) 0%, rgba(59, 149, 111, 1) 60%, rgba(20, 160, 88, 1) 100%);
@@ -172,8 +171,14 @@ const tools = computed<ToolCategory[]>(() => [
   padding: 20px 0;
 }
 
+.upstream-credit {
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
 .sider-content {
-  padding-top: 160px;
+  padding-top: 175px;
   padding-bottom: 200px;
 }
 
@@ -194,12 +199,25 @@ const tools = computed<ToolCategory[]>(() => [
     left: 0;
     width: 100%;
     text-align: center;
-    top: 16px;
+    top: 12px;
     color: #fff;
 
     .title {
       font-size: 25px;
       font-weight: 600;
+    }
+
+    .edition-label {
+      display: inline-block;
+      margin: 2px 0 5px;
+      padding: 2px 7px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.12);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
     .divider {
@@ -211,7 +229,7 @@ const tools = computed<ToolCategory[]>(() => [
     }
 
     .subtitle {
-      font-size: 16px;
+      font-size: 14px;
     }
   }
 }
