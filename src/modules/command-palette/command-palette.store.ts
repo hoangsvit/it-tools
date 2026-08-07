@@ -125,7 +125,7 @@ export const useCommandPaletteStore = defineStore('command-palette', () => {
     return {
       ...(recent.length > 0 ? { Recent: recent } : {}),
       ...(favorites.length > 0 ? { Favorites: favorites } : {}),
-      Workflows: workflowOptions,
+      'Workflows': workflowOptions,
       'Quick actions': [
         randomToolOption,
         toggleThemeOption,
