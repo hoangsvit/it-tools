@@ -32,15 +32,21 @@ whenever(keys.meta_k, open);
 whenever(keys.escape, close);
 
 function open() {
+  selectedOptionIndex.value = 0;
   return isModalOpen.value = true;
 }
 
 function close() {
   isModalOpen.value = false;
   searchPrompt.value = '';
+  selectedOptionIndex.value = 0;
 }
 
 const selectedOptionIndex = ref(0);
+
+watch(searchPrompt, () => {
+  selectedOptionIndex.value = 0;
+});
 
 function handleKeydown(event: KeyboardEvent) {
   const { key } = event;
@@ -49,6 +55,7 @@ function handleKeydown(event: KeyboardEvent) {
   const isArrowDown = key === 'ArrowDown';
 
   if (isArrowUpOrDown) {
+    event.preventDefault();
     const increment = isArrowDown ? 1 : -1;
     const maxIndex = Math.max(_.chain(filteredSearchResult.value).values().flatten().size().value() - 1, 0);
 
@@ -64,7 +71,9 @@ function handleKeydown(event: KeyboardEvent) {
       .nth(selectedOptionIndex.value)
       .value();
 
-    activateOption(option);
+    if (option) {
+      activateOption(option);
+    }
   }
 }
 
@@ -112,9 +121,8 @@ function activateOption(option: PaletteOption) {
 
 <template>
   <div flex-1>
-    <c-button w-full important:justify-start @click="isModalOpen = true">
+    <c-button w-full important:justify-start @click="open">
       <span flex items-center gap-3 op-40>
-
         <icon-mdi-search />
         {{ $t('search.label') }}
 
@@ -125,30 +133,100 @@ function activateOption(option: PaletteOption) {
     </c-button>
 
     <c-modal v-model:open="isModalOpen" class="palette-modal" shadow-xl important:max-w-650px important:pa-12px @keydown="handleKeydown">
-      <c-input-text ref="inputRef" v-model:value="searchPrompt" raw-text placeholder="Type to search a tool or a command..." autofocus clearable />
+      <div class="palette-title">
+        <span>ePlus Smart Launcher</span>
+        <span>Recent · Favorites · Commands</span>
+      </div>
+
+      <c-input-text
+        ref="inputRef"
+        v-model:value="searchPrompt"
+        raw-text
+        placeholder="Search tools, recent history or commands..."
+        autofocus
+        clearable
+      />
 
       <div v-for="(options, category) in filteredSearchResult" :key="category">
         <div ml-3 mt-3 text-sm font-bold text-primary op-60>
           {{ category }}
         </div>
-        <command-palette-option v-for="option in options" :key="option.name" :option="option" :selected="selectedOptionIndex === getOptionIndex(option)" @activated="activateOption" />
+        <command-palette-option
+          v-for="option in options"
+          :key="`${category}-${option.name}`"
+          :option="option"
+          :selected="selectedOptionIndex === getOptionIndex(option)"
+          @activated="activateOption"
+        />
+      </div>
+
+      <div class="palette-footer">
+        <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+        <span><kbd>Enter</kbd> open</span>
+        <span><kbd>Esc</kbd> close</span>
       </div>
     </c-modal>
   </div>
 </template>
 
 <style scoped lang="less">
+.palette-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 6px 10px;
+  font-size: 12px;
+  opacity: 0.55;
+
+  span:first-child {
+    font-weight: 700;
+    color: #18a058;
+    opacity: 1;
+  }
+}
+
+.palette-footer {
+  display: flex;
+  gap: 14px;
+  padding: 10px 7px 2px;
+  font-size: 11px;
+  opacity: 0.45;
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  kbd {
+    min-width: 20px;
+    padding: 1px 4px;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    text-align: center;
+    font-family: inherit;
+  }
+}
+
 .c-input-text {
   font-size: 18px;
 
   ::v-deep(.input-wrapper) {
-      padding: 4px;
-      padding-left: 18px;
+    padding: 4px;
+    padding-left: 18px;
   }
 }
 
 .c-modal--overlay {
   align-items: flex-start !important;
   padding-top: 80px;
+}
+
+@media (max-width: 640px) {
+  .palette-title span:last-child,
+  .palette-footer {
+    display: none;
+  }
 }
 </style>
