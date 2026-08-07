@@ -107,7 +107,7 @@ function openTool(step: WorkspaceStep) {
   }
 
   if (step.input.trim() && clipboardSupported.value) {
-    copyValue(step.input, `${step.id}-launch`);
+    copyValue(step.input, `${step.id}-launch`).catch(() => undefined);
   }
 
   window.open(router.resolve(step.toolPath).href, '_blank', 'noopener,noreferrer');
@@ -133,13 +133,15 @@ async function pasteValue(stepId: string, field: 'input' | 'output') {
     return;
   }
 
+  const workspaceId = workspace.value.id;
+
   try {
     const value = await navigator.clipboard.readText();
     if (!value) {
       return;
     }
 
-    workspaceStore.updateStep(workspace.value.id, stepId, { [field]: value });
+    workspaceStore.updateStep(workspaceId, stepId, { [field]: value });
     const target = `${stepId}-${field}`;
     pastedTarget.value = target;
 
@@ -177,7 +179,7 @@ function applySuggestion(step: WorkspaceStep, suggestion: WorkspaceToolSuggestio
 
 function copyWorkspaceJson() {
   if (workspace.value) {
-    copyValue(JSON.stringify(workspace.value, null, 2), 'workspace-json');
+    copyValue(JSON.stringify(workspace.value, null, 2), 'workspace-json').catch(() => undefined);
   }
 }
 
