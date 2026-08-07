@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import _ from 'lodash';
 import type { PaletteOption } from './command-palette.types';
 import { useToolStore } from '@/tools/tools.store';
+import { developerWorkflows } from '@/tools/developer-workflows';
 import { useFuzzySearch } from '@/composable/fuzzySearch';
 import { useStyleStore } from '@/stores/style.store';
 
@@ -23,6 +24,14 @@ export const useCommandPaletteStore = defineStore('command-palette', () => {
     to: tool.path,
     toolCategory: tool.category,
     category: 'Tools',
+  }));
+
+  const workflowOptions: PaletteOption[] = developerWorkflows.map(workflow => ({
+    name: `Workflow: ${workflow.name}`,
+    description: workflow.description,
+    to: workflow.paths[0],
+    category: 'Workflows',
+    keywords: ['workflow', 'flow', ...workflow.keywords],
   }));
 
   const randomToolOption: PaletteOption = {
@@ -58,6 +67,7 @@ export const useCommandPaletteStore = defineStore('command-palette', () => {
 
   const searchOptions: PaletteOption[] = [
     ...toolsOptions,
+    ...workflowOptions,
     randomToolOption,
     toggleThemeOption,
     clearRecentOption,
@@ -115,6 +125,7 @@ export const useCommandPaletteStore = defineStore('command-palette', () => {
     return {
       ...(recent.length > 0 ? { Recent: recent } : {}),
       ...(favorites.length > 0 ? { Favorites: favorites } : {}),
+      Workflows: workflowOptions,
       'Quick actions': [
         randomToolOption,
         toggleThemeOption,
