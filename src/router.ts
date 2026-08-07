@@ -27,6 +27,11 @@ const router = createRouter({
       component: HomePage,
     },
     {
+      path: '/workspace',
+      name: 'developer-workspace',
+      component: () => import('./pages/DeveloperWorkspace.page.vue'),
+    },
+    {
       path: '/about',
       name: 'about',
       component: () => import('./pages/About.vue'),
