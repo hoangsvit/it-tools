@@ -7,10 +7,11 @@ import ColoredCard from '../components/ColoredCard.vue';
 import ToolCard from '../components/ToolCard.vue';
 import { useToolStore } from '@/tools/tools.store';
 import { config } from '@/config';
+import { createSeoHead } from '@/utils/seo';
 
 const toolStore = useToolStore();
 
-useHead({ title: 'IT Tools - Handy online tools for developers' });
+useHead(createSeoHead());
 const { t } = useI18n();
 
 const favoriteTools = computed(() => toolStore.favoriteTools);
