@@ -28,6 +28,20 @@ export const config = figue({
       env: 'VITE_VERCEL_ENV',
     },
   },
+  googleAnalytics: {
+    enabled: {
+      doc: 'Enable Google Analytics 4 tracking',
+      format: 'boolean',
+      default: true,
+      env: 'VITE_GOOGLE_ANALYTICS_ENABLED',
+    },
+    measurementId: {
+      doc: 'Google Analytics 4 measurement ID',
+      format: 'string',
+      default: 'G-RHM16CGF0T',
+      env: 'VITE_GOOGLE_ANALYTICS_ID',
+    },
+  },
   plausible: {
     isTrackerEnabled: {
       doc: 'Is the tracker enabled',
