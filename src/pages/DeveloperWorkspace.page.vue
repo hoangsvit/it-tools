@@ -15,6 +15,8 @@ import { useCopy } from '@/composable/copy';
 import { useDeveloperWorkspaceStore } from '@/modules/developer-workspace/developer-workspace.store';
 import type { WorkspaceStep } from '@/modules/developer-workspace/workspace.model';
 import { getWorkspaceProgress } from '@/modules/developer-workspace/workspace.model';
+import type { WorkspaceToolSuggestion } from '@/modules/developer-workspace/workspace-suggestions';
+import { suggestWorkspaceTools } from '@/modules/developer-workspace/workspace-suggestions';
 import { useToolStore } from '@/tools/tools.store';
 import { createSeoHead } from '@/utils/seo';
 
@@ -24,15 +26,16 @@ const router = useRouter();
 const dialog = useDialog();
 const { copy, isSupported: clipboardSupported } = useCopy({ createToast: false });
 const copiedTarget = ref('');
+const pastedTarget = ref('');
 
 useHead(createSeoHead({
   title: 'Developer Workspace',
-  description: 'Build local multi-step developer workflows with IT Tools, pass output between steps and keep work-in-progress private in your browser.',
+  description: 'Paste developer data, get smart tool suggestions, chain outputs into the next step and keep the workflow private in your browser.',
   path: '/workspace',
-  keywords: ['developer workspace', 'tool chaining', 'developer workflow', 'ePlus.DEV'],
+  keywords: ['developer workspace', 'smart tool suggestions', 'tool chaining', 'developer workflow', 'ePlus.DEV'],
 }));
 
-onMounted(() => workspaceStore.ensureActiveWorkspace(toolStore.recentTools[0]?.path ?? ''));
+onMounted(() => workspaceStore.ensureActiveWorkspace());
 
 const workspace = computed(() => workspaceStore.activeWorkspace);
 const workspaceOptions = computed(() => workspaceStore.workspaces.map(item => ({
@@ -44,16 +47,41 @@ const toolOptions = computed(() => toolStore.tools.map(tool => ({
   value: tool.path,
 })));
 const progress = computed(() => getWorkspaceProgress(workspace.value?.steps ?? []));
+const clipboardReadSupported = computed(() => (
+  typeof navigator !== 'undefined' && Boolean(navigator.clipboard?.readText)
+));
 
 function toolForStep(step: WorkspaceStep) {
   return toolStore.tools.find(tool => tool.path === step.toolPath);
 }
 
+function suggestionSource(step: WorkspaceStep) {
+  const output = step.output.trim();
+  if (output) {
+    return {
+      kind: 'output' as const,
+      value: output,
+    };
+  }
+
+  return {
+    kind: 'input' as const,
+    value: step.input.trim(),
+  };
+}
+
+function suggestionsForStep(step: WorkspaceStep) {
+  const source = suggestionSource(step);
+  return suggestWorkspaceTools({
+    value: source.value,
+    tools: toolStore.tools,
+    excludePaths: step.toolPath ? [step.toolPath] : [],
+    limit: 3,
+  });
+}
+
 function createWorkspace() {
-  workspaceStore.createWorkspace(
-    `Workspace ${workspaceStore.workspaces.length + 1}`,
-    toolStore.recentTools[0]?.path ?? '',
-  );
+  workspaceStore.createWorkspace(`Workspace ${workspaceStore.workspaces.length + 1}`);
 }
 
 function deleteWorkspace() {
@@ -78,6 +106,10 @@ function openTool(step: WorkspaceStep) {
     return;
   }
 
+  if (step.input.trim() && clipboardSupported.value) {
+    void copyValue(step.input, `${step.id}-launch`);
+  }
+
   window.open(router.resolve(step.toolPath).href, '_blank', 'noopener,noreferrer');
 }
 
@@ -96,9 +128,56 @@ async function copyValue(value: string, target: string) {
   }, 1400);
 }
 
+async function pasteValue(stepId: string, field: 'input' | 'output') {
+  if (!workspace.value || !clipboardReadSupported.value) {
+    return;
+  }
+
+  try {
+    const value = await navigator.clipboard.readText();
+    if (!value) {
+      return;
+    }
+
+    workspaceStore.updateStep(workspace.value.id, stepId, { [field]: value });
+    const target = `${stepId}-${field}`;
+    pastedTarget.value = target;
+
+    window.setTimeout(() => {
+      if (pastedTarget.value === target) {
+        pastedTarget.value = '';
+      }
+    }, 1400);
+  }
+  catch {
+    // Clipboard read can be denied by browser permissions. Keep the manual textarea fallback.
+  }
+}
+
+function applySuggestion(step: WorkspaceStep, suggestion: WorkspaceToolSuggestion) {
+  if (!workspace.value) {
+    return;
+  }
+
+  const source = suggestionSource(step);
+  if (source.kind === 'output') {
+    workspaceStore.addSuggestedStep(
+      workspace.value.id,
+      step.id,
+      suggestion.toolPath,
+      source.value,
+    );
+    return;
+  }
+
+  workspaceStore.updateStep(workspace.value.id, step.id, {
+    toolPath: suggestion.toolPath,
+  });
+}
+
 function copyWorkspaceJson() {
   if (workspace.value) {
-    copyValue(JSON.stringify(workspace.value, null, 2), 'workspace-json');
+    void copyValue(JSON.stringify(workspace.value, null, 2), 'workspace-json');
   }
 }
 
@@ -125,18 +204,28 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
   <div class="workspace-page">
     <div class="grid-wrapper">
       <header class="workspace-hero">
-        <div>
+        <div class="hero-copy">
           <div class="workspace-kicker">
             ePlus.DEV Developer Workspace
           </div>
-          <h1>Chain tools without losing context</h1>
+          <h1>Paste data. Let Workspace pick the right tools.</h1>
           <p>
-            Keep input, output and notes together, then hand a result to the next tool.
-            Workspace content stays in this browser.
+            Start with the data instead of hunting through the toolbox. Workspace detects common developer formats,
+            recommends the best matching tools, then suggests the next step from each output.
           </p>
         </div>
-        <div class="privacy-badge">
-          <span /> Browser-local only
+
+        <div class="hero-side">
+          <div class="privacy-badge">
+            <span /> Browser-local only
+          </div>
+          <div class="smart-flow">
+            <div><strong>1</strong><span>Paste input</span></div>
+            <i>→</i>
+            <div><strong>2</strong><span>Auto-detect</span></div>
+            <i>→</i>
+            <div><strong>3</strong><span>Add next</span></div>
+          </div>
         </div>
       </header>
 
@@ -184,10 +273,10 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
         </div>
 
         <div class="workspace-status">
-          <div><strong>{{ progress.configured }}/{{ progress.total }}</strong> steps configured</div>
-          <div><strong>{{ progress.withOutput }}</strong> steps with output</div>
+          <div><strong>{{ progress.configured }}/{{ progress.total }}</strong> tools selected</div>
+          <div><strong>{{ progress.withOutput }}</strong> steps completed</div>
           <div class="status-tip">
-            Paste a result into Output, then use <b>Send to next</b>.
+            Paste input first. Smart suggestions appear automatically when Workspace recognizes the data.
           </div>
         </div>
 
@@ -201,18 +290,12 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
             </div>
 
             <div class="step-body">
-              <div class="step-header">
-                <label class="field step-tool">
-                  <span>Tool</span>
-                  <n-select
-                    :value="step.toolPath"
-                    :options="toolOptions"
-                    filterable
-                    clearable
-                    placeholder="Choose a tool"
-                    @update:value="updateStepTool(step.id, $event)"
-                  />
-                </label>
+              <div class="step-topline">
+                <div>
+                  <strong>Step {{ index + 1 }}</strong>
+                  <span v-if="toolForStep(step)">· {{ toolForStep(step)?.name }}</span>
+                  <span v-else>· Paste data to get a suggestion</span>
+                </div>
 
                 <div class="step-controls">
                   <n-button
@@ -254,26 +337,12 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                 </div>
               </div>
 
-              <div v-if="toolForStep(step)" class="tool-summary">
-                <div class="tool-copy">
-                  <span class="tool-category">{{ toolForStep(step)?.category }}</span>
-                  <strong>{{ toolForStep(step)?.name }}</strong>
-                  <span class="tool-description">{{ toolForStep(step)?.description }}</span>
-                </div>
-                <n-button size="small" secondary @click="openTool(step)">
-                  <template #icon>
-                    <n-icon :component="IconExternalLink" />
-                  </template>
-                  Open tool
-                </n-button>
-              </div>
-
               <div class="handoff-grid">
                 <div class="payload-panel">
                   <div class="panel-heading">
                     <div>
                       <strong>Input</strong>
-                      <small>Prepared for this tool</small>
+                      <small>Paste data here first — tool selection is optional</small>
                     </div>
                     <div class="panel-actions">
                       <n-button
@@ -284,6 +353,14 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                         @click="workspaceStore.usePreviousOutput(workspace.id, step.id)"
                       >
                         Use previous output
+                      </n-button>
+                      <n-button
+                        size="tiny"
+                        quaternary
+                        :disabled="!clipboardReadSupported"
+                        @click="pasteValue(step.id, 'input')"
+                      >
+                        {{ pastedTarget === `${step.id}-input` ? 'Pasted' : 'Paste' }}
                       </n-button>
                       <n-button
                         size="tiny"
@@ -299,7 +376,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                     :value="step.input"
                     type="textarea"
                     :autosize="{ minRows: 5, maxRows: 14 }"
-                    placeholder="Paste or prepare input for this tool..."
+                    placeholder="Try a JWT, JSON, URL, YAML, XML, Base64, IP, SQL, docker run command..."
                     @update:value="updateStepText(step.id, 'input', $event)"
                   />
                 </div>
@@ -312,9 +389,17 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                   <div class="panel-heading">
                     <div>
                       <strong>Output</strong>
-                      <small>Result produced by this step</small>
+                      <small>Paste the result back; Workspace will suggest what to do next</small>
                     </div>
                     <div class="panel-actions">
+                      <n-button
+                        size="tiny"
+                        quaternary
+                        :disabled="!clipboardReadSupported"
+                        @click="pasteValue(step.id, 'output')"
+                      >
+                        {{ pastedTarget === `${step.id}-output` ? 'Pasted' : 'Paste result' }}
+                      </n-button>
                       <n-button
                         size="tiny"
                         quaternary
@@ -339,9 +424,80 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                     :value="step.output"
                     type="textarea"
                     :autosize="{ minRows: 5, maxRows: 14 }"
-                    placeholder="Paste the tool result here..."
+                    placeholder="Copy the tool result, come back, then press Paste result..."
                     @update:value="updateStepText(step.id, 'output', $event)"
                   />
+                </div>
+              </div>
+
+              <div v-if="suggestionsForStep(step).length" class="smart-suggestions">
+                <div class="suggestions-heading">
+                  <div>
+                    <span class="smart-label">Smart suggestions</span>
+                    <strong>Detected {{ suggestionsForStep(step)[0]?.label }}</strong>
+                    <small v-if="step.output.trim()">Based on this step's output</small>
+                    <small v-else>Based on this step's input</small>
+                  </div>
+                  <span class="confidence-pill">
+                    {{ Math.round((suggestionsForStep(step)[0]?.confidence ?? 0) * 100) }}% confidence
+                  </span>
+                </div>
+
+                <div class="suggestion-list">
+                  <button
+                    v-for="(suggestion, suggestionIndex) in suggestionsForStep(step)"
+                    :key="`${step.id}-${suggestion.toolPath}`"
+                    class="suggestion-card"
+                    type="button"
+                    @click="applySuggestion(step, suggestion)"
+                  >
+                    <span class="suggestion-rank">{{ suggestionIndex + 1 }}</span>
+                    <span class="suggestion-copy">
+                      <span class="suggestion-meta">{{ suggestion.category }}</span>
+                      <strong>{{ suggestion.toolName }}</strong>
+                      <small>{{ suggestion.description }}</small>
+                    </span>
+                    <span class="suggestion-action">
+                      {{ step.output.trim() ? 'Add next' : 'Use tool' }} →
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div
+                v-else-if="step.input.trim() && !step.output.trim() && !step.toolPath"
+                class="no-suggestion"
+              >
+                Workspace could not identify this input confidently. Choose a tool manually below instead of guessing.
+              </div>
+
+              <div class="tool-row">
+                <label class="field step-tool">
+                  <span>{{ step.toolPath ? 'Selected tool' : 'Manual tool selection' }}</span>
+                  <n-select
+                    :value="step.toolPath"
+                    :options="toolOptions"
+                    filterable
+                    clearable
+                    placeholder="Search all tools"
+                    @update:value="updateStepTool(step.id, $event)"
+                  />
+                </label>
+
+                <div v-if="toolForStep(step)" class="tool-summary">
+                  <div class="tool-copy">
+                    <span class="tool-category">{{ toolForStep(step)?.category }}</span>
+                    <div>
+                      <strong>{{ toolForStep(step)?.name }}</strong>
+                      <span class="tool-description">{{ toolForStep(step)?.description }}</span>
+                    </div>
+                  </div>
+                  <n-button size="small" type="primary" secondary @click="openTool(step)">
+                    <template #icon>
+                      <n-icon :component="IconExternalLink" />
+                    </template>
+                    {{ step.input.trim() && clipboardSupported ? 'Copy input & open' : 'Open tool' }}
+                  </n-button>
                 </div>
               </div>
 
@@ -370,7 +526,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
             <template #icon>
               <n-icon :component="IconPlus" />
             </template>
-            Add another tool step
+            Add blank step manually
           </n-button>
         </div>
       </section>
@@ -380,27 +536,31 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
 
 <style scoped lang="less">
 .workspace-page {
-  padding: 46px 0 64px;
+  padding: 42px 0 64px;
 }
 
 .workspace-hero {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 28px;
   margin-bottom: 20px;
+}
 
+.hero-copy {
   h1 {
-    margin: 4px 0 8px;
-    font-size: clamp(26px, 4vw, 42px);
-    line-height: 1.05;
+    max-width: 850px;
+    margin: 5px 0 10px;
+    font-size: clamp(28px, 4vw, 44px);
+    line-height: 1.04;
+    letter-spacing: -0.025em;
   }
 
   p {
-    max-width: 760px;
+    max-width: 780px;
     margin: 0;
     opacity: 0.62;
-    line-height: 1.6;
+    line-height: 1.65;
   }
 }
 
@@ -412,9 +572,14 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
   text-transform: uppercase;
 }
 
+.hero-side {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+
 .privacy-badge {
   display: inline-flex;
-  flex: 0 0 auto;
   align-items: center;
   gap: 7px;
   padding: 7px 10px;
@@ -429,6 +594,41 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
     border-radius: 50%;
     background: #18a058;
     box-shadow: 0 0 0 4px rgba(24, 160, 88, 0.12);
+  }
+}
+
+.smart-flow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 12px;
+  background: rgba(128, 128, 128, 0.035);
+
+  div {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+
+  strong {
+    display: grid;
+    width: 20px;
+    height: 20px;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(24, 160, 88, 0.12);
+    color: #18a058;
+    font-size: 10px;
+  }
+
+  span,
+  i {
+    opacity: 0.55;
+    font-size: 11px;
+    font-style: normal;
   }
 }
 
@@ -530,13 +730,13 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
 .step-body {
   min-width: 0;
   margin-bottom: 14px;
-  padding: 13px;
+  padding: 14px;
   border: 1px solid rgba(128, 128, 128, 0.16);
   border-radius: 13px;
   background: rgba(128, 128, 128, 0.025);
 }
 
-.step-header,
+.step-topline,
 .tool-summary,
 .panel-heading,
 .notes-row {
@@ -545,45 +745,19 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
   gap: 10px;
 }
 
-.step-header {
-  align-items: end;
-}
-
-.step-tool {
-  flex: 1;
-}
-
-.tool-summary {
+.step-topline {
   justify-content: space-between;
-  margin-top: 9px;
-  padding: 9px 10px;
-  border-radius: 9px;
-  background: rgba(128, 128, 128, 0.055);
-}
+  margin-bottom: 10px;
 
-.tool-copy {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 8px;
-}
+  > div:first-child {
+    display: flex;
+    gap: 5px;
+    font-size: 12px;
+  }
 
-.tool-category {
-  flex: 0 0 auto;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: rgba(24, 160, 88, 0.09);
-  color: #18a058;
-  font-size: 10px;
-  font-weight: 650;
-}
-
-.tool-description {
-  overflow: hidden;
-  opacity: 0.55;
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  span {
+    opacity: 0.5;
+  }
 }
 
 .handoff-grid {
@@ -591,7 +765,6 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
   grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr);
   align-items: center;
   gap: 6px;
-  margin-top: 12px;
 }
 
 .payload-panel {
@@ -599,7 +772,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
 }
 
 .panel-heading {
-  min-height: 32px;
+  min-height: 34px;
   justify-content: space-between;
   margin-bottom: 6px;
 
@@ -623,6 +796,194 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
   opacity: 0.32;
 }
 
+.smart-suggestions {
+  margin-top: 12px;
+  padding: 11px;
+  border: 1px solid rgba(24, 160, 88, 0.22);
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(24, 160, 88, 0.07), rgba(24, 160, 88, 0.025));
+}
+
+.suggestions-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+
+  > div {
+    display: grid;
+    gap: 1px;
+  }
+
+  strong {
+    font-size: 13px;
+  }
+
+  small {
+    opacity: 0.52;
+    font-size: 10px;
+  }
+}
+
+.smart-label {
+  color: #18a058;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.confidence-pill {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(24, 160, 88, 0.12);
+  color: #18a058;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.suggestion-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.suggestion-card {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  position: relative;
+  min-width: 0;
+  padding: 9px 9px 28px;
+  border: 1px solid rgba(128, 128, 128, 0.16);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.035);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: rgba(24, 160, 88, 0.42);
+    background: rgba(24, 160, 88, 0.07);
+  }
+}
+
+.suggestion-rank {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 7px;
+  background: rgba(24, 160, 88, 0.12);
+  color: #18a058;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.suggestion-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  padding-left: 2px;
+
+  strong {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small {
+    display: -webkit-box;
+    overflow: hidden;
+    opacity: 0.5;
+    font-size: 10px;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}
+
+.suggestion-meta {
+  color: #18a058;
+  font-size: 9px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.suggestion-action {
+  position: absolute;
+  right: 9px;
+  bottom: 8px;
+  color: #18a058;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.no-suggestion {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(128, 128, 128, 0.055);
+  opacity: 0.62;
+  font-size: 11px;
+}
+
+.tool-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.72fr) minmax(0, 1.28fr);
+  align-items: end;
+  gap: 10px;
+  margin-top: 11px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(128, 128, 128, 0.11);
+}
+
+.step-tool {
+  min-width: 0;
+}
+
+.tool-summary {
+  min-width: 0;
+  justify-content: space-between;
+  padding: 7px 8px;
+  border-radius: 9px;
+  background: rgba(128, 128, 128, 0.055);
+}
+
+.tool-copy {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+
+  > div {
+    display: grid;
+    min-width: 0;
+  }
+}
+
+.tool-category {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(24, 160, 88, 0.09);
+  color: #18a058;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.tool-description {
+  overflow: hidden;
+  opacity: 0.55;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .notes-row {
   margin-top: 10px;
 
@@ -642,13 +1003,21 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
   padding: 0 58px 16px;
 }
 
-@media (max-width: 900px) {
-  .workspace-hero,
-  .tool-summary {
-    align-items: stretch;
-    flex-direction: column;
+@media (max-width: 1000px) {
+  .workspace-hero {
+    grid-template-columns: 1fr;
   }
 
+  .hero-side {
+    justify-items: start;
+  }
+
+  .suggestion-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
   .workspace-toolbar {
     grid-template-columns: 1fr 1fr;
   }
@@ -668,12 +1037,18 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
     margin-left: 0;
   }
 
-  .handoff-grid {
+  .handoff-grid,
+  .tool-row {
     grid-template-columns: 1fr;
   }
 
   .handoff-arrow {
     transform: rotate(90deg);
+  }
+
+  .tool-summary {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 
@@ -690,6 +1065,11 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
     grid-column: auto;
   }
 
+  .smart-flow {
+    width: 100%;
+    overflow-x: auto;
+  }
+
   .step-card {
     grid-template-columns: 26px minmax(0, 1fr);
     gap: 6px;
@@ -700,9 +1080,10 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
     height: 24px;
   }
 
-  .step-header,
+  .step-topline,
   .panel-heading,
-  .notes-row {
+  .notes-row,
+  .suggestions-heading {
     align-items: stretch;
     flex-direction: column;
   }
@@ -713,6 +1094,10 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
 
   .panel-actions {
     flex-wrap: wrap;
+  }
+
+  .confidence-pill {
+    width: fit-content;
   }
 
   .add-step-row {
