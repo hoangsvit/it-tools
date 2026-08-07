@@ -44,7 +44,7 @@ useHead(head);
           </n-h1>
 
           <div flex items-center>
-            <ToolShareButton />
+            <ToolShareButton :path="route.path" />
             <FavoriteButton :tool="{ name: route.meta.name, path: route.path } as Tool" />
           </div>
         </div>
