@@ -59,7 +59,7 @@ export default defineConfig({
       manifest: {
         name: 'ePlus.DEV IT Tools',
         short_name: 'ePlus Tools',
-        description: 'Privacy-friendly developer tools enhanced by ePlus.DEV with smart discovery, recent history and quick sharing.',
+        description: 'Privacy-friendly developer tools enhanced by ePlus.DEV with local workspaces, smart discovery, recent history and quick sharing.',
         display: 'standalone',
         lang: 'en',
         start_url: `${baseUrl}?utm_source=pwa&utm_medium=pwa`,
@@ -68,6 +68,12 @@ export default defineConfig({
         background_color: '#f1f5f9',
         categories: ['developer', 'utilities', 'productivity'],
         shortcuts: [
+          {
+            name: 'Developer Workspace',
+            short_name: 'Workspace',
+            description: 'Chain developer tools and keep input/output context locally.',
+            url: `${baseUrl}workspace`,
+          },
           {
             name: 'JWT Parser',
             short_name: 'JWT',
