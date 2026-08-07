@@ -12,6 +12,7 @@ import BugIcon from '~icons/mdi/bug-outline';
 import DiceIcon from '~icons/mdi/dice-5';
 import InfoIcon from '~icons/mdi/information-outline';
 import HistoryIcon from '~icons/mdi/history';
+import WorkspaceIcon from '~icons/mdi/view-dashboard-outline';
 
 export const useCommandPaletteStore = defineStore('command-palette', () => {
   const toolStore = useToolStore();
@@ -33,6 +34,16 @@ export const useCommandPaletteStore = defineStore('command-palette', () => {
     category: 'Workflows',
     keywords: ['workflow', 'flow', ...workflow.keywords],
   }));
+
+  const workspaceOption: PaletteOption = {
+    name: 'Developer Workspace',
+    description: 'Chain tools, keep local input/output context and hand results to the next step.',
+    to: '/workspace',
+    icon: WorkspaceIcon,
+    category: 'Pages',
+    keywords: ['workspace', 'pipeline', 'chain', 'handoff', 'workflow', 'local', 'output', 'input'],
+    closeOnSelect: true,
+  };
 
   const randomToolOption: PaletteOption = {
     name: 'Random tool',
@@ -68,6 +79,7 @@ export const useCommandPaletteStore = defineStore('command-palette', () => {
   const searchOptions: PaletteOption[] = [
     ...toolsOptions,
     ...workflowOptions,
+    workspaceOption,
     randomToolOption,
     toggleThemeOption,
     clearRecentOption,
@@ -127,6 +139,7 @@ export const useCommandPaletteStore = defineStore('command-palette', () => {
       ...(favorites.length > 0 ? { Favorites: favorites } : {}),
       'Workflows': workflowOptions,
       'Quick actions': [
+        workspaceOption,
         randomToolOption,
         toggleThemeOption,
         ...(recent.length > 0 ? [clearRecentOption] : []),
