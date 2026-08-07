@@ -107,7 +107,7 @@ function openTool(step: WorkspaceStep) {
   }
 
   if (step.input.trim() && clipboardSupported.value) {
-    void copyValue(step.input, `${step.id}-launch`);
+    copyValue(step.input, `${step.id}-launch`);
   }
 
   window.open(router.resolve(step.toolPath).href, '_blank', 'noopener,noreferrer');
@@ -177,7 +177,7 @@ function applySuggestion(step: WorkspaceStep, suggestion: WorkspaceToolSuggestio
 
 function copyWorkspaceJson() {
   if (workspace.value) {
-    void copyValue(JSON.stringify(workspace.value, null, 2), 'workspace-json');
+    copyValue(JSON.stringify(workspace.value, null, 2), 'workspace-json');
   }
 }
 
