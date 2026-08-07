@@ -4,6 +4,7 @@ import type { DeveloperWorkspace, WorkspaceStep } from './workspace.model';
 import {
   createDeveloperWorkspace,
   createWorkspaceStep,
+  insertWorkspaceStepAfter,
   moveWorkspaceStep,
   sendWorkspaceOutputToNext,
   usePreviousWorkspaceOutput,
@@ -92,6 +93,20 @@ export const useDeveloperWorkspaceStore = defineStore('developer-workspace', () 
     }));
   }
 
+  function addSuggestedStep(workspaceId: string, sourceStepId: string, toolPath: string, input: string) {
+    persistWorkspace(workspaceId, (workspace) => {
+      const suggestedStep = {
+        ...createWorkspaceStep(toolPath),
+        input,
+      };
+
+      return {
+        ...workspace,
+        steps: insertWorkspaceStepAfter(workspace.steps, sourceStepId, suggestedStep),
+      };
+    });
+  }
+
   function removeStep(workspaceId: string, stepId: string) {
     persistWorkspace(workspaceId, (workspace) => {
       const steps = workspace.steps.filter(step => step.id !== stepId);
@@ -152,6 +167,7 @@ export const useDeveloperWorkspaceStore = defineStore('developer-workspace', () 
     renameWorkspace,
     selectWorkspace,
     addStep,
+    addSuggestedStep,
     removeStep,
     updateStep,
     moveStep,
