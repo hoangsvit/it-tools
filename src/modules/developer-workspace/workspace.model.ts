@@ -79,7 +79,7 @@ export function sendWorkspaceOutputToNext(
   }
 
   const output = steps[index].output;
-  if (!output) {
+  if (!output.trim()) {
     return steps;
   }
 
@@ -101,7 +101,7 @@ export function usePreviousWorkspaceOutput(
   }
 
   const previousOutput = steps[index - 1].output;
-  if (!previousOutput) {
+  if (!previousOutput.trim()) {
     return steps;
   }
 
