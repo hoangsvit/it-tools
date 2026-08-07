@@ -42,31 +42,6 @@ export const config = figue({
       env: 'VITE_GOOGLE_ANALYTICS_ID',
     },
   },
-  plausible: {
-    isTrackerEnabled: {
-      doc: 'Is the tracker enabled',
-      format: 'boolean',
-      default: false,
-      env: 'VITE_TRACKER_ENABLED',
-    },
-    domain: {
-      doc: 'Plausible current domain',
-      format: 'string',
-      default: '',
-      env: 'VITE_PLAUSIBLE_DOMAIN',
-    },
-    apiHost: {
-      doc: 'Plausible remote api host',
-      format: 'string',
-      default: '',
-      env: 'VITE_PLAUSIBLE_API_HOST',
-    },
-    trackLocalhost: {
-      doc: 'Enable or disable localhost tracking by plausible',
-      format: 'boolean',
-      default: false,
-    },
-  },
   showBanner: {
     doc: 'Show the banner',
     format: 'boolean',
