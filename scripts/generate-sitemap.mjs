@@ -32,11 +32,17 @@ function collectToolRoutes() {
     });
 }
 
-const routes = Array.from(new Set(['/', '/about', ...collectToolRoutes()])).sort();
+const routes = Array.from(new Set(['/', '/workspace', '/about', ...collectToolRoutes()])).sort();
 const urls = routes
   .map((route) => {
     const location = new URL(route, `${SITE_URL}/`).toString();
-    const priority = route === '/' ? '1.0' : route === '/about' ? '0.5' : '0.8';
+    const priority = route === '/'
+      ? '1.0'
+      : route === '/workspace'
+        ? '0.9'
+        : route === '/about'
+          ? '0.5'
+          : '0.8';
     return `  <url>\n    <loc>${escapeXml(location)}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
   })
   .join('\n');
