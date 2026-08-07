@@ -101,6 +101,24 @@ function copyWorkspaceJson() {
     copyValue(JSON.stringify(workspace.value, null, 2), 'workspace-json');
   }
 }
+
+function renameActiveWorkspace(value: string) {
+  if (workspace.value) {
+    workspaceStore.renameWorkspace(workspace.value.id, value);
+  }
+}
+
+function updateStepTool(stepId: string, value: string | null) {
+  if (workspace.value) {
+    workspaceStore.updateStep(workspace.value.id, stepId, { toolPath: value ?? '' });
+  }
+}
+
+function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', value: string) {
+  if (workspace.value) {
+    workspaceStore.updateStep(workspace.value.id, stepId, { [field]: value });
+  }
+}
 </script>
 
 <template>
@@ -139,7 +157,7 @@ function copyWorkspaceJson() {
             <n-input
               :value="workspace.name"
               maxlength="80"
-              @update:value="value => workspaceStore.renameWorkspace(workspace.id, value)"
+              @update:value="renameActiveWorkspace"
             />
           </label>
 
@@ -192,7 +210,7 @@ function copyWorkspaceJson() {
                     filterable
                     clearable
                     placeholder="Choose a tool"
-                    @update:value="value => workspaceStore.updateStep(workspace.id, step.id, { toolPath: value ?? '' })"
+                    @update:value="updateStepTool(step.id, $event)"
                   />
                 </label>
 
@@ -282,7 +300,7 @@ function copyWorkspaceJson() {
                     type="textarea"
                     :autosize="{ minRows: 5, maxRows: 14 }"
                     placeholder="Paste or prepare input for this tool..."
-                    @update:value="value => workspaceStore.updateStep(workspace.id, step.id, { input: value })"
+                    @update:value="updateStepText(step.id, 'input', $event)"
                   />
                 </div>
 
@@ -322,7 +340,7 @@ function copyWorkspaceJson() {
                     type="textarea"
                     :autosize="{ minRows: 5, maxRows: 14 }"
                     placeholder="Paste the tool result here..."
-                    @update:value="value => workspaceStore.updateStep(workspace.id, step.id, { output: value })"
+                    @update:value="updateStepText(step.id, 'output', $event)"
                   />
                 </div>
               </div>
@@ -332,7 +350,7 @@ function copyWorkspaceJson() {
                 <n-input
                   :value="step.notes"
                   placeholder="Optional context, assumptions, TODOs..."
-                  @update:value="value => workspaceStore.updateStep(workspace.id, step.id, { notes: value })"
+                  @update:value="updateStepText(step.id, 'notes', $event)"
                 />
                 <n-button
                   size="small"
