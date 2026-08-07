@@ -15,6 +15,29 @@ export function shouldEnableGoogleAnalytics({
   return enabled && measurementId.length > 0 && !LOCAL_HOSTNAMES.has(hostname);
 }
 
+export function normalizeGoogleAnalyticsEventName(eventName: string) {
+  const normalized = eventName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  if (!normalized) {
+    return 'custom_event';
+  }
+
+  const withValidPrefix = /^[a-z]/.test(normalized) ? normalized : `event_${normalized}`;
+  return withValidPrefix.slice(0, 40);
+}
+
+export function trackGoogleAnalyticsEvent(eventName: string, params: Record<string, unknown> = {}) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.gtag?.('event', normalizeGoogleAnalyticsEventName(eventName), params);
+}
+
 export function installGoogleAnalytics({ router }: { router: Router }) {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return;
