@@ -4,15 +4,26 @@ import { useHead } from '@vueuse/head';
 
 import BaseLayout from './base.layout.vue';
 import FavoriteButton from '@/components/FavoriteButton.vue';
+import ToolShareButton from '@/components/ToolShareButton.vue';
+import ToolCard from '@/components/ToolCard.vue';
 import type { Tool } from '@/tools/tools.types';
+import { useToolStore } from '@/tools/tools.store';
 import { createSeoHead } from '@/utils/seo';
 
 const route = useRoute();
 const { t } = useI18n();
+const toolStore = useToolStore();
 
 const i18nKey = computed<string>(() => route.path.trim().replace('/', ''));
 const toolTitle = computed<string>(() => t(`tools.${i18nKey.value}.title`, String(route.meta.name)));
 const toolDescription = computed<string>(() => t(`tools.${i18nKey.value}.description`, String(route.meta.description)));
+const relatedTools = computed(() => toolStore.getRelatedTools({ toolPath: route.path, limit: 4 }));
+
+watch(
+  () => route.path,
+  path => toolStore.markToolAsRecent(path),
+  { immediate: true },
+);
 
 const head = computed(() => createSeoHead({
   title: toolTitle.value,
@@ -27,12 +38,13 @@ useHead(head);
   <BaseLayout>
     <div class="tool-layout">
       <div class="tool-header">
-        <div flex flex-nowrap items-center justify-between>
+        <div flex flex-nowrap items-center justify-between gap-2>
           <n-h1>
             {{ toolTitle }}
           </n-h1>
 
-          <div>
+          <div flex items-center>
+            <ToolShareButton />
             <FavoriteButton :tool="{ name: route.meta.name, path: route.path } as Tool" />
           </div>
         </div>
@@ -48,6 +60,16 @@ useHead(head);
     <div class="tool-content">
       <slot />
     </div>
+
+    <section v-if="relatedTools.length > 0" class="related-tools" aria-label="Related tools">
+      <div class="related-heading">
+        <span>Related tools</span>
+        <span class="related-caption">Smart picks based on category and shared keywords</span>
+      </div>
+      <div class="related-grid">
+        <ToolCard v-for="tool in relatedTools" :key="tool.path" :tool="tool" />
+      </div>
+    </section>
   </BaseLayout>
 </template>
 
@@ -87,15 +109,58 @@ useHead(head);
       height: 2px;
       background: rgb(161, 161, 161);
       opacity: 0.2;
-
       margin: 10px 0;
     }
 
     .description {
       margin: 0;
-
       opacity: 0.7;
     }
+  }
+}
+
+.related-tools {
+  max-width: 1220px;
+  margin: 36px auto 20px;
+  padding: 0 12px;
+}
+
+.related-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: rgba(128, 128, 128, 0.9);
+  font-weight: 500;
+}
+
+.related-caption {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.65;
+}
+
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 1000px) {
+  .related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .related-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .related-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
