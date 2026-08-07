@@ -1,11 +1,11 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { cwd } from 'node:process';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { developerWorkflows } from './developer-workflows';
 
 function collectRegisteredToolPaths() {
-  const toolsDir = join(cwd(), 'src', 'tools');
+  const toolsDir = fileURLToPath(new URL('.', import.meta.url));
 
   return new Set(
     readdirSync(toolsDir, { withFileTypes: true })
