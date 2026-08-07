@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shouldEnableGoogleAnalytics } from './google-analytics.plugin';
+import { normalizeGoogleAnalyticsEventName, shouldEnableGoogleAnalytics } from './google-analytics.plugin';
 
 describe('google analytics', () => {
   it('enables tracking for a configured public hostname', () => {
@@ -30,5 +30,11 @@ describe('google analytics', () => {
       measurementId: '',
       hostname: 'tools.eplus.dev',
     })).toBe(false);
+  });
+
+  it('normalizes legacy tracker event names into valid GA4 event names', () => {
+    expect(normalizeGoogleAnalyticsEventName('Fork star button clicked')).toBe('fork_star_button_clicked');
+    expect(normalizeGoogleAnalyticsEventName('123 event')).toBe('event_123_event');
+    expect(normalizeGoogleAnalyticsEventName('   ')).toBe('custom_event');
   });
 });
