@@ -280,7 +280,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                         v-if="index > 0"
                         size="tiny"
                         secondary
-                        :disabled="!workspace.steps[index - 1]?.output"
+                        :disabled="!workspace.steps[index - 1]?.output.trim()"
                         @click="workspaceStore.usePreviousOutput(workspace.id, step.id)"
                       >
                         Use previous output
@@ -328,7 +328,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                         size="tiny"
                         type="primary"
                         secondary
-                        :disabled="!step.output"
+                        :disabled="!step.output.trim()"
                         @click="workspaceStore.sendOutputToNext(workspace.id, step.id)"
                       >
                         Send to next
