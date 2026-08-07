@@ -67,6 +67,34 @@ export function moveWorkspaceStep(
   return next;
 }
 
+export function insertWorkspaceStepAfter(
+  steps: WorkspaceStep[],
+  stepId: string,
+  newStep: WorkspaceStep,
+): WorkspaceStep[] {
+  const index = steps.findIndex(step => step.id === stepId);
+  if (index < 0) {
+    return steps;
+  }
+
+  const nextStep = steps[index + 1];
+  const canReuseNextStep = nextStep
+    && !nextStep.toolPath
+    && !nextStep.input.trim()
+    && !nextStep.output.trim()
+    && !nextStep.notes.trim();
+
+  if (canReuseNextStep) {
+    return steps.map(step => step.id === nextStep.id
+      ? { ...newStep, id: nextStep.id }
+      : step);
+  }
+
+  const next = [...steps];
+  next.splice(index + 1, 0, newStep);
+  return next;
+}
+
 export function sendWorkspaceOutputToNext(
   steps: WorkspaceStep[],
   stepId: string,
