@@ -1,0 +1,81 @@
+name: Patch workspace template types
+
+on:
+  push:
+    branches:
+      - agent/developer-workspace
+    paths:
+      - .github/workflows/patch-workspace-types.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+        with:
+          ref: agent/developer-workspace
+          fetch-depth: 0
+      - name: Apply typed workspace handlers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/pages/DeveloperWorkspace.page.vue')
+          source = path.read_text()
+
+          marker = """function copyWorkspaceJson() {
+            if (workspace.value) {
+              copyValue(JSON.stringify(workspace.value, null, 2), 'workspace-json');
+            }
+          }
+          """
+
+          replacement = marker + """
+          function renameActiveWorkspace(value: string) {
+            if (workspace.value) {
+              workspaceStore.renameWorkspace(workspace.value.id, value);
+            }
+          }
+
+          function updateStepTool(stepId: string, value: string | null) {
+            if (workspace.value) {
+              workspaceStore.updateStep(workspace.value.id, stepId, { toolPath: value ?? '' });
+            }
+          }
+
+          function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', value: string) {
+            if (workspace.value) {
+              workspaceStore.updateStep(workspace.value.id, stepId, { [field]: value });
+            }
+          }
+          """
+
+          if marker not in source:
+            raise SystemExit('copyWorkspaceJson marker not found')
+          source = source.replace(marker, replacement, 1)
+
+          replacements = {
+            '@update:value="value => workspaceStore.renameWorkspace(workspace.id, value)"': '@update:value="renameActiveWorkspace"',
+            '@update:value="value => workspaceStore.updateStep(workspace.id, step.id, { toolPath: value ?? \'\' })"': '@update:value="updateStepTool(step.id, $event)"',
+            '@update:value="value => workspaceStore.updateStep(workspace.id, step.id, { input: value })"': '@update:value="updateStepText(step.id, \'input\', $event)"',
+            '@update:value="value => workspaceStore.updateStep(workspace.id, step.id, { output: value })"': '@update:value="updateStepText(step.id, \'output\', $event)"',
+            '@update:value="value => workspaceStore.updateStep(workspace.id, step.id, { notes: value })"': '@update:value="updateStepText(step.id, \'notes\', $event)"',
+          }
+
+          for old, new in replacements.items():
+            if old not in source:
+              raise SystemExit(f'missing expected template expression: {old}')
+            source = source.replace(old, new, 1)
+
+          path.write_text(source)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/DeveloperWorkspace.page.vue
+          git commit -m "fix: type workspace update handlers"
+          git push origin HEAD:agent/developer-workspace
