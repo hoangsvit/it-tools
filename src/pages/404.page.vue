@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { useHead } from '@vueuse/head';
+import { useRoute } from 'vue-router';
+import { createSeoHead } from '@/utils/seo';
 
-useHead({ title: 'Page not found - IT Tools' });
+const route = useRoute();
+useHead(createSeoHead({
+  title: 'Page not found',
+  description: 'The requested IT Tools page could not be found.',
+  path: route.path,
+  noindex: true,
+}));
 </script>
 
 <template>
