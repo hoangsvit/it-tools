@@ -1,131 +1,107 @@
 <picture>
-    <source srcset="./.github/logo-dark.png" media="(prefers-color-scheme: light)">
-    <source srcset="./.github/logo-white.png" media="(prefers-color-scheme: dark)">
-    <img src="./.github/logo-dark.png" alt="logo">
+  <source srcset="./.github/logo-dark.png" media="(prefers-color-scheme: light)">
+  <source srcset="./.github/logo-white.png" media="(prefers-color-scheme: dark)">
+  <img src="./.github/logo-dark.png" alt="IT Tools logo">
 </picture>
 
-Useful tools for developer and people working in IT. [Have a look !](https://tools.eplus.dev).
+# IT Tools — ePlus.DEV Edition
 
-## Functionalities and roadmap
+A developer-focused fork of [CorentinTh/it-tools](https://github.com/CorentinTh/it-tools), maintained by [David Nguyen](https://github.com/hoangsvit) and deployed at **https://tools.eplus.dev**.
 
-Please check the [issues](https://github.com/CorentinTh/it-tools/issues) to see if some feature listed to be implemented.
+This fork keeps the large collection of privacy-friendly browser tools from upstream, while adding its own discovery, sharing, SEO and developer-experience layer.
 
-You have an idea of a tool? Submit a [feature request](https://github.com/CorentinTh/it-tools/issues/new/choose)!
+## What is different in this fork?
 
-## Self host
+| ePlus.DEV enhancement | Why it matters |
+| --- | --- |
+| **Smart Launcher** | `Ctrl/Cmd + K` prioritizes recently used tools, favorites and quick actions before full-text search. |
+| **Local recent history** | Remembers the tools you actually use most. History stays in browser storage and can be cleared from the launcher. |
+| **Smart Related Tools** | Every tool recommends useful next tools based on category and shared keywords. |
+| **Quick Share** | Copy a clean canonical tool URL directly from each tool page. |
+| **SEO-first routes** | Dynamic canonical URLs, Open Graph/Twitter metadata, structured data, sitemap generation and noindex handling for 404 pages. |
+| **Fork ownership metadata** | GitHub, social and package metadata point to the ePlus.DEV-maintained fork while preserving upstream credit. |
+| **Hardened CI** | Unit tests, type checking, production builds and Playwright E2E are kept green on a Playwright-compatible runner. |
 
-Self host solutions for your homelab
+### Privacy by design
 
-**From docker hub:**
+Recent-tool history is stored locally in the browser. It is not synced to a server by this feature. Use **Clear recent tools** from the Smart Launcher whenever you want to remove it.
 
-```sh
-docker run -d --name it-tools --restart unless-stopped -p 8080:80 corentinth/it-tools:latest
-```
+## Live site
 
-**From github packages:**
+**https://tools.eplus.dev**
 
-```sh
-docker run -d --name it-tools --restart unless-stopped -p 8080:80 ghcr.io/corentinth/it-tools:latest
-```
+## Keyboard workflow
 
-**Other solutions:**
+- `Ctrl + K` on Windows/Linux or `Cmd + K` on macOS: open Smart Launcher
+- `↑` / `↓`: move through results
+- `Enter`: open the selected tool or action
+- `Esc`: close the launcher
 
-- [Cloudron](https://www.cloudron.io/store/tech.ittools.cloudron.html)
-- [Tipi](https://www.runtipi.io/docs/apps-available)
-- [Unraid](https://unraid.net/community/apps?q=it-tools)
+## Development
 
-## Contribute
+### Requirements
 
-### Recommended IDE Setup
+- Node.js compatible with the repository `.nvmrc`
+- pnpm 9
 
-[VSCode](https://code.visualstudio.com/) with the following extensions:
-
-- [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur)
-- [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
-- [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
-- [i18n Ally](https://marketplace.visualstudio.com/items?itemName=lokalise.i18n-ally)
-
-with the following settings:
-
-```json
-{
-  "editor.formatOnSave": false,
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
-  },
-  "i18n-ally.localesPaths": ["locales", "src/tools/*/locales"],
-  "i18n-ally.keystyle": "nested"
-}
-```
-
-### Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin) to make the TypeScript language service aware of `.vue` types.
-
-If the standalone TypeScript plugin doesn't feel fast enough to you, Volar has also implemented a [Take Over Mode](https://github.com/johnsoncodehk/volar/discussions/471#discussioncomment-1361669) that is more performant. You can enable it by the following steps:
-
-1. Disable the built-in TypeScript Extension
-   1. Run `Extensions: Show Built-in Extensions` from VSCode's command palette
-   2. Find `TypeScript and JavaScript Language Features`, right click and select `Disable (Workspace)`
-2. Reload the VSCode window by running `Developer: Reload Window` from the command palette.
-
-### Project Setup
+### Install
 
 ```sh
 pnpm install
 ```
 
-### Compile and Hot-Reload for Development
+### Run locally
 
 ```sh
 pnpm dev
 ```
 
-### Type-Check, Compile and Minify for Production
-
-```sh
-pnpm build
-```
-
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-pnpm test
-```
-
-### Lint with [ESLint](https://eslint.org/)
+### Quality checks
 
 ```sh
 pnpm lint
+pnpm test
+pnpm typecheck
+pnpm build
+pnpm test:e2e
 ```
 
-### Create a new tool
+The production build also generates `public/sitemap.xml` from registered tool routes.
 
-To create a new tool, there is a script that generate the boilerplate of the new tool, simply run:
+## Self-host this fork
+
+Build the repository so your image contains the ePlus.DEV enhancements instead of using an upstream prebuilt image:
+
+```sh
+docker build -t eplus-it-tools .
+docker run -d --name eplus-it-tools --restart unless-stopped -p 8080:80 eplus-it-tools
+```
+
+Then open `http://localhost:8080`.
+
+## Add a new tool
 
 ```sh
 pnpm run script:create:tool my-tool-name
 ```
 
-It will create a directory in `src/tools` with the correct files, and a the import in `src/tools/index.ts`. You will just need to add the imported tool in the proper category and develop the tool.
+The generator creates the tool boilerplate. Add the generated tool to the appropriate category and include unit tests for reusable logic.
 
-## Contributors
+## Issues and feature requests
 
-Big thanks to all the people who have already contributed!
+For changes specific to this edition, use this fork's issue tracker:
 
-[![contributors](https://contrib.rocks/image?repo=corentinth/it-tools&refresh=1)](https://github.com/corentinth/it-tools/graphs/contributors)
+- Bugs: https://github.com/hoangsvit/it-tools/issues
+- Source: https://github.com/hoangsvit/it-tools
 
-## Credits
+For upstream behavior or upstream contributions, see the original project at https://github.com/CorentinTh/it-tools.
 
-Coded with ❤️ by [Corentin Thomasset](https://corentin.tech?utm_source=it-tools&utm_medium=readme).
+## Upstream attribution
 
-This project is continuously deployed using [vercel.com](https://vercel.com).
+This repository is a fork of **IT Tools**, originally created by [Corentin Thomasset](https://corentin.tech). The original project and its contributors remain the foundation of this edition.
 
-Contributor graph is generated using [contrib.rocks](https://contrib.rocks/preview?repo=corentinth/it-tools).
-
-<a href="https://www.producthunt.com/posts/it-tools?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-it&#0045;tools" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=345793&theme=light" alt="IT&#0032;Tools - Collection&#0032;of&#0032;handy&#0032;online&#0032;tools&#0032;for&#0032;devs&#0044;&#0032;with&#0032;great&#0032;UX | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
-<a href="https://www.producthunt.com/posts/it-tools?utm_source=badge-top-post-badge&utm_medium=badge&utm_souce=badge-it&#0045;tools" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=345793&theme=light&period=daily" alt="IT&#0032;Tools - Collection&#0032;of&#0032;handy&#0032;online&#0032;tools&#0032;for&#0032;devs&#0044;&#0032;with&#0032;great&#0032;UX | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+The ePlus.DEV edition adds and maintains fork-specific functionality without removing that attribution.
 
 ## License
 
-This project is under the [GNU GPLv3](LICENSE).
+GNU GPLv3 — see [LICENSE](./LICENSE).
