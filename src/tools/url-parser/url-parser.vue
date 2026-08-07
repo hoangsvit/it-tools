@@ -1,26 +1,28 @@
 <script setup lang="ts">
 import InputCopyable from '../../components/InputCopyable.vue';
-import { isNotThrowing } from '@/utils/boolean';
-import { withDefaultOnError } from '@/utils/defaults';
+import { getUrlQueryParams, parseUrl } from './url-parser.service';
 
 const urlToParse = ref('https://me:pwd@it-tools.tech:3000/url-parser?key1=value&key2=value2#the-hash');
 
-const urlParsed = computed(() => withDefaultOnError(() => new URL(urlToParse.value), undefined));
+const urlParsed = computed(() => parseUrl(urlToParse.value));
+const queryParams = computed(() => getUrlQueryParams(urlParsed.value));
 const urlValidationRules = [
   {
-    validator: (value: string) => isNotThrowing(() => new URL(value)),
+    validator: (value: string) => parseUrl(value) !== undefined,
     message: 'Invalid url',
   },
 ];
 
 const properties: { title: string; key: keyof URL }[] = [
   { title: 'Protocol', key: 'protocol' },
+  { title: 'Origin', key: 'origin' },
   { title: 'Username', key: 'username' },
   { title: 'Password', key: 'password' },
   { title: 'Hostname', key: 'hostname' },
   { title: 'Port', key: 'port' },
   { title: 'Path', key: 'pathname' },
   { title: 'Params', key: 'search' },
+  { title: 'Hash', key: 'hash' },
 ];
 </script>
 
@@ -49,8 +51,8 @@ const properties: { title: string; key: keyof URL }[] = [
     />
 
     <div
-      v-for="[k, v] in Object.entries(Object.fromEntries(urlParsed?.searchParams.entries() ?? []))"
-      :key="k"
+      v-for="({ key, value }, index) in queryParams"
+      :key="`${key}-${value}-${index}`"
       mb-2
       w-full
       flex
@@ -59,8 +61,8 @@ const properties: { title: string; key: keyof URL }[] = [
         <icon-mdi-arrow-right-bottom />
       </div>
 
-      <InputCopyable :value="k" readonly />
-      <InputCopyable :value="v" readonly />
+      <InputCopyable :value="key" readonly />
+      <InputCopyable :value="value" readonly />
     </div>
   </c-card>
 </template>
