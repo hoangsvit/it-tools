@@ -8,22 +8,38 @@
 
 A developer-focused fork of [CorentinTh/it-tools](https://github.com/CorentinTh/it-tools), maintained by [David Nguyen](https://github.com/hoangsvit) and deployed at **https://tools.eplus.dev**.
 
-This fork keeps the large collection of privacy-friendly browser tools from upstream, while adding its own workflows, discovery, sharing, SEO and developer-experience layer.
+This fork keeps the large collection of privacy-friendly browser tools from upstream, while adding its own workspaces, workflows, discovery, sharing, SEO and developer-experience layer.
 
 ## What is different in this fork?
 
 | ePlus.DEV enhancement | Why it matters |
 | --- | --- |
+| **Developer Workspace** | Build local multi-step pipelines, keep input/output context for every step and hand one tool's output to the next without losing the working state. |
 | **Developer Workflows** | Curated multi-tool flows for API debugging, security, network troubleshooting and JSON conversion instead of making users discover every tool manually. |
-| **Smart Launcher** | `Ctrl/Cmd + K` prioritizes workflows, recently used tools, favorites and quick actions before full-text search. |
+| **Smart Launcher** | `Ctrl/Cmd + K` prioritizes the Developer Workspace, workflows, recently used tools, favorites and quick actions before full-text search. |
 | **Local recent history** | Remembers the tools you actually use most. History stays in browser storage and can be cleared from the launcher. |
 | **Smart Related Tools** | Every tool recommends useful next tools based on category and shared keywords. |
 | **Quick Share** | Copy a clean canonical tool URL directly from each tool page. |
-| **ePlus.DEV PWA** | Installable as `ePlus.DEV IT Tools`, with direct app shortcuts for JWT Parser, JSON Viewer and URL Parser. |
+| **ePlus.DEV PWA** | Installable as `ePlus.DEV IT Tools`, with a Developer Workspace shortcut plus direct shortcuts for JWT Parser, JSON Viewer and URL Parser. |
 | **SEO-first routes** | Dynamic canonical URLs, Open Graph/Twitter metadata, structured data, sitemap generation and noindex handling for 404 pages. |
 | **GA4 analytics** | Tracks SPA page views with `G-RHM16CGF0T` while automatically excluding localhost/loopback development traffic. |
 | **Fork ownership metadata** | GitHub, social and package metadata point to the ePlus.DEV-maintained fork while preserving upstream credit. |
-| **Hardened CI** | Unit tests, workflow invariant tests, type checking, production builds and Playwright E2E are kept green on a Playwright-compatible runner. |
+| **Hardened CI** | Unit tests, workspace handoff tests, workflow invariant tests, type checking, production builds and Playwright E2E are kept green on a Playwright-compatible runner. |
+
+## Developer Workspace
+
+Open **`/workspace`** or choose **Developer Workspace** from the Smart Launcher.
+
+Each workspace is a local pipeline of tool steps. A step can keep:
+
+- the selected IT Tool
+- input prepared for that tool
+- output produced by that tool
+- notes and assumptions for the step
+
+Use **Send to next** after capturing an output to place it directly into the next step's input. **Use previous output** performs the same handoff from the receiving step. Steps can be reordered, added or removed, and each configured tool can be opened in a new tab while the workspace remains intact.
+
+Multiple named workspaces are supported. Workspace state is persisted in browser storage, and **Copy JSON** provides a portable text backup without introducing a server-side sync service.
 
 ## Developer Workflows
 
@@ -38,7 +54,7 @@ Workflow tests validate unique, navigable path shapes and searchable metadata wi
 
 ### Privacy by design
 
-Recent-tool history is stored locally in the browser. It is not synced to a server by this feature. Use **Clear recent tools** from the Smart Launcher whenever you want to remove it.
+Recent-tool history and Developer Workspace data are stored locally in the browser. They are not synced to a server by these features. Use **Clear recent tools** from the Smart Launcher to remove history, or delete a workspace from the workspace page to remove that workspace.
 
 ## Analytics
 
@@ -65,6 +81,7 @@ This fork uses **Google Analytics 4** with measurement ID `G-RHM16CGF0T` as its 
 
 When installed as a Progressive Web App, this fork identifies itself as **ePlus.DEV IT Tools** rather than the generic upstream app. Supported launch shortcuts include:
 
+- Developer Workspace
 - JWT Parser
 - JSON Viewer
 - URL Parser
@@ -98,7 +115,7 @@ pnpm build
 pnpm test:e2e
 ```
 
-The production build also generates `public/sitemap.xml` from registered tool routes.
+The production build also generates `public/sitemap.xml` from registered public routes and tool routes.
 
 ## Self-host this fork
 
