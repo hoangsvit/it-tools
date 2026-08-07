@@ -86,4 +86,20 @@ describe('developer workspace model', () => {
     expect(sendWorkspaceOutputToNext(steps, 'b')).toBe(steps);
     expect(usePreviousWorkspaceOutput(steps, 'a')).toBe(steps);
   });
+
+  it('treats whitespace-only output as empty for handoffs and progress', () => {
+    const steps = [
+      step('a', { toolPath: '/jwt-parser', output: '   \n\t' }),
+      step('b', { toolPath: '/json-viewer', input: 'keep-me' }),
+    ];
+
+    expect(sendWorkspaceOutputToNext(steps, 'a')).toBe(steps);
+    expect(usePreviousWorkspaceOutput(steps, 'b')).toBe(steps);
+    expect(steps[1].input).toBe('keep-me');
+    expect(getWorkspaceProgress(steps)).toEqual({
+      total: 2,
+      configured: 2,
+      withOutput: 0,
+    });
+  });
 });
