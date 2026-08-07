@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { IconLink } from '@tabler/icons-vue';
 
+const props = defineProps<{ path: string }>();
 const { copy, copied, isSupported } = useClipboard();
 
 function copyToolLink() {
   if (isSupported.value) {
-    copy(window.location.href);
+    copy(new URL(props.path, window.location.origin).toString());
   }
 }
 </script>
