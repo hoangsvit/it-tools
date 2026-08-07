@@ -6,6 +6,8 @@ import Draggable from 'vuedraggable';
 import ColoredCard from '../components/ColoredCard.vue';
 import ToolCard from '../components/ToolCard.vue';
 import { useToolStore } from '@/tools/tools.store';
+import type { ToolWithCategory } from '@/tools/tools.types';
+import { developerWorkflows } from '@/tools/developer-workflows';
 import { config } from '@/config';
 import { createSeoHead } from '@/utils/seo';
 
@@ -16,6 +18,14 @@ const { t } = useI18n();
 
 const favoriteTools = computed(() => toolStore.favoriteTools);
 const recentTools = computed(() => toolStore.recentTools.slice(0, 4));
+const workflows = computed(() => developerWorkflows
+  .map(workflow => ({
+    ...workflow,
+    tools: workflow.paths
+      .map(path => toolStore.tools.find(tool => tool.path === path))
+      .filter((tool): tool is ToolWithCategory => Boolean(tool)),
+  }))
+  .filter(workflow => workflow.tools.length > 0));
 
 // Update favorite tools order when drag is finished
 function onUpdateFavoriteTools() {
@@ -38,6 +48,44 @@ function onUpdateFavoriteTools() {
           <kbd>Ctrl / Cmd + K</kbd>
         </div>
       </div>
+
+      <section class="workflow-section" aria-label="Developer workflows">
+        <div class="workflow-heading">
+          <div>
+            <div class="workflow-title">
+              Developer workflows
+            </div>
+            <div class="workflow-subtitle">
+              Curated tool chains for common engineering tasks.
+            </div>
+          </div>
+          <div class="workflow-count">
+            {{ workflows.length }} flows
+          </div>
+        </div>
+
+        <div class="workflow-grid">
+          <article v-for="workflow in workflows" :key="workflow.name" class="workflow-card">
+            <div class="workflow-name">
+              {{ workflow.name }}
+            </div>
+            <div class="workflow-description">
+              {{ workflow.description }}
+            </div>
+            <div class="workflow-steps">
+              <router-link
+                v-for="(tool, index) in workflow.tools"
+                :key="tool.path"
+                :to="tool.path"
+                class="workflow-step"
+              >
+                <span class="step-number">{{ index + 1 }}</span>
+                <span>{{ tool.name }}</span>
+              </router-link>
+            </div>
+          </article>
+        </div>
+      </section>
 
       <div class="grid grid-cols-1 gap-12px lg:grid-cols-3 md:grid-cols-3 sm:grid-cols-2 xl:grid-cols-4">
         <ColoredCard v-if="config.showBanner" :title="$t('home.follow.title')" :icon="IconHeart">
@@ -154,6 +202,90 @@ function onUpdateFavoriteTools() {
   }
 }
 
+.workflow-section {
+  margin-top: 24px;
+}
+
+.workflow-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.workflow-title {
+  color: rgba(128, 128, 128, 0.95);
+  font-weight: 600;
+}
+
+.workflow-subtitle,
+.workflow-count {
+  font-size: 12px;
+  opacity: 0.55;
+}
+
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.workflow-card {
+  padding: 14px;
+  border: 1px solid rgba(128, 128, 128, 0.16);
+  border-radius: 12px;
+  background: rgba(128, 128, 128, 0.035);
+}
+
+.workflow-name {
+  font-weight: 650;
+}
+
+.workflow-description {
+  min-height: 36px;
+  margin: 4px 0 12px;
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.workflow-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  border: 1px solid rgba(24, 160, 88, 0.18);
+  border-radius: 999px;
+  color: inherit;
+  font-size: 11px;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+
+  &:hover {
+    border-color: rgba(24, 160, 88, 0.55);
+    background: rgba(24, 160, 88, 0.08);
+  }
+}
+
+.step-number {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(24, 160, 88, 0.12);
+  color: #18a058;
+  font-size: 9px;
+  font-weight: 700;
+}
+
 .height-enter-active,
 .height-leave-active {
   transition: all 0.5s ease-in-out;
@@ -182,6 +314,10 @@ function onUpdateFavoriteTools() {
   .edition-banner {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .workflow-grid {
+    grid-template-columns: 1fr;
   }
 }
 
