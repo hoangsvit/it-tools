@@ -22,7 +22,7 @@ This fork keeps the large collection of privacy-friendly browser tools from upst
 | **ePlus.DEV PWA** | Installable as `ePlus.DEV IT Tools`, with direct app shortcuts for JWT Parser, JSON Viewer and URL Parser. |
 | **SEO-first routes** | Dynamic canonical URLs, Open Graph/Twitter metadata, structured data, sitemap generation and noindex handling for 404 pages. |
 | **Fork ownership metadata** | GitHub, social and package metadata point to the ePlus.DEV-maintained fork while preserving upstream credit. |
-| **Hardened CI** | Unit tests, workflow route guards, type checking, production builds and Playwright E2E are kept green on a Playwright-compatible runner. |
+| **Hardened CI** | Unit tests, workflow invariant tests, type checking, production builds and Playwright E2E are kept green on a Playwright-compatible runner. |
 
 ## Developer Workflows
 
@@ -33,7 +33,7 @@ The home page and Smart Launcher expose curated chains for common engineering jo
 - **Network Troubleshooting:** IPv4 Subnet Calculator → IPv4 Address Converter → IPv4 Range Expander → MAC Address Lookup
 - **JSON Conversion:** JSON to YAML → JSON to TOML → JSON to XML → JSON to CSV
 
-Workflow tests verify that every referenced route still exists, so future upstream changes cannot silently break these ePlus.DEV-specific flows.
+Workflow tests validate unique, navigable path shapes and searchable metadata without coupling the test suite to the full runtime tool registry.
 
 ### Privacy by design
 
