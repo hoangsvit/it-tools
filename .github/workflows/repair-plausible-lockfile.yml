@@ -1,0 +1,82 @@
+name: Repair lockfile after Plausible removal
+
+on:
+  push:
+    branches:
+      - feat/eplus-developer-experience
+    paths:
+      - .github/workflows/repair-plausible-lockfile.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+        with:
+          ref: feat/eplus-developer-experience
+          fetch-depth: 0
+      - run: corepack enable
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Restore base lockfile and remove only Plausible entries
+        run: |
+          git fetch origin netlify --depth=1
+          git show origin/netlify:pnpm-lock.yaml > pnpm-lock.yaml
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('pnpm-lock.yaml')
+          lines = path.read_text().splitlines()
+          output = []
+          removed_importer = 0
+          removed_package = 0
+          removed_snapshot = 0
+          i = 0
+
+          while i < len(lines):
+              line = lines[i]
+
+              if line == '      plausible-tracker:':
+                  removed_importer += 1
+                  i += 1
+                  while i < len(lines) and lines[i].startswith('        '):
+                      i += 1
+                  continue
+
+              if line == '  plausible-tracker@0.3.8:':
+                  removed_package += 1
+                  i += 1
+                  while i < len(lines) and lines[i].startswith('    '):
+                      i += 1
+                  continue
+
+              if line == '  plausible-tracker@0.3.8: {}':
+                  removed_snapshot += 1
+                  i += 1
+                  continue
+
+              output.append(line)
+              i += 1
+
+          if (removed_importer, removed_package, removed_snapshot) != (1, 1, 1):
+              raise SystemExit(
+                  f'Unexpected Plausible blocks: importer={removed_importer}, '
+                  f'package={removed_package}, snapshot={removed_snapshot}'
+              )
+
+          path.write_text('\n'.join(output) + '\n')
+          PY
+      - name: Validate frozen lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Commit repaired lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "chore: keep lockfile stable after removing Plausible"
+          git push origin HEAD:feat/eplus-developer-experience
