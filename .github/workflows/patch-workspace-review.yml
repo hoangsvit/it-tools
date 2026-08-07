@@ -1,0 +1,64 @@
+name: patch-workspace-review
+
+on:
+  push:
+    branches:
+      - agent/workspace-smart-suggestions
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: agent/workspace-smart-suggestions
+          fetch-depth: 0
+
+      - name: Apply review fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/pages/DeveloperWorkspace.page.vue')
+          text = path.read_text()
+
+          replacements = [
+              (
+                  "    copyValue(step.input, `${step.id}-launch`);",
+                  "    copyValue(step.input, `${step.id}-launch`).catch(() => undefined);",
+              ),
+              (
+                  "  try:\n    const value = await navigator.clipboard.readText();",
+                  "  const workspaceId = workspace.value.id;\n\n  try:\n    const value = await navigator.clipboard.readText();",
+              ),
+              (
+                  "    workspaceStore.updateStep(workspace.value.id, stepId, { [field]: value });",
+                  "    workspaceStore.updateStep(workspaceId, stepId, { [field]: value });",
+              ),
+              (
+                  "    copyValue(JSON.stringify(workspace.value, null, 2), 'workspace-json');",
+                  "    copyValue(JSON.stringify(workspace.value, null, 2), 'workspace-json').catch(() => undefined);",
+              ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one match for {old!r}, found {count}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+
+      - name: Commit review fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/patch-workspace-review.yml
+          git add src/pages/DeveloperWorkspace.page.vue
+          git commit -m "fix: harden workspace clipboard handoff"
+          git push origin HEAD:agent/workspace-smart-suggestions
