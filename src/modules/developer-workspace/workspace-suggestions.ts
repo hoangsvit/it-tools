@@ -13,7 +13,7 @@ export type WorkspaceDetectedKind =
   | 'cron'
   | 'user-agent'
   | 'email'
-  | 'markdown'
+  | 'markdown';
 
 export interface WorkspaceToolCandidate {
   path: string
