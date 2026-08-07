@@ -178,7 +178,7 @@ function buildDetectionRules(value: string): DetectionRule[] {
       kind: 'url',
       label: 'URL',
       confidence: 0.98,
-      preferredPaths: ['/url-parser', '/url-encoder', '/qr-code-generator'],
+      preferredPaths: ['/url-parser', '/url-encoder', '/qrcode-generator'],
       keywords: ['url', 'uri', 'query', 'encode', 'qr'],
     });
   }
@@ -208,7 +208,7 @@ function buildDetectionRules(value: string): DetectionRule[] {
       kind: 'yaml',
       label: 'YAML',
       confidence: 0.88,
-      preferredPaths: ['/yaml-viewer', '/yaml-to-json-converter', '/yaml-to-toml'],
+      preferredPaths: ['/yaml-prettify', '/yaml-to-json-converter', '/yaml-to-toml'],
       keywords: ['yaml', 'viewer', 'json', 'toml'],
     });
   }
