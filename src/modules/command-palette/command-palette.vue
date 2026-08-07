@@ -6,6 +6,7 @@ import type { PaletteOption } from './command-palette.types';
 
 const isModalOpen = ref(false);
 const inputRef = ref();
+const selectedOptionIndex = ref(0);
 const router = useRouter();
 const isMac = computed(() => window.navigator.userAgent.toLowerCase().includes('mac'));
 
@@ -41,8 +42,6 @@ function close() {
   searchPrompt.value = '';
   selectedOptionIndex.value = 0;
 }
-
-const selectedOptionIndex = ref(0);
 
 watch(searchPrompt, () => {
   selectedOptionIndex.value = 0;
