@@ -24,6 +24,12 @@ jobs:
       - name: Run linters
         run: pnpm lint
 
+      - name: Test ePlus related-tool recommendations
+        run: pnpm exec vitest run --environment jsdom src/tools/tool-recommendations.test.ts
+
+      - name: Test ePlus developer workflows
+        run: pnpm exec vitest run --environment jsdom src/tools/developer-workflows.test.ts
+
       - name: Run unit test
         run: pnpm test
 
