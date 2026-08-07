@@ -4,9 +4,13 @@ import type { Ref } from 'vue';
 import _ from 'lodash';
 import type { Tool, ToolCategory, ToolWithCategory } from './tools.types';
 import { toolsWithCategory } from './index';
+import { findRelatedTools } from './tool-recommendations';
+
+const MAX_RECENT_TOOLS = 8;
 
 export const useToolStore = defineStore('tools', () => {
   const favoriteToolsName = useStorage('favoriteToolsName', []) as Ref<string[]>;
+  const recentToolPaths = useStorage('recentToolPaths', []) as Ref<string[]>;
   const { t } = useI18n();
 
   const tools = computed<ToolWithCategory[]>(() => toolsWithCategory.map((tool) => {
@@ -38,9 +42,16 @@ export const useToolStore = defineStore('tools', () => {
       .filter(Boolean) as ToolWithCategory[]; // cast because .filter(Boolean) does not remove undefined from type
   });
 
+  const recentTools = computed(() => {
+    return recentToolPaths.value
+      .map(path => tools.value.find(tool => tool.path === path))
+      .filter(Boolean) as ToolWithCategory[];
+  });
+
   return {
     tools,
     favoriteTools,
+    recentTools,
     toolsByCategory,
     newTools: computed(() => tools.value.filter(({ isNew }) => isNew)),
 
@@ -62,6 +73,26 @@ export const useToolStore = defineStore('tools', () => {
 
     updateFavoriteTools(newOrder: ToolWithCategory[]) {
       favoriteToolsName.value = newOrder.map(tool => tool.path);
+    },
+
+    markToolAsRecent(path: string) {
+      if (!tools.value.some(tool => tool.path === path)) {
+        return;
+      }
+
+      recentToolPaths.value = [
+        path,
+        ...recentToolPaths.value.filter(recentPath => recentPath !== path),
+      ].slice(0, MAX_RECENT_TOOLS);
+    },
+
+    clearRecentTools() {
+      recentToolPaths.value = [];
+    },
+
+    getRelatedTools({ toolPath, limit = 4 }: { toolPath: string; limit?: number }) {
+      const source = tools.value.find(tool => tool.path === toolPath);
+      return source ? findRelatedTools({ source, tools: tools.value, limit }) : [];
     },
   };
 });
