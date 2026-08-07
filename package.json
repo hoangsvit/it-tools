@@ -3,12 +3,19 @@
   "type": "module",
   "version": "2024.10.22-7ca5933",
   "packageManager": "pnpm@9.11.0",
-  "description": "Collection of handy online tools for developers, with great UX. ",
+  "description": "ePlus.DEV edition of IT Tools with enhanced discovery, recent history, sharing, SEO and developer-focused UX.",
   "author": "Corentin Th <corentin.thomasset74+it-tools@gmail.com> (https://corentin.tech)",
+  "contributors": [
+    "David Nguyen (https://github.com/hoangsvit)"
+  ],
   "license": "GNU GPLv3",
+  "homepage": "https://tools.eplus.dev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/CorentinTh/it-tools"
+    "url": "https://github.com/hoangsvit/it-tools"
+  },
+  "bugs": {
+    "url": "https://github.com/hoangsvit/it-tools/issues"
   },
   "keywords": [
     "productivity",
@@ -19,7 +26,9 @@
     "frontend",
     "tool",
     "developer-tools",
-    "developer-productivity"
+    "developer-productivity",
+    "eplus-dev",
+    "online-developer-tools"
   ],
   "scripts": {
     "dev": "vite",
