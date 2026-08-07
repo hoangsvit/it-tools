@@ -3,8 +3,8 @@ import { defineStore } from 'pinia';
 import type { Ref } from 'vue';
 import _ from 'lodash';
 import type { Tool, ToolCategory, ToolWithCategory } from './tools.types';
-import { toolsWithCategory } from './index';
 import { findRelatedTools } from './tool-recommendations';
+import { toolsWithCategory } from './index';
 
 const MAX_RECENT_TOOLS = 8;
 
