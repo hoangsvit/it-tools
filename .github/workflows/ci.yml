@@ -30,6 +30,9 @@ jobs:
       - name: Test ePlus developer workflows
         run: pnpm exec vitest run --environment jsdom src/tools/developer-workflows.test.ts
 
+      - name: Test ePlus developer workspace
+        run: pnpm exec vitest run --environment jsdom src/modules/developer-workspace/workspace.model.test.ts
+
       - name: Run unit test
         run: pnpm test
 
