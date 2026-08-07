@@ -31,7 +31,7 @@ jobs:
         run: pnpm exec vitest run --environment jsdom src/tools/developer-workflows.test.ts
 
       - name: Test ePlus developer workspace
-        run: pnpm exec vitest run --environment jsdom src/modules/developer-workspace/workspace.model.test.ts
+        run: pnpm exec vitest run --environment jsdom src/modules/developer-workspace/workspace.model.test.ts src/modules/developer-workspace/workspace-suggestions.test.ts
 
       - name: Run unit test
         run: pnpm test
