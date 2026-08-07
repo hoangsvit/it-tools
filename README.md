@@ -1,58 +1,87 @@
-<picture>
-  <source srcset="./.github/logo-dark.png" media="(prefers-color-scheme: light)">
-  <source srcset="./.github/logo-white.png" media="(prefers-color-scheme: dark)">
-  <img src="./.github/logo-dark.png" alt="IT Tools logo">
-</picture>
-
 # IT Tools — ePlus.DEV Edition
 
-A developer-focused fork of [CorentinTh/it-tools](https://github.com/CorentinTh/it-tools), maintained by [David Nguyen](https://github.com/hoangsvit) and deployed at **https://tools.eplus.dev**.
+A privacy-friendly collection of useful online tools for developers, maintained as the **ePlus.DEV Edition** of [CorentinTh/it-tools](https://github.com/CorentinTh/it-tools).
 
-This fork keeps the large collection of privacy-friendly browser tools from upstream, while adding its own workflows, discovery, sharing, SEO and developer-experience layer.
+- Production: https://tools.eplus.dev
+- Fork source: https://github.com/hoangsvit/it-tools
+- Maintainer: [David Nguyen](https://github.com/hoangsvit)
+- Original project: [CorentinTh/it-tools](https://github.com/CorentinTh/it-tools)
 
 ## What is different in this fork?
 
-| ePlus.DEV enhancement | Why it matters |
+| Area | ePlus.DEV Edition |
 | --- | --- |
-| **Developer Workflows** | Curated multi-tool flows for API debugging, security, network troubleshooting and JSON conversion instead of making users discover every tool manually. |
-| **Smart Launcher** | `Ctrl/Cmd + K` prioritizes workflows, recently used tools, favorites and quick actions before full-text search. |
-| **Local recent history** | Remembers the tools you actually use most. History stays in browser storage and can be cleared from the launcher. |
-| **Smart Related Tools** | Every tool recommends useful next tools based on category and shared keywords. |
-| **Quick Share** | Copy a clean canonical tool URL directly from each tool page. |
-| **ePlus.DEV PWA** | Installable as `ePlus.DEV IT Tools`, with direct app shortcuts for JWT Parser, JSON Viewer and URL Parser. |
-| **SEO-first routes** | Dynamic canonical URLs, Open Graph/Twitter metadata, structured data, sitemap generation and noindex handling for 404 pages. |
-| **Fork ownership metadata** | GitHub, social and package metadata point to the ePlus.DEV-maintained fork while preserving upstream credit. |
-| **Hardened CI** | Unit tests, workflow invariant tests, type checking, production builds and Playwright E2E are kept green on a Playwright-compatible runner. |
+| Navigation | ePlus Smart Launcher with recent tools, favorites, workflows and quick actions |
+| Developer workflows | Curated multi-tool flows for API debugging, security, networking and JSON conversion |
+| Discovery | Related-tool recommendations based on categories and shared keywords |
+| History | Recently used tools stored locally in the browser |
+| Sharing | Clean canonical tool links from Quick Share |
+| SEO | Dynamic canonical/Open Graph/Twitter metadata, JSON-LD and generated sitemap |
+| Analytics | GA4 SPA page-view tracking with localhost protection; Plausible removed |
+| PWA | ePlus.DEV identity and direct shortcuts to key developer tools |
+| CI | Fork-specific unit tests, workflow invariant tests, type checks, build and E2E coverage |
 
 ## Developer Workflows
 
-The home page and Smart Launcher expose curated chains for common engineering jobs:
+The ePlus.DEV Edition includes curated tool chains for common development jobs:
 
-- **API Debugging:** JWT Parser → URL Parser → JSON Viewer → HTTP Status Codes
-- **Security Toolkit:** Password Strength Analyser → Hash Text → HMAC Generator → Bcrypt
-- **Network Troubleshooting:** IPv4 Subnet Calculator → IPv4 Address Converter → IPv4 Range Expander → MAC Address Lookup
-- **JSON Conversion:** JSON to YAML → JSON to TOML → JSON to XML → JSON to CSV
+### API Debugging
 
-Workflow tests validate unique, navigable path shapes and searchable metadata without coupling the test suite to the full runtime tool registry.
+1. JWT Parser
+2. URL Parser
+3. JSON Viewer
+4. HTTP Status Codes
 
-### Privacy by design
+### Security Toolkit
 
-Recent-tool history is stored locally in the browser. It is not synced to a server by this feature. Use **Clear recent tools** from the Smart Launcher whenever you want to remove it.
+1. Password Strength Analyser
+2. Hash Text
+3. HMAC Generator
+4. Bcrypt
 
-## Live site
+### Network Troubleshooting
 
-**https://tools.eplus.dev**
+1. IPv4 Subnet Calculator
+2. IPv4 Address Converter
+3. IPv4 Range Expander
+4. MAC Address Lookup
 
-## Keyboard workflow
+### JSON Conversion
 
-- `Ctrl + K` on Windows/Linux or `Cmd + K` on macOS: open Smart Launcher
-- `↑` / `↓`: move through results
-- `Enter`: open the selected tool, workflow or action
-- `Esc`: close the launcher
+1. JSON to YAML
+2. JSON to TOML
+3. JSON to XML
+4. JSON to CSV
 
-## Installable PWA
+## ePlus Smart Launcher
 
-When installed as a Progressive Web App, this fork identifies itself as **ePlus.DEV IT Tools** rather than the generic upstream app. Supported launch shortcuts include:
+Open the launcher with the keyboard shortcut shown in the app and search across:
+
+- all tools
+- recent tools
+- favorite tools
+- Developer Workflows
+- quick actions such as random tool, dark mode, GitHub and issue reporting
+
+When the search field is empty, the launcher prioritizes your local context instead of showing a generic alphabetical list.
+
+## Local-first recent history
+
+Recent-tool history is stored only in your browser. It is used to make the home page and Smart Launcher faster to navigate and can be cleared from the launcher at any time.
+
+## Analytics
+
+The ePlus.DEV deployment uses **Google Analytics 4** with measurement ID `G-RHM16CGF0T`.
+
+- Vue Router navigation is tracked as SPA `page_view` events.
+- Tracking is disabled automatically on localhost and loopback hosts.
+- `VITE_GOOGLE_ANALYTICS_ENABLED` can disable GA4.
+- `VITE_GOOGLE_ANALYTICS_ID` can override the measurement ID.
+- Plausible is not used in this fork.
+
+## Progressive Web App
+
+When installed as a PWA, this fork appears as **ePlus.DEV IT Tools** and exposes shortcuts for:
 
 - JWT Parser
 - JSON Viewer
@@ -62,67 +91,59 @@ When installed as a Progressive Web App, this fork identifies itself as **ePlus.
 
 ### Requirements
 
-- Node.js compatible with the repository `.nvmrc`
+- Node.js
 - pnpm 9
 
 ### Install
 
-```sh
+```bash
 pnpm install
 ```
 
 ### Run locally
 
-```sh
+```bash
 pnpm dev
 ```
 
 ### Quality checks
 
-```sh
+```bash
 pnpm lint
 pnpm test
 pnpm typecheck
 pnpm build
-pnpm test:e2e
 ```
 
-The production build also generates `public/sitemap.xml` from registered tool routes.
+Workflow tests validate deterministic workflow metadata and path invariants without coupling the unit suite to the complete runtime tool registry.
 
-## Self-host this fork
+## Self-hosting
 
-Build the repository so your image contains the ePlus.DEV enhancements instead of using an upstream prebuilt image:
+Clone this fork and build it directly:
 
-```sh
-docker build -t eplus-it-tools .
-docker run -d --name eplus-it-tools --restart unless-stopped -p 8080:80 eplus-it-tools
+```bash
+git clone https://github.com/hoangsvit/it-tools.git
+cd it-tools
+pnpm install
+pnpm build
 ```
 
-Then open `http://localhost:8080`.
+The generated frontend can be served from any static hosting platform that supports SPA fallback routing.
 
-## Add a new tool
+## Contributing
 
-```sh
-pnpm run script:create:tool my-tool-name
-```
+Issues and improvements for the ePlus.DEV Edition belong in the fork repository:
 
-The generator creates the tool boilerplate. Add the generated tool to the appropriate category and include unit tests for reusable logic.
+https://github.com/hoangsvit/it-tools/issues
 
-## Issues and feature requests
+For upstream project development, see:
 
-For changes specific to this edition, use this fork's issue tracker:
+https://github.com/CorentinTh/it-tools
 
-- Bugs: https://github.com/hoangsvit/it-tools/issues
-- Source: https://github.com/hoangsvit/it-tools
+## Credits
 
-For upstream behavior or upstream contributions, see the original project at https://github.com/CorentinTh/it-tools.
-
-## Upstream attribution
-
-This repository is a fork of **IT Tools**, originally created by [Corentin Thomasset](https://corentin.tech). The original project and its contributors remain the foundation of this edition.
-
-The ePlus.DEV edition adds and maintains fork-specific functionality without removing that attribution.
+IT Tools was originally created by **Corentin Thomasset** and contributors. This repository preserves that attribution while maintaining ePlus.DEV-specific product, UX, SEO, testing and deployment changes.
 
 ## License
 
-GNU GPLv3 — see [LICENSE](./LICENSE).
+GNU GPLv3.
