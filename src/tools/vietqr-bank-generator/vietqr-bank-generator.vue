@@ -261,7 +261,7 @@ async function createShareImage() {
   context.textAlign = 'center';
   context.fillStyle = '#111827';
   context.font = '800 34px sans-serif';
-  context.fillText(t('scanToPay'), 420, 207, 570);
+  context.fillText(t('scanTitle'), 420, 207, 570);
   context.fillStyle = '#64748b';
   context.font = '500 15px sans-serif';
   context.fillText(selectedBank.value.name, 420, 239, 560);
@@ -452,7 +452,7 @@ onMounted(() => {
                 </div>
 
                 <div class="qr-heading">
-                  <strong>{{ t('scanToPay') }}</strong>
+                  <strong>{{ t('scanTitle') }}</strong>
                   <span>{{ selectedBank.name }}</span>
                 </div>
 
