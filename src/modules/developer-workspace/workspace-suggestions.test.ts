@@ -56,8 +56,22 @@ const tools: WorkspaceToolCandidate[] = [
     path: '/vietqr-bank-generator',
     name: 'VietQR & Vietnam bank codes',
     description: 'Search bank BIN and SWIFT codes and build VietQR links',
-    category: 'Data',
+    category: 'Vietnam',
     keywords: ['vietqr', 'bank', 'bin', 'swift', 'bic'],
+  },
+  {
+    path: '/vietnam-bank-bin-lookup',
+    name: 'Vietnam bank BIN lookup',
+    description: 'Search Vietnamese bank BIN and NAPAS codes',
+    category: 'Vietnam',
+    keywords: ['vietnam', 'bank', 'bin', 'napas'],
+  },
+  {
+    path: '/vietnamese-text-normalizer',
+    name: 'Vietnamese text normalizer',
+    description: 'Normalize Vietnamese Unicode and remove diacritics',
+    category: 'Vietnam',
+    keywords: ['vietnamese', 'unicode', 'normalize', 'diacritics'],
   },
 ];
 
@@ -119,6 +133,18 @@ describe('workspace smart suggestions', () => {
       kind: 'bic',
     });
     expect(suggestions.some(item => item.toolPath === '/vietqr-bank-generator')).toBe(true);
+  });
+
+  it('detects Vietnamese bank BIN values and Vietnamese text', () => {
+    expect(suggestWorkspaceTools({ value: '970416', tools })[0]).toMatchObject({
+      toolPath: '/vietnam-bank-bin-lookup',
+      kind: 'vietnam-bank-bin',
+    });
+
+    expect(suggestWorkspaceTools({ value: 'Xin chào Việt Nam', tools })[0]).toMatchObject({
+      toolPath: '/vietnamese-text-normalizer',
+      kind: 'vietnamese-text',
+    });
   });
 
   it('rejects BIC-like values whose institution code contains digits', () => {
