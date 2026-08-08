@@ -11,10 +11,10 @@ import { useHead } from '@vueuse/head';
 import { useCopy } from '@/composable/copy';
 import { useDeveloperWorkspaceStore } from '@/modules/developer-workspace/developer-workspace.store';
 import { explainWorkspaceInput } from '@/modules/developer-workspace/workspace-explain';
+import type { WorkspaceFileInspection } from '@/modules/developer-workspace/workspace-file-inspector';
 import {
   formatWorkspaceFileInspection,
   inspectWorkspaceFile,
-  type WorkspaceFileInspection,
 } from '@/modules/developer-workspace/workspace-file-inspector';
 import { buildWorkspaceShareUrl, decodeWorkspaceShare } from '@/modules/developer-workspace/workspace-share';
 import {
@@ -284,18 +284,35 @@ function clearWorkbench() {
               <strong>Browser-local first</strong>
             </div>
             <p>Detection, explanation, recipe serialization and file inspection run locally. Sensitive values are excluded from shared recipes by default.</p>
-            <router-link to="/privacy">Inspect all tool privacy modes →</router-link>
+            <router-link to="/privacy">
+              Inspect all tool privacy modes →
+            </router-link>
           </section>
 
           <section v-if="fileInspection" class="side-card">
             <span class="section-kicker">File inspector</span>
             <h3>{{ fileInspection.name }}</h3>
             <div class="file-facts">
-              <div><span>Kind</span><strong>{{ fileInspection.kind }}</strong></div>
-              <div><span>Size</span><strong>{{ fileInspection.size.toLocaleString() }} bytes</strong></div>
-              <div v-if="fileInspection.width && fileInspection.height"><span>Dimensions</span><strong>{{ fileInspection.width }}×{{ fileInspection.height }}</strong></div>
-              <div v-if="fileInspection.pageCount"><span>Estimated pages</span><strong>{{ fileInspection.pageCount }}</strong></div>
-              <div v-if="fileInspection.sha256"><span>SHA-256</span><strong class="hash-value">{{ fileInspection.sha256 }}</strong></div>
+              <div>
+                <span>Kind</span>
+                <strong>{{ fileInspection.kind }}</strong>
+              </div>
+              <div>
+                <span>Size</span>
+                <strong>{{ fileInspection.size.toLocaleString() }} bytes</strong>
+              </div>
+              <div v-if="fileInspection.width && fileInspection.height">
+                <span>Dimensions</span>
+                <strong>{{ fileInspection.width }}×{{ fileInspection.height }}</strong>
+              </div>
+              <div v-if="fileInspection.pageCount">
+                <span>Estimated pages</span>
+                <strong>{{ fileInspection.pageCount }}</strong>
+              </div>
+              <div v-if="fileInspection.sha256">
+                <span>SHA-256</span>
+                <strong class="hash-value">{{ fileInspection.sha256 }}</strong>
+              </div>
             </div>
             <div v-if="fileSuggestions.length" class="file-tool-list">
               <router-link v-for="tool in fileSuggestions" :key="tool?.path" :to="tool?.path ?? '/'">
