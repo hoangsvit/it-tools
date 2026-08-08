@@ -6,11 +6,11 @@ import { createSeoHead } from '@/utils/seo';
 
 const toolStore = useToolStore();
 const query = ref('');
-const mode = ref<'all' | 'local' | 'external' | 'mixed'>('all');
+const mode = ref<'all' | 'local' | 'external' | 'mixed' | 'undeclared'>('all');
 
 useHead(createSeoHead({
   title: 'Privacy Dashboard',
-  description: 'See which developer tools run locally in your browser, which capabilities they use, and whether any tool sends data to external services.',
+  description: 'See which developer tools explicitly declare browser-local processing, which capabilities they use, and whether any tool sends data to external services.',
   path: '/privacy',
   keywords: ['privacy', 'local tools', 'browser tools', 'developer privacy', 'ePlus.DEV'],
 }));
@@ -22,6 +22,7 @@ const stats = computed(() => {
     local: tools.filter(tool => tool.privacy?.mode === 'local').length,
     external: tools.filter(tool => tool.privacy?.mode === 'external').length,
     mixed: tools.filter(tool => tool.privacy?.mode === 'mixed').length,
+    undeclared: tools.filter(tool => !tool.privacy).length,
     offline: tools.filter(tool => tool.capabilities?.includes('offline')).length,
   };
 });
@@ -29,7 +30,7 @@ const stats = computed(() => {
 const filteredTools = computed(() => {
   const normalizedQuery = query.value.trim().toLowerCase();
   return toolStore.tools.filter((tool) => {
-    const privacyMode = tool.privacy?.mode ?? 'local';
+    const privacyMode = tool.privacy?.mode ?? 'undeclared';
     if (mode.value !== 'all' && privacyMode !== mode.value) {
       return false;
     }
@@ -51,7 +52,10 @@ function modeLabel(toolMode?: string) {
   if (toolMode === 'mixed') {
     return 'Mixed';
   }
-  return 'Local only';
+  if (toolMode === 'local') {
+    return 'Local only';
+  }
+  return 'Undeclared';
 }
 </script>
 
@@ -65,15 +69,15 @@ function modeLabel(toolMode?: string) {
           </div>
           <h1>Know where your data goes.</h1>
           <p>
-            Every tool exposes a privacy mode and capabilities. Local-only tools process input in this browser;
-            tools that need network access can declare that explicitly instead of hiding it in implementation details.
+            Only tools with explicit privacy metadata are labeled local, mixed, or external. Legacy tools stay
+            undeclared until their implementation is reviewed instead of receiving an automatic privacy claim.
           </p>
         </div>
         <div class="hero-badge">
           <n-icon :component="IconShieldCheck" size="28" />
           <div>
             <strong>{{ stats.local }}/{{ stats.total }}</strong>
-            <span>tools declared local</span>
+            <span>tools explicitly declared local</span>
           </div>
         </div>
       </header>
@@ -86,13 +90,13 @@ function modeLabel(toolMode?: string) {
         </article>
         <article>
           <n-icon :component="IconNetwork" />
-          <strong>{{ stats.external }}</strong>
-          <span>External</span>
+          <strong>{{ stats.external + stats.mixed }}</strong>
+          <span>External / mixed</span>
         </article>
         <article>
           <n-icon :component="IconExternalLink" />
-          <strong>{{ stats.mixed }}</strong>
-          <span>Mixed</span>
+          <strong>{{ stats.undeclared }}</strong>
+          <span>Undeclared</span>
         </article>
         <article>
           <n-icon :component="IconShieldCheck" />
@@ -111,6 +115,7 @@ function modeLabel(toolMode?: string) {
               { label: 'Local only', value: 'local' },
               { label: 'External processing', value: 'external' },
               { label: 'Mixed', value: 'mixed' },
+              { label: 'Undeclared', value: 'undeclared' },
             ]"
           />
         </div>
@@ -120,11 +125,11 @@ function modeLabel(toolMode?: string) {
             <div class="tool-main">
               <div class="tool-title-row">
                 <strong>{{ tool.name }}</strong>
-                <span class="privacy-pill" :class="`mode-${tool.privacy?.mode ?? 'local'}`">
+                <span class="privacy-pill" :class="`mode-${tool.privacy?.mode ?? 'undeclared'}`">
                   {{ modeLabel(tool.privacy?.mode) }}
                 </span>
               </div>
-              <p>{{ tool.privacy?.summary ?? 'Input is processed locally in your browser.' }}</p>
+              <p>{{ tool.privacy?.summary ?? 'Privacy metadata has not been reviewed for this tool yet.' }}</p>
               <div class="tool-meta">
                 <span>{{ tool.category }}</span>
                 <span>{{ tool.origin ?? 'core' }}</span>
@@ -300,6 +305,11 @@ function modeLabel(toolMode?: string) {
 .mode-mixed {
   background: rgba(240, 160, 32, 0.1);
   color: #d28a10;
+}
+
+.mode-undeclared {
+  background: rgba(128, 128, 128, 0.1);
+  color: rgba(128, 128, 128, 0.9);
 }
 
 .tool-meta {
