@@ -10,7 +10,7 @@ const VIETNAMESE_D = /đ/gi;
 export function stripVietnameseDiacritics(value: string) {
   return value
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\u0300-\u036F]/g, '')
     .replace(VIETNAMESE_D, match => match === 'Đ' ? 'D' : 'd');
 }
 
