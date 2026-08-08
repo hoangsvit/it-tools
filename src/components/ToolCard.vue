@@ -1,23 +1,17 @@
 <script setup lang="ts">
 import { useThemeVars } from 'naive-ui';
 import FavoriteButton from './FavoriteButton.vue';
+import '@/modules/developer-workspace/developer-platform.i18n';
 import type { Tool } from '@/tools/tools.types';
 
 const props = defineProps<{ tool: Tool & { category: string } }>();
 const { tool } = toRefs(props);
 const theme = useThemeVars();
+const { t } = useI18n();
 
 const privacyLabel = computed(() => {
-  if (tool.value.privacy?.mode === 'external') {
-    return 'External';
-  }
-  if (tool.value.privacy?.mode === 'mixed') {
-    return 'Mixed';
-  }
-  if (tool.value.privacy?.mode === 'local') {
-    return 'Local';
-  }
-  return 'Undeclared';
+  const mode = tool.value.privacy?.mode ?? 'undeclared';
+  return t(`developerPlatform.toolCard.${mode}`);
 });
 </script>
 
