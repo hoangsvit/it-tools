@@ -7,8 +7,11 @@ import {
   type VietQrBank,
   bankSearchLabel,
   formatVietQrAmount,
+  getVietQrDescriptionValidationError,
+  isValidVietQrAccount,
+  isValidVietQrAmount,
   makeVietQrContent,
-  normalizeVietQrAmount,
+  parseVietQrAmountInput,
   validateVietQrInput,
 } from './vietqr-bank-generator.service';
 import type { CKeyValueListItems } from '@/ui/c-key-value-list/c-key-value-list.types';
@@ -144,21 +147,53 @@ const selectedBankInfo = computed<CKeyValueListItems>(() => {
 const formattedAmount = computed({
   get: () => formatVietQrAmount(amount.value),
   set: (value: string) => {
-    amount.value = normalizeVietQrAmount(value);
+    amount.value = parseVietQrAmountInput(value);
   },
 });
 
-const validation = computed(() => validateVietQrInput({
-  bankId: selectedBankBin.value,
-  accountNo: accountNo.value,
-  amount: amount.value,
-  description: description.value,
-}));
+const validation = computed(() => {
+  const result = validateVietQrInput({
+    bankId: selectedBankBin.value,
+    accountNo: accountNo.value,
+    amount: amount.value,
+    description: description.value,
+  });
+
+  if (selectedBankBin.value && !selectedBank.value && !result.errors.includes('chooseBank')) {
+    return {
+      valid: false,
+      errors: ['chooseBank', ...result.errors] as typeof result.errors,
+    };
+  }
+
+  return result;
+});
 
 const localizedValidationErrors = computed(() => validation.value.errors.map(error => t(`validation.${error}`)));
 
+const accountValidationRules = computed(() => [{
+  message: t('validation.account'),
+  validator: (value: string) => !value.trim() || isValidVietQrAccount(value),
+}]);
+
+const amountValidationRules = computed(() => [{
+  message: t('validation.amount'),
+  validator: (value: string) => !value.trim() || isValidVietQrAmount(value),
+}]);
+
+const descriptionValidationRules = computed(() => [
+  {
+    message: t('validation.contentCharset'),
+    validator: (value: string) => getVietQrDescriptionValidationError(value) !== 'contentCharset',
+  },
+  {
+    message: t('validation.contentLength'),
+    validator: (value: string) => getVietQrDescriptionValidationError(value) !== 'contentLength',
+  },
+]);
+
 const qrPayload = computed(() => {
-  if (selectedBank.value && !selectedBank.value.transferSupported) {
+  if (!selectedBank.value?.transferSupported) {
     return '';
   }
 
@@ -222,26 +257,28 @@ function applyUrlParameters() {
   const themeParam = queryValue('theme').toLowerCase();
 
   if (bankParam) {
-    const resolvedBank = resolveBankParameter(bankParam);
-    if (resolvedBank) {
-      selectedBankBin.value = resolvedBank;
-    }
+    selectedBankBin.value = resolveBankParameter(bankParam);
   }
 
   if (accountParam) {
-    accountNo.value = accountParam.trim().slice(0, 25);
+    // Preserve invalid values so the field validator can show the actual error.
+    accountNo.value = accountParam.trim();
   }
 
   if (amountParam) {
-    amount.value = normalizeVietQrAmount(amountParam).slice(0, 13);
+    // Valid thousands separators are normalized. Invalid values are preserved.
+    amount.value = parseVietQrAmountInput(amountParam);
   }
 
   if (contentParam) {
-    description.value = contentParam.trim().slice(0, 25);
+    // Do not truncate URL input into a different, accidentally valid value.
+    description.value = contentParam.trim();
   }
 
-  if (themeParam && themeParam in THEME_PRESETS) {
-    selectedTheme.value = themeParam as ThemeName;
+  if (themeParam) {
+    selectedTheme.value = themeParam in THEME_PRESETS
+      ? themeParam as ThemeName
+      : 'purple';
   }
 }
 
@@ -598,7 +635,8 @@ onMounted(() => {
               v-model:value="accountNo"
               :label="t('accountLabel')"
               :placeholder="t('accountPlaceholder')"
-              maxlength="25"
+              :validation-rules="accountValidationRules"
+              raw-text
             />
 
             <div class="form-pair">
@@ -606,13 +644,16 @@ onMounted(() => {
                 v-model:value="formattedAmount"
                 :label="t('amountLabel')"
                 :placeholder="t('amountPlaceholder')"
+                :validation-rules="amountValidationRules"
+                raw-text
               />
 
               <c-input-text
                 v-model:value="description"
                 :label="t('contentLabel')"
                 :placeholder="t('contentPlaceholder')"
-                maxlength="25"
+                :validation-rules="descriptionValidationRules"
+                raw-text
               />
             </div>
 
