@@ -2,6 +2,7 @@
 import bankDirectory from '../vietqr-bank-generator/banks.json';
 import type { VietQrBank } from '../vietqr-bank-generator/vietqr-bank-generator.service';
 import { rankVietnamBanks } from './vietnam-bank-bin-lookup.service';
+import '@/modules/developer-workspace/developer-platform.i18n';
 
 const query = ref('');
 const banks = bankDirectory.data as VietQrBank[];
@@ -12,19 +13,19 @@ const matches = computed(() => rankVietnamBanks(banks, query.value).slice(0, que
   <div class="bank-lookup">
     <c-input-text
       v-model:value="query"
-      label="Bank BIN, code, name or SWIFT/BIC"
-      placeholder="Try 970416, ACB, Vietcombank, BFTVVNVX..."
+      :label="$t('developerPlatform.bankLookup.label')"
+      :placeholder="$t('developerPlatform.bankLookup.placeholder')"
       clearable
       autofocus
     />
 
     <n-alert type="info" :bordered="false">
-      Data is loaded from the VietQR bank directory bundled with this app. Search stays in your browser.
+      {{ $t('developerPlatform.bankLookup.info') }}
     </n-alert>
 
     <div class="result-heading">
       <strong>{{ matches.length }}</strong>
-      <span>{{ query.trim() ? 'matching banks' : 'banks shown' }}</span>
+      <span>{{ query.trim() ? $t('developerPlatform.bankLookup.matchingBanks') : $t('developerPlatform.bankLookup.banksShown') }}</span>
     </div>
 
     <div class="bank-grid">
@@ -41,14 +42,14 @@ const matches = computed(() => rankVietnamBanks(banks, query.value).slice(0, que
           </div>
 
           <div class="bank-meta">
-            <div><span>NAPAS code</span><strong>{{ bank.code }}</strong></div>
-            <div><span>SWIFT/BIC</span><strong>{{ bank.swift_code || 'Not published' }}</strong></div>
-            <div><span>Transfer</span><strong>{{ bank.transferSupported ? 'Supported' : 'Unavailable' }}</strong></div>
-            <div><span>Account lookup</span><strong>{{ bank.lookupSupported ? 'Supported' : 'Unavailable' }}</strong></div>
+            <div><span>{{ $t('developerPlatform.bankLookup.napasCode') }}</span><strong>{{ bank.code }}</strong></div>
+            <div><span>SWIFT/BIC</span><strong>{{ bank.swift_code || $t('developerPlatform.common.notPublished') }}</strong></div>
+            <div><span>{{ $t('developerPlatform.bankLookup.transfer') }}</span><strong>{{ bank.transferSupported ? $t('developerPlatform.common.supported') : $t('developerPlatform.common.unavailable') }}</strong></div>
+            <div><span>{{ $t('developerPlatform.bankLookup.accountLookup') }}</span><strong>{{ bank.lookupSupported ? $t('developerPlatform.common.supported') : $t('developerPlatform.common.unavailable') }}</strong></div>
           </div>
 
           <router-link :to="`/vietqr-bank-generator?bank=${encodeURIComponent(bank.bin)}`" class="vietqr-link">
-            Create VietQR for this bank →
+            {{ $t('developerPlatform.bankLookup.createVietqr') }}
           </router-link>
         </div>
       </c-card>
