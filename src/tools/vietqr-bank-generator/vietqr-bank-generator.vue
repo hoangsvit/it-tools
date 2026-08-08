@@ -15,6 +15,7 @@ import type { CKeyValueListItems } from '@/ui/c-key-value-list/c-key-value-list.
 
 const STORAGE_PREFIX = 'eplus-vietqr';
 const COPYRIGHT_YEAR = new Date().getFullYear();
+const SENSITIVE_STORAGE_KEYS = ['account', 'amount', 'content'] as const;
 
 const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
   'Please choose a bank from the list.': 'validation.chooseBank',
@@ -111,37 +112,50 @@ watch(qrPayload, async (payload) => {
     return;
   }
 
-  const rendered = await QRCode.toDataURL(payload, {
-    width: 640,
-    margin: 4,
-    errorCorrectionLevel: 'M',
-    color: {
-      dark: '#101828',
-      light: '#ffffff',
-    },
-  });
+  try {
+    const rendered = await QRCode.toDataURL(payload, {
+      width: 640,
+      margin: 4,
+      errorCorrectionLevel: 'M',
+      color: {
+        dark: '#101828',
+        light: '#ffffff',
+      },
+    });
 
-  if (qrPayload.value === payload) {
-    qrDataUrl.value = rendered;
+    if (qrPayload.value === payload) {
+      qrDataUrl.value = rendered;
+    }
+  }
+  catch {
+    if (qrPayload.value === payload) {
+      qrDataUrl.value = '';
+    }
   }
 }, { immediate: true });
 
-watch([selectedBankBin, accountNo, amount, description], () => {
+watch(selectedBankBin, (value) => {
   if (typeof window === 'undefined') {
     return;
   }
 
-  window.localStorage.setItem(`${STORAGE_PREFIX}:bank`, selectedBankBin.value);
-  window.localStorage.setItem(`${STORAGE_PREFIX}:account`, accountNo.value);
-  window.localStorage.setItem(`${STORAGE_PREFIX}:amount`, amount.value);
-  window.localStorage.setItem(`${STORAGE_PREFIX}:content`, description.value);
+  if (value) {
+    window.localStorage.setItem(`${STORAGE_PREFIX}:bank`, value);
+  }
+  else {
+    window.localStorage.removeItem(`${STORAGE_PREFIX}:bank`);
+  }
 });
+
+function clearSensitiveStorage() {
+  for (const key of SENSITIVE_STORAGE_KEYS) {
+    window.localStorage.removeItem(`${STORAGE_PREFIX}:${key}`);
+  }
+}
 
 function restoreForm() {
   selectedBankBin.value = window.localStorage.getItem(`${STORAGE_PREFIX}:bank`) ?? '';
-  accountNo.value = window.localStorage.getItem(`${STORAGE_PREFIX}:account`) ?? '';
-  amount.value = normalizeVietQrAmount(window.localStorage.getItem(`${STORAGE_PREFIX}:amount`) ?? '');
-  description.value = window.localStorage.getItem(`${STORAGE_PREFIX}:content`) ?? '';
+  clearSensitiveStorage();
 }
 
 function resetForm() {
@@ -149,31 +163,18 @@ function resetForm() {
   accountNo.value = '';
   amount.value = '';
   description.value = '';
+
+  window.localStorage.removeItem(`${STORAGE_PREFIX}:bank`);
+  clearSensitiveStorage();
 }
 
-function loadImage(source: string, crossOrigin = false) {
+function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
-    if (crossOrigin) {
-      image.crossOrigin = 'anonymous';
-    }
     image.onload = () => resolve(image);
     image.onerror = reject;
     image.src = source;
   });
-}
-
-async function loadRemoteImage(source?: string) {
-  if (!source) {
-    return null;
-  }
-
-  try {
-    return await loadImage(source, true);
-  }
-  catch {
-    return null;
-  }
 }
 
 function roundedRect(
@@ -208,26 +209,6 @@ function fillRoundedRect(
   context.fill();
 }
 
-function drawContainedImage(
-  context: CanvasRenderingContext2D,
-  image: HTMLImageElement,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-) {
-  const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
-  const drawWidth = image.naturalWidth * scale;
-  const drawHeight = image.naturalHeight * scale;
-  context.drawImage(
-    image,
-    x + (width - drawWidth) / 2,
-    y + (height - drawHeight) / 2,
-    drawWidth,
-    drawHeight,
-  );
-}
-
 function drawCanvasLabel(
   context: CanvasRenderingContext2D,
   label: string,
@@ -253,8 +234,6 @@ async function createShareImage() {
   }
 
   const qrImage = await loadImage(qrDataUrl.value);
-  const bankLogo = await loadRemoteImage(selectedBank.value.logo);
-
   const canvas = document.createElement('canvas');
   canvas.width = 900;
   canvas.height = 1220;
@@ -278,21 +257,18 @@ async function createShareImage() {
   context.shadowBlur = 0;
   context.shadowOffsetY = 0;
 
-  if (bankLogo) {
-    drawContainedImage(context, bankLogo, 235, 92, 430, 92);
-  }
-  else {
-    context.textAlign = 'center';
-    context.fillStyle = '#101828';
-    context.font = '700 38px sans-serif';
-    context.fillText(selectedBank.value.shortName, 450, 150, 560);
-  }
-
-  fillRoundedRect(context, 338, 198, 224, 44, 22, '#f2f4f7');
   context.textAlign = 'center';
+  context.fillStyle = '#101828';
+  context.font = '800 42px sans-serif';
+  context.fillText(selectedBank.value.shortName, 450, 142, 620);
+  context.fillStyle = '#667085';
+  context.font = '500 16px sans-serif';
+  context.fillText(selectedBank.value.name, 450, 178, 650);
+
+  fillRoundedRect(context, 338, 202, 224, 44, 22, '#f2f4f7');
   context.fillStyle = '#475467';
   context.font = '600 14px sans-serif';
-  context.fillText(t('compatible'), 450, 226, 190);
+  context.fillText(t('compatible'), 450, 230, 190);
 
   fillRoundedRect(context, 142, 278, 616, 616, 34, '#ffffff');
   context.drawImage(qrImage, 164, 300, 572, 572);
@@ -395,12 +371,8 @@ onMounted(() => {
             />
 
             <div v-if="selectedBank" class="bank-summary">
-              <div class="bank-logo-wrap">
-                <img
-                  :src="selectedBank.logo"
-                  :alt="t('bankLogoAlt', { bank: selectedBank.shortName })"
-                  class="bank-logo"
-                >
+              <div class="bank-mark">
+                {{ selectedBank.shortName.slice(0, 2).toUpperCase() }}
               </div>
               <div min-w-0 flex-1>
                 <div font-600>
@@ -476,11 +448,12 @@ onMounted(() => {
             <div class="qr-preview-stage">
               <div class="qr-receive-card">
                 <div class="qr-identity">
-                  <img
-                    :src="selectedBank.logo"
-                    :alt="t('bankLogoAlt', { bank: selectedBank.shortName })"
-                    class="qr-bank-logo"
-                  >
+                  <div class="qr-bank-wordmark">
+                    {{ selectedBank.shortName }}
+                  </div>
+                  <div class="qr-bank-full-name">
+                    {{ selectedBank.name }}
+                  </div>
                   <div class="qr-compatible-pill">
                     {{ t('compatible') }}
                   </div>
@@ -555,22 +528,20 @@ onMounted(() => {
   background: rgba(248, 250, 252, 0.55);
 }
 
-.bank-logo-wrap {
+.bank-mark {
   display: flex;
-  width: 96px;
+  width: 48px;
   height: 48px;
   align-items: center;
   justify-content: center;
   flex: none;
-  padding: 4px 8px;
-  border-radius: 10px;
+  border: 1px solid #e4e7ec;
+  border-radius: 14px;
   background: #fff;
-}
-
-.bank-logo {
-  max-width: 100%;
-  max-height: 38px;
-  object-fit: contain;
+  color: #4f46e5;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
 
 .bank-bin {
@@ -608,20 +579,33 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   padding: 24px 22px 8px;
+  text-align: center;
 }
 
-.qr-bank-logo {
-  display: block;
-  width: auto;
-  max-width: 230px;
-  height: 66px;
-  object-fit: contain;
-  object-position: center;
+.qr-bank-wordmark {
+  max-width: 100%;
+  overflow: hidden;
+  color: #101828;
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qr-bank-full-name {
+  max-width: 100%;
+  overflow: hidden;
+  color: #667085;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .qr-compatible-pill {
+  margin-top: 4px;
   padding: 5px 11px;
   border: 1px solid #e4e7ec;
   border-radius: 999px;
@@ -807,9 +791,8 @@ onMounted(() => {
     padding-top: 20px;
   }
 
-  .qr-bank-logo {
-    max-width: 190px;
-    height: 56px;
+  .qr-bank-wordmark {
+    font-size: 22px;
   }
 
   .qr-code-frame {
