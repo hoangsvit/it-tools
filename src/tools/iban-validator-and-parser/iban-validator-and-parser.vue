@@ -54,7 +54,12 @@ const builderResult = computed(() => {
   try {
     const iban = buildIban(builderCountryCode.value, builderBban.value);
     if (!iban) {
-      return { iban: '', error: '' };
+      return {
+        iban: '',
+        valid: false,
+        errors: [] as string[],
+        error: '',
+      };
     }
 
     const validation = validateIBAN(iban);
@@ -69,7 +74,7 @@ const builderResult = computed(() => {
     return {
       iban: '',
       valid: false,
-      errors: [],
+      errors: [] as string[],
       error: error instanceof Error ? error.message : 'Unable to build IBAN.',
     };
   }
@@ -96,7 +101,7 @@ const builtIbanInfo = computed<CKeyValueListItems>(() => {
     },
     {
       label: 'Validation notes',
-      value: builderResult.value.errors?.length ? builderResult.value.errors : undefined,
+      value: builderResult.value.errors.length ? builderResult.value.errors : undefined,
       hideOnNil: true,
       showCopyButton: false,
     },
