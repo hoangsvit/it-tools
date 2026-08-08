@@ -1,5 +1,3 @@
-export type VietQrTemplate = 'compact2' | 'compact' | 'qr_only' | 'print' | 'loax';
-
 export interface VietQrBank {
   id: number
   name: string
@@ -12,32 +10,11 @@ export interface VietQrBank {
   swift_code?: string | null
 }
 
-export interface VietQrBankApp {
-  appId: string
-  appLogo: string
-  appName: string
-  bankName: string
-  monthlyInstall?: number
-  deeplink: string
-}
-
 export interface VietQrInput {
   bankId: string
   accountNo: string
-  template: VietQrTemplate
   amount?: string
   description?: string
-  accountName?: string
-}
-
-export interface VietQrDeeplinkInput {
-  appId: string
-  accountNo: string
-  bankCode: string
-  amount?: string
-  description?: string
-  accountName?: string
-  returnUrl?: string
 }
 
 export interface VietQrValidationResult {
@@ -47,35 +24,62 @@ export interface VietQrValidationResult {
 
 const ACCOUNT_PATTERN = /^[A-Za-z0-9]{1,19}$/;
 const AMOUNT_PATTERN = /^\d{1,13}$/;
-const BANK_CODE_PATTERN = /^[A-Za-z0-9]{2,20}$/;
-const APP_ID_PATTERN = /^[A-Za-z0-9._-]{1,50}$/;
+const BANK_BIN_PATTERN = /^\d{6}$/;
+const DESCRIPTION_PATTERN = /^[A-Za-z0-9 ]*$/;
+
+function tlv(id: string, value: string) {
+  return `${id}${value.length.toString().padStart(2, '0')}${value}`;
+}
+
+export function crc16(value: string) {
+  let crc = 0xFFFF;
+
+  for (let index = 0; index < value.length; index += 1) {
+    crc ^= value.charCodeAt(index) << 8;
+
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc & 0x8000) !== 0
+        ? (crc << 1) ^ 0x1021
+        : crc << 1;
+    }
+  }
+
+  return (crc & 0xFFFF).toString(16).padStart(4, '0').toUpperCase();
+}
+
+export function normalizeVietQrAmount(value: string) {
+  return value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 13);
+}
+
+export function formatVietQrAmount(value: string) {
+  const normalized = normalizeVietQrAmount(value);
+  return normalized.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
 
 export function validateVietQrInput(input: VietQrInput): VietQrValidationResult {
   const errors: string[] = [];
   const bankId = input.bankId.trim();
   const accountNo = input.accountNo.trim();
-  const amount = input.amount?.trim() ?? '';
+  const amount = normalizeVietQrAmount(input.amount?.trim() ?? '');
   const description = input.description?.trim() ?? '';
-  const accountName = input.accountName?.trim() ?? '';
 
-  if (!bankId) {
-    errors.push('Select a bank or provide a bank BIN/code.');
+  if (!BANK_BIN_PATTERN.test(bankId)) {
+    errors.push('Select a bank with a valid 6-digit NAPAS BIN.');
   }
 
   if (!ACCOUNT_PATTERN.test(accountNo)) {
     errors.push('Account number or alias must contain 1-19 letters or digits.');
   }
 
-  if (amount && (!AMOUNT_PATTERN.test(amount) || Number(amount) <= 0)) {
-    errors.push('Amount must be a positive integer with at most 13 digits.');
+  if (input.amount?.trim() && (!AMOUNT_PATTERN.test(amount) || Number(amount) <= 0)) {
+    errors.push('Amount must be a positive VND integer with at most 13 digits.');
   }
 
-  if (description.length > 50) {
-    errors.push('Transfer description must be 50 characters or fewer.');
+  if (description.length > 25) {
+    errors.push('Transfer content must be 25 characters or fewer.');
   }
-
-  if (accountName.length > 50) {
-    errors.push('Account name must be 50 characters or fewer.');
+  else if (description && !DESCRIPTION_PATTERN.test(description)) {
+    errors.push('Transfer content must use unaccented letters, numbers and spaces only.');
   }
 
   return {
@@ -84,117 +88,46 @@ export function validateVietQrInput(input: VietQrInput): VietQrValidationResult 
   };
 }
 
-export function validateVietQrDeeplinkInput(input: VietQrDeeplinkInput): VietQrValidationResult {
-  const errors: string[] = [];
-  const appId = input.appId.trim();
-  const accountNo = input.accountNo.trim();
-  const bankCode = input.bankCode.trim();
-  const amount = input.amount?.trim() ?? '';
-  const description = input.description?.trim() ?? '';
-  const accountName = input.accountName?.trim() ?? '';
-  const returnUrl = input.returnUrl?.trim() ?? '';
-
-  if (!APP_ID_PATTERN.test(appId)) {
-    errors.push('Select a bank app or provide a valid app ID.');
-  }
-
-  if (!ACCOUNT_PATTERN.test(accountNo)) {
-    errors.push('Account number or alias must contain 1-19 letters or digits.');
-  }
-
-  if (!BANK_CODE_PATTERN.test(bankCode)) {
-    errors.push('Recipient bank code must contain 2-20 letters or digits.');
-  }
-
-  if (amount && (!AMOUNT_PATTERN.test(amount) || Number(amount) <= 0)) {
-    errors.push('Amount must be a positive integer with at most 13 digits.');
-  }
-
-  if (description.length > 50) {
-    errors.push('Transfer description must be 50 characters or fewer.');
-  }
-
-  if (accountName.length > 50) {
-    errors.push('Account name must be 50 characters or fewer.');
-  }
-
-  if (returnUrl) {
-    try {
-      const parsed = new URL(returnUrl);
-      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-        errors.push('Return URL must use http or https.');
-      }
-    }
-    catch {
-      errors.push('Return URL must be a valid URL.');
-    }
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
+export function makeVietQrContent(input: VietQrInput) {
+  const normalizedInput = {
+    bankId: input.bankId.trim(),
+    accountNo: input.accountNo.trim(),
+    amount: normalizeVietQrAmount(input.amount ?? ''),
+    description: input.description?.trim() ?? '',
   };
-}
+  const validation = validateVietQrInput(normalizedInput);
 
-export function buildVietQrQuickLink(input: VietQrInput) {
-  const validation = validateVietQrInput(input);
   if (!validation.valid) {
     return '';
   }
 
-  const bankId = input.bankId.trim();
-  const accountNo = input.accountNo.trim();
-  const baseUrl = `https://img.vietqr.io/image/${encodeURIComponent(bankId)}-${encodeURIComponent(accountNo)}-${input.template}.png`;
-  const params = new URLSearchParams();
+  const beneficiary = tlv('00', normalizedInput.bankId) + tlv('01', normalizedInput.accountNo);
+  const merchantAccount = tlv('00', 'A000000727')
+    + tlv('01', beneficiary)
+    + tlv('02', 'QRIBFTTA');
 
-  if (input.amount?.trim()) {
-    params.set('amount', input.amount.trim());
-  }
-  if (input.description?.trim()) {
-    params.set('addInfo', input.description.trim());
-  }
-  if (input.accountName?.trim()) {
-    params.set('accountName', input.accountName.trim());
-  }
+  let payload = tlv('00', '01')
+    + tlv('01', normalizedInput.amount ? '12' : '11')
+    + tlv('38', merchantAccount)
+    + tlv('53', '704');
 
-  const query = params.toString();
-  return query ? `${baseUrl}?${query}` : baseUrl;
-}
-
-export function buildVietQrDeeplink(input: VietQrDeeplinkInput) {
-  const validation = validateVietQrDeeplinkInput(input);
-  if (!validation.valid) {
-    return '';
+  if (normalizedInput.amount) {
+    payload += tlv('54', normalizedInput.amount);
   }
 
-  const params = new URLSearchParams({
-    app: input.appId.trim().toLowerCase(),
-    ba: `${input.accountNo.trim()}@${input.bankCode.trim().toLowerCase()}`,
-  });
+  payload += tlv('58', 'VN');
 
-  if (input.amount?.trim()) {
-    params.set('am', input.amount.trim());
-  }
-  if (input.description?.trim()) {
-    params.set('tn', input.description.trim());
-  }
-  if (input.accountName?.trim()) {
-    params.set('bn', input.accountName.trim());
-  }
-  if (input.returnUrl?.trim()) {
-    params.set('url', input.returnUrl.trim());
+  if (normalizedInput.description) {
+    payload += tlv('62', tlv('08', normalizedInput.description));
   }
 
-  return `https://dl.vietqr.io/pay?${params.toString()}`;
+  payload += '6304';
+  return payload + crc16(payload);
 }
 
 export function bankSearchLabel(bank: VietQrBank) {
   const swift = bank.swift_code ? ` · ${bank.swift_code}` : '';
-  return `${bank.shortName} · BIN ${bank.bin} · ${bank.code}${swift}`;
-}
-
-export function bankAppSearchLabel(app: VietQrBankApp) {
-  return `${app.appName} · ${app.bankName} · ${app.appId}`;
+  return `${bank.shortName} · ${bank.bin} · ${bank.code}${swift}`;
 }
 
 export function matchesBankQuery(bank: VietQrBank, query: string) {
