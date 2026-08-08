@@ -2,9 +2,7 @@ import { tool as base64FileConverter } from './base64-file-converter';
 import { tool as base64StringConverter } from './base64-string-converter';
 import { tool as basicAuthGenerator } from './basic-auth-generator';
 import { tool as emailNormalizer } from './email-normalizer';
-
 import { tool as asciiTextDrawer } from './ascii-text-drawer';
-
 import { tool as textToUnicode } from './text-to-unicode';
 import { tool as safelinkDecoder } from './safelink-decoder';
 import { tool as xmlToJson } from './xml-to-json';
@@ -20,6 +18,8 @@ import { tool as ulidGenerator } from './ulid-generator';
 import { tool as ibanValidatorAndParser } from './iban-validator-and-parser';
 import { tool as swiftBicValidator } from './swift-bic-validator';
 import { tool as vietQrBankGenerator } from './vietqr-bank-generator';
+import { tool as vietnamBankBinLookup } from './vietnam-bank-bin-lookup';
+import { tool as vietnameseTextNormalizer } from './vietnamese-text-normalizer';
 import { tool as stringObfuscator } from './string-obfuscator';
 import { tool as textDiff } from './text-diff';
 import { tool as emojiPicker } from './emoji-picker';
@@ -89,8 +89,9 @@ import { tool as uuidGenerator } from './uuid-generator';
 import { tool as macAddressLookup } from './mac-address-lookup';
 import { tool as xmlFormatter } from './xml-formatter';
 import { tool as yamlViewer } from './yaml-viewer';
+import { defineToolExtension, flattenToolExtensions } from './extensions';
 
-export const toolsByCategory: ToolCategory[] = [
+const coreCategories: ToolCategory[] = [
   {
     name: 'Crypto',
     components: [tokenGenerator, hashText, bcrypt, uuidGenerator, ulidGenerator, cypher, bip39, hmacGenerator, rsaKeyPairGenerator, passwordStrengthAnalyser, pdfSignatureChecker],
@@ -190,10 +191,37 @@ export const toolsByCategory: ToolCategory[] = [
   },
   {
     name: 'Data',
-    components: [phoneParserAndFormatter, ibanValidatorAndParser, swiftBicValidator, vietQrBankGenerator],
+    components: [phoneParserAndFormatter, ibanValidatorAndParser, swiftBicValidator],
   },
 ];
 
+const vietnamCategories: ToolCategory[] = [
+  {
+    name: 'Vietnam',
+    components: [vietQrBankGenerator, vietnamBankBinLookup, vietnameseTextNormalizer],
+  },
+];
+
+export const toolExtensions = [
+  defineToolExtension({
+    id: 'it-tools-core',
+    name: 'IT Tools Core',
+    description: 'Built-in developer utilities inherited from the core toolbox.',
+    version: '1',
+    origin: 'core',
+    categories: coreCategories,
+  }),
+  defineToolExtension({
+    id: 'eplus-vietnam',
+    name: 'ePlus Vietnam Toolkit',
+    description: 'Vietnam-specific developer utilities maintained by ePlus.DEV.',
+    version: '1',
+    origin: 'vietnam',
+    categories: vietnamCategories,
+  }),
+];
+
+export const toolsByCategory: ToolCategory[] = flattenToolExtensions(toolExtensions);
 export const tools = toolsByCategory.flatMap(({ components }) => components);
 export const toolsWithCategory = toolsByCategory.flatMap(({ components, name }) =>
   components.map(tool => ({ category: name, ...tool })),
