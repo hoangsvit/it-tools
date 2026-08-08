@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { CKeyValueListItems } from '@/ui/c-key-value-list/c-key-value-list.types';
 import {
-  bankSearchLabel,
-  buildVietQrQuickLink,
   type VietQrBank,
   type VietQrTemplate,
+  bankSearchLabel,
+  buildVietQrQuickLink,
   validateVietQrInput,
 } from './vietqr-bank-generator.service';
+import type { CKeyValueListItems } from '@/ui/c-key-value-list/c-key-value-list.types';
 
 const banks = ref<VietQrBank[]>([]);
 const banksLoading = ref(false);
@@ -206,7 +206,7 @@ onMounted(loadBanks);
     </c-card>
 
     <c-card v-if="generatedUrl" title="Generated VietQR">
-      <div grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]>
+      <div grid grid-cols-1 gap-5 class="lg:grid-cols-[minmax(0,1fr)_320px]">
         <div min-w-0>
           <div mb-2 text-sm font-600>
             Quick Link
