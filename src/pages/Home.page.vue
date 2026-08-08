@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IconDragDrop, IconHeart, IconHistory, IconLayoutDashboard } from '@tabler/icons-vue';
+import { IconBolt, IconDragDrop, IconHeart, IconHistory, IconLayoutDashboard, IconShieldCheck } from '@tabler/icons-vue';
 import { useHead } from '@vueuse/head';
 import { computed } from 'vue';
 import Draggable from 'vuedraggable';
@@ -27,9 +27,8 @@ const workflows = computed(() => developerWorkflows
   }))
   .filter(workflow => workflow.tools.length > 0));
 
-// Update favorite tools order when drag is finished
 function onUpdateFavoriteTools() {
-  toolStore.updateFavoriteTools(favoriteTools.value); // Update the store with the new order
+  toolStore.updateFavoriteTools(favoriteTools.value);
 }
 </script>
 
@@ -45,13 +44,23 @@ function onUpdateFavoriteTools() {
             Handy online tools for developers
           </h1>
           <div class="edition-description">
-            Enhanced developer experience with smart tool discovery, local recent history and faster sharing.
+            Smart input detection, browser-local workflows, privacy metadata and Vietnam-specific developer utilities.
           </div>
         </div>
-        <router-link to="/workspace" class="workspace-cta">
-          <n-icon :component="IconLayoutDashboard" size="16" />
-          Developer Workspace
-        </router-link>
+        <div class="platform-actions">
+          <router-link to="/workbench" class="workspace-cta primary-cta">
+            <n-icon :component="IconBolt" size="16" />
+            Smart Workbench
+          </router-link>
+          <router-link to="/workspace" class="workspace-cta">
+            <n-icon :component="IconLayoutDashboard" size="16" />
+            Workflows
+          </router-link>
+          <router-link to="/privacy" class="workspace-cta">
+            <n-icon :component="IconShieldCheck" size="16" />
+            Privacy
+          </router-link>
+        </div>
         <div class="edition-shortcut">
           <span>Quick search</span>
           <kbd>Ctrl / Cmd + K</kbd>
@@ -207,6 +216,13 @@ function onUpdateFavoriteTools() {
   font-size: 12px;
 }
 
+.platform-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .workspace-cta {
   display: inline-flex;
   flex: 0 0 auto;
@@ -226,6 +242,11 @@ function onUpdateFavoriteTools() {
     border-color: rgba(24, 160, 88, 0.55);
     background: rgba(24, 160, 88, 0.14);
   }
+}
+
+.primary-cta {
+  background: rgba(24, 160, 88, 0.14);
+  color: #18a058;
 }
 
 .edition-shortcut {
@@ -351,7 +372,7 @@ function onUpdateFavoriteTools() {
   animation: ghost-favorites-draggable-animation 0.2s ease-out;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1050px) {
   .edition-banner {
     flex-wrap: wrap;
   }
@@ -359,12 +380,24 @@ function onUpdateFavoriteTools() {
   .edition-copy {
     min-width: 220px;
   }
+
+  .edition-shortcut {
+    margin-left: auto;
+  }
 }
 
 @media (max-width: 700px) {
   .edition-banner {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .platform-actions {
+    width: 100%;
+  }
+
+  .edition-shortcut {
+    margin-left: 0;
   }
 
   .workflow-grid {
