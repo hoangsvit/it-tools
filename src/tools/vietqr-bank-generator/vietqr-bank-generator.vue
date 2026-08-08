@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import QRCode from 'qrcode';
+import bankDirectory from './banks.json';
 import {
   type VietQrBank,
   bankSearchLabel,
@@ -12,9 +13,8 @@ import type { CKeyValueListItems } from '@/ui/c-key-value-list/c-key-value-list.
 
 const STORAGE_PREFIX = 'eplus-vietqr';
 
-const banks = ref<VietQrBank[]>([]);
-const banksLoading = ref(false);
-const banksError = ref('');
+const banks = [...bankDirectory.data]
+  .sort((a, b) => a.shortName.localeCompare(b.shortName)) as VietQrBank[];
 const selectedBankBin = ref('');
 const accountNo = ref('');
 const amount = ref('');
@@ -22,14 +22,14 @@ const description = ref('');
 const qrDataUrl = ref('');
 const copyStatus = ref('Copy QR image');
 
-const bankOptions = computed(() => banks.value
+const bankOptions = computed(() => banks
   .filter(bank => Boolean(bank.transferSupported))
   .map(bank => ({
     label: bankSearchLabel(bank),
     value: bank.bin,
   })));
 
-const selectedBank = computed(() => banks.value.find(bank => bank.bin === selectedBankBin.value));
+const selectedBank = computed(() => banks.find(bank => bank.bin === selectedBankBin.value));
 const selectedBankInfo = computed<CKeyValueListItems>(() => {
   if (!selectedBank.value) {
     return [];
@@ -105,27 +105,6 @@ watch([selectedBankBin, accountNo, amount, description], () => {
   window.localStorage.setItem(`${STORAGE_PREFIX}:amount`, amount.value);
   window.localStorage.setItem(`${STORAGE_PREFIX}:content`, description.value);
 });
-
-async function loadBanks() {
-  banksLoading.value = true;
-  banksError.value = '';
-
-  try {
-    const response = await fetch('https://api.vietqr.io/v2/banks');
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const payload = await response.json() as { data?: VietQrBank[] };
-    banks.value = [...(payload.data ?? [])].sort((a, b) => a.shortName.localeCompare(b.shortName));
-  }
-  catch (error) {
-    banksError.value = `Unable to load the VietQR bank directory (${error instanceof Error ? error.message : 'unknown error'}).`;
-  }
-  finally {
-    banksLoading.value = false;
-  }
-}
 
 function restoreForm() {
   selectedBankBin.value = window.localStorage.getItem(`${STORAGE_PREFIX}:bank`) ?? '';
@@ -211,8 +190,7 @@ async function downloadQrImage() {
   link.click();
 }
 
-onMounted(async () => {
-  await loadBanks();
+onMounted(() => {
   restoreForm();
 });
 </script>
@@ -220,7 +198,7 @@ onMounted(async () => {
 <template>
   <div flex flex-col gap-5>
     <n-alert type="info" :bordered="false">
-      Bank data comes from VietQR's public bank directory. The VietQR/NAPAS payload and QR image are generated locally in your browser, following the same payload approach used by the open-source vietqr.net reference implementation.
+      The Vietnam bank directory is bundled with this app, so opening the tool does not call a bank-directory API. The VietQR/NAPAS payload and QR image are also generated locally in your browser.
     </n-alert>
 
     <div grid grid-cols-1 gap-5 class="lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -232,15 +210,8 @@ onMounted(async () => {
               :options="bankOptions"
               searchable
               label="Bank"
-              :placeholder="banksLoading ? 'Loading banks...' : 'Search or choose a bank by name...'"
+              placeholder="Search or choose a bank by name, BIN, code or SWIFT..."
             />
-
-            <n-alert v-if="banksError" type="warning" :bordered="false">
-              {{ banksError }}
-              <c-button mt-2 @click="loadBanks">
-                Retry bank directory
-              </c-button>
-            </n-alert>
 
             <div v-if="selectedBank" flex items-center gap-4 rounded-lg border="1 solid #00000018" p-4>
               <img :src="selectedBank.logo" :alt="`${selectedBank.shortName} logo`" h-42px max-w-130px object-contain>
@@ -285,9 +256,6 @@ onMounted(async () => {
             <div flex flex-wrap gap-3>
               <c-button @click="resetForm">
                 Clear
-              </c-button>
-              <c-button @click="loadBanks">
-                Refresh bank list
               </c-button>
             </div>
           </div>
