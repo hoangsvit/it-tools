@@ -38,6 +38,27 @@ const tools: WorkspaceToolCandidate[] = [
     category: 'Development',
     keywords: ['sql', 'format'],
   },
+  {
+    path: '/iban-validator-and-parser',
+    name: 'IBAN validator and parser',
+    description: 'Validate, parse and build IBAN values',
+    category: 'Data',
+    keywords: ['iban', 'bban', 'bank', 'validator'],
+  },
+  {
+    path: '/swift-bic-validator',
+    name: 'SWIFT / BIC validator & parser',
+    description: 'Validate and parse SWIFT BIC bank routing codes',
+    category: 'Data',
+    keywords: ['swift', 'bic', 'bank', 'routing'],
+  },
+  {
+    path: '/vietqr-bank-generator',
+    name: 'VietQR & Vietnam bank codes',
+    description: 'Search bank BIN and SWIFT codes and build VietQR links',
+    category: 'Data',
+    keywords: ['vietqr', 'bank', 'bin', 'swift', 'bic'],
+  },
 ];
 
 describe('workspace smart suggestions', () => {
@@ -76,6 +97,28 @@ describe('workspace smart suggestions', () => {
       value: 'SELECT id, email FROM users WHERE active = 1',
       tools,
     })[0].toolPath).toBe('/sql-prettify');
+  });
+
+  it('detects IBAN values even when formatted with spaces', () => {
+    const value = 'GB29 NWBK 6016 1331 9268 19';
+    expect(detectWorkspaceInput(value)).toContainEqual(expect.objectContaining({ kind: 'iban' }));
+    expect(suggestWorkspaceTools({ value, tools })[0]).toMatchObject({
+      toolPath: '/iban-validator-and-parser',
+      kind: 'iban',
+    });
+  });
+
+  it('detects SWIFT/BIC values and recommends the dedicated parser first', () => {
+    const suggestions = suggestWorkspaceTools({
+      value: 'BFTV VN VX',
+      tools,
+    });
+
+    expect(suggestions[0]).toMatchObject({
+      toolPath: '/swift-bic-validator',
+      kind: 'bic',
+    });
+    expect(suggestions.some(item => item.toolPath === '/vietqr-bank-generator')).toBe(true);
   });
 
   it('returns no suggestion for arbitrary text instead of guessing aggressively', () => {
