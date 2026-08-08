@@ -128,7 +128,7 @@ const ibanExamples = [
         Enter a country code and BBAN to calculate ISO 13616 check digits. This creates a structurally checkable IBAN for development/testing; it does not prove that a bank account exists.
       </n-alert>
 
-      <div grid grid-cols-1 gap-4 md:grid-cols-[160px_minmax(0,1fr)]>
+      <div grid grid-cols-1 gap-4 class="md:grid-cols-[160px_minmax(0,1fr)]">
         <c-input-text
           v-model:value="builderCountryCode"
           label="Country code"
