@@ -1,4 +1,4 @@
-import { FileCode } from '@vicons/tabler';
+import { File } from '@vicons/tabler';
 import { defineTool } from '../tool';
 
 export const tool = defineTool({
@@ -7,7 +7,7 @@ export const tool = defineTool({
   description: 'Turn text into a classic hex dump and decode hex bytes back into UTF-8 text in your browser.',
   keywords: ['hex', 'hexdump', 'bytes', 'binary', 'utf8', 'ascii', 'decode', 'encode', 'inspector'],
   component: () => import('./hexdump-inspector.vue'),
-  icon: FileCode,
+  icon: File,
   createdAt: new Date('2026-08-09'),
   privacy: {
     mode: 'local',
