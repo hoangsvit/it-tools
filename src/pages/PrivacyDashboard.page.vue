@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { IconExternalLink, IconLock, IconNetwork, IconShieldCheck } from '@tabler/icons-vue';
 import { useHead } from '@vueuse/head';
+import '@/modules/developer-workspace/developer-platform.i18n';
 import { useToolStore } from '@/tools/tools.store';
 import { createSeoHead } from '@/utils/seo';
 
 const toolStore = useToolStore();
+const { t } = useI18n();
 const query = ref('');
 const mode = ref<'all' | 'local' | 'external' | 'mixed' | 'undeclared'>('all');
 
 useHead(createSeoHead({
-  title: 'Privacy Dashboard',
-  description: 'See which developer tools explicitly declare browser-local processing, which capabilities they use, and whether any tool sends data to external services.',
+  title: t('developerPlatform.privacy.seoTitle'),
+  description: t('developerPlatform.privacy.seoDescription'),
   path: '/privacy',
   keywords: ['privacy', 'local tools', 'browser tools', 'developer privacy', 'ePlus.DEV'],
 }));
@@ -45,17 +47,25 @@ const filteredTools = computed(() => {
   });
 });
 
+const modeOptions = computed(() => [
+  { label: t('developerPlatform.privacy.allModes'), value: 'all' },
+  { label: t('developerPlatform.privacy.localOnly'), value: 'local' },
+  { label: t('developerPlatform.privacy.externalProcessing'), value: 'external' },
+  { label: t('developerPlatform.privacy.mixed'), value: 'mixed' },
+  { label: t('developerPlatform.privacy.undeclared'), value: 'undeclared' },
+]);
+
 function modeLabel(toolMode?: string) {
   if (toolMode === 'external') {
-    return 'External processing';
+    return t('developerPlatform.privacy.externalProcessing');
   }
   if (toolMode === 'mixed') {
-    return 'Mixed';
+    return t('developerPlatform.privacy.mixed');
   }
   if (toolMode === 'local') {
-    return 'Local only';
+    return t('developerPlatform.privacy.localOnly');
   }
-  return 'Undeclared';
+  return t('developerPlatform.privacy.undeclared');
 }
 </script>
 
@@ -65,19 +75,16 @@ function modeLabel(toolMode?: string) {
       <header class="privacy-hero">
         <div>
           <div class="privacy-kicker">
-            Privacy is a product feature
+            {{ $t('developerPlatform.privacy.kicker') }}
           </div>
-          <h1>Know where your data goes.</h1>
-          <p>
-            Only tools with explicit privacy metadata are labeled local, mixed, or external. Legacy tools stay
-            undeclared until their implementation is reviewed instead of receiving an automatic privacy claim.
-          </p>
+          <h1>{{ $t('developerPlatform.privacy.title') }}</h1>
+          <p>{{ $t('developerPlatform.privacy.intro') }}</p>
         </div>
         <div class="hero-badge">
           <n-icon :component="IconShieldCheck" size="28" />
           <div>
             <strong>{{ stats.local }}/{{ stats.total }}</strong>
-            <span>tools explicitly declared local</span>
+            <span>{{ $t('developerPlatform.privacy.declaredLocal') }}</span>
           </div>
         </div>
       </header>
@@ -86,38 +93,29 @@ function modeLabel(toolMode?: string) {
         <article>
           <n-icon :component="IconLock" />
           <strong>{{ stats.local }}</strong>
-          <span>Local only</span>
+          <span>{{ $t('developerPlatform.privacy.localOnly') }}</span>
         </article>
         <article>
           <n-icon :component="IconNetwork" />
           <strong>{{ stats.external + stats.mixed }}</strong>
-          <span>External / mixed</span>
+          <span>{{ $t('developerPlatform.privacy.externalMixed') }}</span>
         </article>
         <article>
           <n-icon :component="IconExternalLink" />
           <strong>{{ stats.undeclared }}</strong>
-          <span>Undeclared</span>
+          <span>{{ $t('developerPlatform.privacy.undeclared') }}</span>
         </article>
         <article>
           <n-icon :component="IconShieldCheck" />
           <strong>{{ stats.offline }}</strong>
-          <span>Offline capable</span>
+          <span>{{ $t('developerPlatform.privacy.offlineCapable') }}</span>
         </article>
       </section>
 
       <section class="privacy-shell">
         <div class="filters">
-          <n-input v-model:value="query" clearable placeholder="Search tool, category or capability..." />
-          <n-select
-            v-model:value="mode"
-            :options="[
-              { label: 'All privacy modes', value: 'all' },
-              { label: 'Local only', value: 'local' },
-              { label: 'External processing', value: 'external' },
-              { label: 'Mixed', value: 'mixed' },
-              { label: 'Undeclared', value: 'undeclared' },
-            ]"
-          />
+          <n-input v-model:value="query" clearable :placeholder="$t('developerPlatform.privacy.searchPlaceholder')" />
+          <n-select v-model:value="mode" :options="modeOptions" />
         </div>
 
         <div class="tool-list">
@@ -129,7 +127,7 @@ function modeLabel(toolMode?: string) {
                   {{ modeLabel(tool.privacy?.mode) }}
                 </span>
               </div>
-              <p>{{ tool.privacy?.summary ?? 'Privacy metadata has not been reviewed for this tool yet.' }}</p>
+              <p>{{ tool.privacy?.summary ?? $t('developerPlatform.privacy.undeclaredSummary') }}</p>
               <div class="tool-meta">
                 <span>{{ tool.category }}</span>
                 <span>{{ tool.origin ?? 'core' }}</span>
