@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  bankAppSearchLabel,
   bankSearchLabel,
-  buildVietQrDeeplink,
-  buildVietQrQuickLink,
+  crc16,
+  formatVietQrAmount,
+  makeVietQrContent,
   matchesBankQuery,
-  validateVietQrDeeplinkInput,
+  normalizeVietQrAmount,
   validateVietQrInput,
 } from './vietqr-bank-generator.service';
 
@@ -21,61 +21,43 @@ const bank = {
   swift_code: 'BFTVVNVX',
 };
 
-const bankApp = {
-  appId: 'vcb',
-  appLogo: 'https://example.test/vcb.png',
-  appName: 'VCB Digibank',
-  bankName: bank.name,
-  monthlyInstall: 100000,
-  deeplink: 'https://dl.vietqr.io/pay?app=vcb',
-};
-
 describe('VietQR bank generator service', () => {
-  it('builds a Quick Link with encoded optional values', () => {
-    expect(buildVietQrQuickLink({
+  it('matches the reference static VietQR payload', () => {
+    expect(makeVietQrContent({
+      bankId: '970423',
+      accountNo: '0123456789',
+    })).toBe('00020101021138540010A00000072701240006970423011001234567890208QRIBFTTA53037045802VN6304F64B');
+  });
+
+  it('uses a dynamic point-of-initiation method when an amount is present', () => {
+    const content = makeVietQrContent({
       bankId: bank.bin,
       accountNo: '123456789',
-      template: 'compact2',
       amount: '79000',
       description: 'Invoice 2026',
-      accountName: 'EPLUS DEV',
-    })).toBe('https://img.vietqr.io/image/970436-123456789-compact2.png?amount=79000&addInfo=Invoice+2026&accountName=EPLUS+DEV');
+    });
+
+    expect(content).toContain('010212');
+    expect(content).toContain('540579000');
+    expect(content).toContain('0812Invoice 2026');
+    expect(content.endsWith(crc16(content.slice(0, -4)))).toBe(true);
   });
 
-  it('builds a VietQR bank app deeplink with payment hints', () => {
-    expect(buildVietQrDeeplink({
-      appId: bankApp.appId,
-      accountNo: '123456789',
-      bankCode: bank.code,
-      amount: '79000',
-      description: 'Invoice 2026',
-      accountName: 'EPLUS DEV',
-      returnUrl: 'https://tools.eplus.dev/done',
-    })).toBe('https://dl.vietqr.io/pay?app=vcb&ba=123456789%40vcb&am=79000&tn=Invoice+2026&bn=EPLUS+DEV&url=https%3A%2F%2Ftools.eplus.dev%2Fdone');
+  it('normalizes and formats VND amounts', () => {
+    expect(normalizeVietQrAmount('001,234,567 VND')).toBe('1234567');
+    expect(formatVietQrAmount('001234567')).toBe('1,234,567');
   });
 
-  it('rejects invalid account numbers and amounts', () => {
+  it('rejects invalid bank, account, amount and accented transfer content', () => {
     const result = validateVietQrInput({
-      bankId: bank.bin,
+      bankId: 'VCB',
       accountNo: 'bad account!',
-      template: 'compact',
       amount: '-100',
+      description: 'Thanh toán',
     });
 
     expect(result.valid).toBe(false);
-    expect(result.errors).toHaveLength(2);
-  });
-
-  it('validates deeplink app, recipient bank and return URL', () => {
-    const result = validateVietQrDeeplinkInput({
-      appId: '',
-      accountNo: '123456789',
-      bankCode: '!',
-      returnUrl: 'javascript:alert(1)',
-    });
-
-    expect(result.valid).toBe(false);
-    expect(result.errors).toHaveLength(3);
+    expect(result.errors).toHaveLength(4);
   });
 
   it('supports lookup by bank name, BIN, code and SWIFT/BIC', () => {
@@ -86,11 +68,9 @@ describe('VietQR bank generator service', () => {
     expect(matchesBankQuery(bank, 'not-a-bank')).toBe(false);
   });
 
-  it('creates useful bank and app search labels', () => {
+  it('creates a useful bank search label', () => {
     expect(bankSearchLabel(bank)).toContain('Vietcombank');
     expect(bankSearchLabel(bank)).toContain('970436');
     expect(bankSearchLabel(bank)).toContain('BFTVVNVX');
-    expect(bankAppSearchLabel(bankApp)).toContain('VCB Digibank');
-    expect(bankAppSearchLabel(bankApp)).toContain('vcb');
   });
 });
