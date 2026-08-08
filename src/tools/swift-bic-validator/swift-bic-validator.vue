@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { CKeyValueListItems } from '@/ui/c-key-value-list/c-key-value-list.types';
 import { parseBic } from './swift-bic-validator.service';
+import type { CKeyValueListItems } from '@/ui/c-key-value-list/c-key-value-list.types';
 
 const rawBic = ref('');
 const details = computed(() => parseBic(rawBic.value));
