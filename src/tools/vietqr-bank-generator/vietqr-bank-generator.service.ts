@@ -64,7 +64,7 @@ export function crc16(value: string) {
 }
 
 export function normalizeVietQrAmount(value: string) {
-  return value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 13);
+  return value.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
 }
 
 /**
