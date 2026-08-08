@@ -80,6 +80,8 @@ import { tool as qrCodeGenerator } from './qr-code-generator';
 import { tool as wifiQrCodeGenerator } from './wifi-qr-code-generator';
 import { tool as randomPortGenerator } from './random-port-generator';
 import { tool as romanNumeralConverter } from './roman-numeral-converter';
+import { tool as schemaChecker } from './schema-checker';
+import { tool as seoChecker } from './seo-checker';
 import { tool as sqlPrettify } from './sql-prettify';
 import { tool as svgPlaceholderGenerator } from './svg-placeholder-generator';
 import { tool as temperatureConverter } from './temperature-converter';
@@ -144,6 +146,8 @@ const coreCategories: ToolCategory[] = [
       httpStatusCodes,
       jsonDiff,
       safelinkDecoder,
+      schemaChecker,
+      seoChecker,
     ],
   },
   {
