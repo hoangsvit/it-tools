@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import type { WorkspaceFileInspection } from '@/modules/developer-workspace/workspace-file-inspector';
 import {
   formatWorkspaceFileInspection,
   inspectWorkspaceFile,
-  type WorkspaceFileInspection,
 } from '@/modules/developer-workspace/workspace-file-inspector';
 import { useCopy } from '@/composable/copy';
 
@@ -92,7 +92,7 @@ function copyReport() {
       </div>
 
       <c-card v-if="inspection.sha256" title="SHA-256">
-        <c-text-copyable :value="inspection.sha256" font-mono break-all />
+        <c-text-copyable :value="inspection.sha256" break-all font-mono />
       </c-card>
 
       <c-card v-if="inspection.textPreview" title="Text preview">
