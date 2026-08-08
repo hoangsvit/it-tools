@@ -2,7 +2,9 @@ import { type Page, expect, test } from '@playwright/test';
 
 async function extractIbanInfo({ page }: { page: Page }) {
   const itemsLines = await page
-    .locator('.c-key-value-list__item').all();
+    .getByTestId('iban-info')
+    .locator('.c-key-value-list__item')
+    .all();
 
   return await Promise.all(
     itemsLines.map(async item => [
