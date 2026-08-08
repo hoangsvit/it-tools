@@ -66,33 +66,35 @@ describe('seo helpers', () => {
     const page = findSchema(structuredData['@graph'], 'WebPage');
     const application = findSchema(structuredData['@graph'], 'WebApplication');
 
+    expect(page?.['@id']).toBe('https://tools.eplus.dev/url-parser#webpage');
     expect(page).toMatchObject({
-      ['@id']: 'https://tools.eplus.dev/url-parser#webpage',
       url: 'https://tools.eplus.dev/url-parser',
       name: 'URL Parser - IT Tools',
       mainEntity: { '@id': 'https://tools.eplus.dev/url-parser#application' },
     });
+    expect(application?.['@id']).toBe('https://tools.eplus.dev/url-parser#application');
     expect(application).toMatchObject({
-      ['@id']: 'https://tools.eplus.dev/url-parser#application',
       name: 'URL Parser',
       applicationCategory: 'DeveloperApplication',
       operatingSystem: 'Any',
       isAccessibleForFree: true,
-      offers: { ['@type']: 'Offer', price: 0 },
       keywords: 'url, parser',
     });
+    const offer = application?.offers as Record<string, unknown>;
+    expect(offer?.['@type']).toBe('Offer');
+    expect(offer?.price).toBe(0);
   });
 
   it('creates home WebPage and WebApplication schema', () => {
     const structuredData = createStructuredData();
     const graph = structuredData['@graph'];
+    const page = findSchema(graph, 'WebPage');
+    const application = findSchema(graph, 'WebApplication');
 
-    expect(findSchema(graph, 'WebPage')).toMatchObject({
-      ['@id']: 'https://tools.eplus.dev/#webpage',
-      url: 'https://tools.eplus.dev/',
-    });
-    expect(findSchema(graph, 'WebApplication')).toMatchObject({
-      ['@id']: 'https://tools.eplus.dev/#application',
+    expect(page?.['@id']).toBe('https://tools.eplus.dev/#webpage');
+    expect(page?.url).toBe('https://tools.eplus.dev/');
+    expect(application?.['@id']).toBe('https://tools.eplus.dev/#application');
+    expect(application).toMatchObject({
       name: SEO_CONFIG.siteName,
       sameAs: SEO_CONFIG.repositoryUrl,
       license: SEO_CONFIG.licenseUrl,
@@ -106,11 +108,10 @@ describe('seo helpers', () => {
       description: 'About IT Tools by ePlus.DEV.',
     });
     const graph = structuredData['@graph'];
+    const aboutPage = findSchema(graph, 'AboutPage');
 
-    expect(findSchema(graph, 'AboutPage')).toMatchObject({
-      ['@id']: 'https://tools.eplus.dev/about#webpage',
-      url: 'https://tools.eplus.dev/about',
-    });
+    expect(aboutPage?.['@id']).toBe('https://tools.eplus.dev/about#webpage');
+    expect(aboutPage?.url).toBe('https://tools.eplus.dev/about');
     expect(findSchema(graph, 'WebApplication')).toBeUndefined();
   });
 
@@ -121,9 +122,10 @@ describe('seo helpers', () => {
       description: 'Private browser-local developer workflow workspace.',
     });
     const graph = structuredData['@graph'];
+    const application = findSchema(graph, 'WebApplication');
 
-    expect(findSchema(graph, 'WebApplication')).toMatchObject({
-      ['@id']: 'https://tools.eplus.dev/workspace#application',
+    expect(application?.['@id']).toBe('https://tools.eplus.dev/workspace#application');
+    expect(application).toMatchObject({
       name: 'Developer Workspace',
       applicationCategory: 'DeveloperApplication',
     });
