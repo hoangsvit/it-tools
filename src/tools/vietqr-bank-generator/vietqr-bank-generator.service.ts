@@ -26,6 +26,7 @@ const ACCOUNT_PATTERN = /^[A-Za-z0-9]{1,25}$/;
 const AMOUNT_PATTERN = /^\d{1,13}$/;
 const BANK_BIN_PATTERN = /^\d{6}$/;
 const DESCRIPTION_PATTERN = /^[A-Za-z0-9 ]*$/;
+const FORMATTED_AMOUNT_PATTERN = /^[\d,\s]*$/;
 
 function tlv(id: string, value: string) {
   return `${id}${value.length.toString().padStart(2, '0')}${value}`;
@@ -56,12 +57,26 @@ export function formatVietQrAmount(value: string) {
   return normalized.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
+export function normalizeVietQrInput(input: VietQrInput): VietQrInput {
+  const rawAmount = input.amount?.trim() ?? '';
+
+  return {
+    bankId: input.bankId.trim(),
+    accountNo: input.accountNo.trim(),
+    amount: FORMATTED_AMOUNT_PATTERN.test(rawAmount)
+      ? normalizeVietQrAmount(rawAmount)
+      : rawAmount,
+    description: input.description?.trim() ?? '',
+  };
+}
+
 export function validateVietQrInput(input: VietQrInput): VietQrValidationResult {
   const errors: string[] = [];
-  const bankId = input.bankId.trim();
-  const accountNo = input.accountNo.trim();
-  const rawAmount = input.amount?.trim() ?? '';
-  const description = input.description?.trim() ?? '';
+  const normalized = normalizeVietQrInput(input);
+  const bankId = normalized.bankId;
+  const accountNo = normalized.accountNo;
+  const amount = normalized.amount ?? '';
+  const description = normalized.description ?? '';
 
   if (!BANK_BIN_PATTERN.test(bankId)) {
     errors.push('Please choose a bank from the list.');
@@ -71,7 +86,7 @@ export function validateVietQrInput(input: VietQrInput): VietQrValidationResult 
     errors.push('Account number or alias must contain 1-25 letters or digits.');
   }
 
-  if (rawAmount && (!AMOUNT_PATTERN.test(rawAmount) || Number(rawAmount) <= 0)) {
+  if (amount && (!AMOUNT_PATTERN.test(amount) || Number(amount) <= 0)) {
     errors.push('Amount must be a positive VND integer with at most 13 digits.');
   }
 
@@ -89,12 +104,7 @@ export function validateVietQrInput(input: VietQrInput): VietQrValidationResult 
 }
 
 export function makeVietQrContent(input: VietQrInput) {
-  const normalizedInput = {
-    bankId: input.bankId.trim(),
-    accountNo: input.accountNo.trim(),
-    amount: normalizeVietQrAmount(input.amount ?? ''),
-    description: input.description?.trim() ?? '',
-  };
+  const normalizedInput = normalizeVietQrInput(input);
   const validation = validateVietQrInput(normalizedInput);
 
   if (!validation.valid) {
