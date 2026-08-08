@@ -1,3 +1,4 @@
+/* eslint-disable quote-props */
 import { i18n } from '@/plugins/i18n.plugin';
 
 const messages = {
