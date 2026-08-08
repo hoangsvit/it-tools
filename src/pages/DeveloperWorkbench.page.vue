@@ -9,6 +9,7 @@ import {
 } from '@tabler/icons-vue';
 import { useHead } from '@vueuse/head';
 import { useCopy } from '@/composable/copy';
+import '@/modules/developer-workspace/developer-platform.i18n';
 import { useDeveloperWorkspaceStore } from '@/modules/developer-workspace/developer-workspace.store';
 import { explainWorkspaceInput } from '@/modules/developer-workspace/workspace-explain';
 import type { WorkspaceFileInspection } from '@/modules/developer-workspace/workspace-file-inspector';
@@ -29,6 +30,7 @@ const route = useRoute();
 const router = useRouter();
 const toolStore = useToolStore();
 const workspaceStore = useDeveloperWorkspaceStore();
+const { t } = useI18n();
 const { copy, isSupported: clipboardSupported } = useCopy({ createToast: false });
 
 const input = ref('');
@@ -41,8 +43,8 @@ const importedRecipe = ref(false);
 let fileInspectionRequest = 0;
 
 useHead(createSeoHead({
-  title: 'Developer Workbench',
-  description: 'Paste developer data or drop a file, auto-detect the format, explain it, find the right tools and build shareable browser-local workflows.',
+  title: t('developerPlatform.workbench.seoTitle'),
+  description: t('developerPlatform.workbench.seoDescription'),
   path: '/workbench',
   keywords: ['developer workbench', 'smart input', 'file inspector', 'workflow recipe', 'privacy', 'ePlus.DEV'],
 }));
@@ -62,12 +64,102 @@ onMounted(() => {
 
 const workspace = computed(() => workspaceStore.activeWorkspace);
 const detections = computed(() => detectWorkspaceInput(input.value));
-const explanation = computed(() => explainWorkspaceInput(input.value));
+const rawExplanation = computed(() => explainWorkspaceInput(input.value));
 const suggestions = computed(() => suggestWorkspaceTools({
   value: input.value,
   tools: toolStore.tools,
   limit: 5,
 }));
+
+function detectionLabel(kind: string, fallback = kind) {
+  return t(`developerPlatform.detections.${kind}`, fallback);
+}
+
+const factKeyByLabel: Record<string, string> = {
+  Segments: 'segments',
+  Algorithm: 'algorithm',
+  Issuer: 'issuer',
+  Subject: 'subject',
+  Expires: 'expires',
+  Status: 'status',
+  Payload: 'payload',
+  'Top level': 'topLevel',
+  Items: 'items',
+  'Top-level keys': 'topLevelKeys',
+  Characters: 'characters',
+  Protocol: 'protocol',
+  Host: 'host',
+  Path: 'path',
+  'Query parameters': 'queryParameters',
+  Fragment: 'fragment',
+  Scope: 'scope',
+  Octets: 'octets',
+  Lines: 'lines',
+  Confidence: 'confidence',
+};
+
+function translateFactValue(value: string) {
+  const keyByValue: Record<string, string> = {
+    'Not expired': 'notExpired',
+    Expired: 'expired',
+    'Could not decode as JSON': 'decodeError',
+    Array: 'array',
+    Object: 'object',
+    'Private RFC1918 range': 'privateRange',
+    'Not an RFC1918 private range': 'notPrivateRange',
+  };
+  const key = keyByValue[value];
+  return key ? t(`developerPlatform.explain.${key}`) : value;
+}
+
+const explanation = computed(() => {
+  const current = rawExplanation.value;
+  if (!current) {
+    return null;
+  }
+
+  const firstDetection = detections.value[0];
+  const title = current.kind === 'json'
+    ? t('developerPlatform.explain.jsonTitle')
+    : detectionLabel(current.kind, current.title);
+
+  let summary = current.summary;
+  if (current.kind === 'jwt') {
+    summary = t('developerPlatform.explain.jwtSummary');
+  }
+  else if (current.kind === 'json') {
+    summary = t('developerPlatform.explain.jsonSummary');
+  }
+  else if (current.kind === 'url') {
+    summary = t('developerPlatform.explain.urlSummary');
+  }
+  else if (current.kind === 'ipv4') {
+    summary = t('developerPlatform.explain.ipv4Summary');
+  }
+  else if (current.kind === 'unknown') {
+    summary = t('developerPlatform.explain.unknownSummary');
+  }
+  else if (firstDetection) {
+    summary = t('developerPlatform.explain.genericSummary', {
+      label: detectionLabel(firstDetection.kind, firstDetection.label),
+      confidence: Math.round(firstDetection.confidence * 100),
+    });
+  }
+
+  return {
+    ...current,
+    title,
+    summary,
+    facts: current.facts.map((fact) => {
+      const factKey = factKeyByLabel[fact.label];
+      return {
+        ...fact,
+        label: factKey ? t(`developerPlatform.explain.${factKey}`) : fact.label,
+        value: translateFactValue(fact.value),
+      };
+    }),
+  };
+});
 
 const recipeTools = computed(() => (workspace.value?.steps ?? [])
   .map(step => ({
@@ -200,46 +292,43 @@ function clearWorkbench() {
       <header class="workbench-hero">
         <div>
           <div class="hero-kicker">
-            ePlus.DEV Smart Developer Workbench
+            {{ $t('developerPlatform.workbench.kicker') }}
           </div>
-          <h1>Start with the data, not the tool.</h1>
-          <p>
-            Paste anything or drop a file. Workbench identifies common developer formats, explains what it sees,
-            recommends the best tools and lets you turn those choices into a shareable workflow recipe.
-          </p>
+          <h1>{{ $t('developerPlatform.workbench.title') }}</h1>
+          <p>{{ $t('developerPlatform.workbench.intro') }}</p>
         </div>
         <div class="hero-actions">
           <router-link to="/workspace" class="hero-link">
             <n-icon :component="IconLayoutDashboard" />
-            Full workflow editor
+            {{ $t('developerPlatform.workbench.fullEditor') }}
           </router-link>
           <router-link to="/privacy" class="hero-link">
             <n-icon :component="IconShieldCheck" />
-            Privacy dashboard
+            {{ $t('developerPlatform.workbench.privacyDashboard') }}
           </router-link>
         </div>
       </header>
 
       <n-alert v-if="importedRecipe" type="success" :bordered="false" class="import-alert">
-        Shared recipe imported into a new local workspace. Its steps are now editable on this device.
+        {{ $t('developerPlatform.workbench.imported') }}
       </n-alert>
 
       <section class="workbench-grid">
         <div class="smart-input-card">
           <div class="section-heading">
             <div>
-              <span class="section-kicker">Universal input</span>
-              <h2>Paste text, a URL, token, config or command</h2>
+              <span class="section-kicker">{{ $t('developerPlatform.workbench.universalInput') }}</span>
+              <h2>{{ $t('developerPlatform.workbench.inputTitle') }}</h2>
             </div>
             <div class="heading-actions">
               <n-button size="small" secondary @click="fileInput?.click()">
                 <template #icon>
                   <n-icon :component="IconFile" />
                 </template>
-                Drop / open file
+                {{ $t('developerPlatform.workbench.openFile') }}
               </n-button>
               <n-button size="small" quaternary :disabled="!input" @click="clearWorkbench">
-                Clear
+                {{ $t('developerPlatform.common.clear') }}
               </n-button>
             </div>
           </div>
@@ -251,27 +340,27 @@ function clearWorkbench() {
               v-model:value="input"
               type="textarea"
               :autosize="{ minRows: 9, maxRows: 18 }"
-              placeholder="Try JWT, JSON, URL, YAML, XML, Base64, IPv4, SQL, cron, docker run... or drop a file here"
+              :placeholder="$t('developerPlatform.workbench.placeholder')"
             />
             <div v-if="fileBusy" class="file-busy">
-              Inspecting file locally…
+              {{ $t('developerPlatform.workbench.inspecting') }}
             </div>
           </div>
 
           <div v-if="detections.length" class="detection-row">
             <span v-for="detection in detections.slice(0, 4)" :key="detection.kind" class="detection-pill">
-              {{ detection.label }} · {{ Math.round(detection.confidence * 100) }}%
+              {{ detectionLabel(detection.kind, detection.label) }} · {{ Math.round(detection.confidence * 100) }}%
             </span>
           </div>
 
           <div v-if="explanation" class="explain-card">
             <div class="explain-title">
               <div>
-                <span>Explain mode</span>
+                <span>{{ $t('developerPlatform.workbench.explainMode') }}</span>
                 <strong>{{ explanation.title }}</strong>
               </div>
               <n-button size="tiny" quaternary :disabled="!input" @click="copyValue(input, 'input')">
-                {{ copiedState === 'input' ? 'Copied' : 'Copy input' }}
+                {{ copiedState === 'input' ? $t('developerPlatform.common.copied') : $t('developerPlatform.workbench.copyInput') }}
               </n-button>
             </div>
             <p>{{ explanation.summary }}</p>
@@ -288,32 +377,32 @@ function clearWorkbench() {
           <section class="side-card privacy-card">
             <div class="privacy-title">
               <n-icon :component="IconShieldCheck" />
-              <strong>Browser-local first</strong>
+              <strong>{{ $t('developerPlatform.workbench.browserLocalTitle') }}</strong>
             </div>
-            <p>Detection, explanation, recipe serialization and file inspection run locally. Sensitive values are excluded from shared recipes by default.</p>
+            <p>{{ $t('developerPlatform.workbench.browserLocalDescription') }}</p>
             <router-link to="/privacy">
-              Inspect all tool privacy modes →
+              {{ $t('developerPlatform.workbench.inspectPrivacy') }}
             </router-link>
           </section>
 
           <section v-if="fileInspection" class="side-card">
-            <span class="section-kicker">File inspector</span>
+            <span class="section-kicker">{{ $t('developerPlatform.workbench.fileInspector') }}</span>
             <h3>{{ fileInspection.name }}</h3>
             <div class="file-facts">
               <div>
-                <span>Kind</span>
+                <span>{{ $t('developerPlatform.workbench.kind') }}</span>
                 <strong>{{ fileInspection.kind }}</strong>
               </div>
               <div>
-                <span>Size</span>
-                <strong>{{ fileInspection.size.toLocaleString() }} bytes</strong>
+                <span>{{ $t('developerPlatform.workbench.size') }}</span>
+                <strong>{{ fileInspection.size.toLocaleString() }} {{ $t('developerPlatform.common.bytes') }}</strong>
               </div>
               <div v-if="fileInspection.width && fileInspection.height">
-                <span>Dimensions</span>
+                <span>{{ $t('developerPlatform.workbench.dimensions') }}</span>
                 <strong>{{ fileInspection.width }}×{{ fileInspection.height }}</strong>
               </div>
               <div v-if="fileInspection.pageCount">
-                <span>Estimated pages</span>
+                <span>{{ $t('developerPlatform.workbench.estimatedPages') }}</span>
                 <strong>{{ fileInspection.pageCount }}</strong>
               </div>
               <div v-if="fileInspection.sha256">
@@ -333,8 +422,8 @@ function clearWorkbench() {
       <section class="suggestions-section">
         <div class="section-heading">
           <div>
-            <span class="section-kicker">Smart tool discovery</span>
-            <h2>{{ suggestions.length ? 'Recommended next actions' : 'Waiting for recognizable input' }}</h2>
+            <span class="section-kicker">{{ $t('developerPlatform.workbench.smartDiscovery') }}</span>
+            <h2>{{ suggestions.length ? $t('developerPlatform.workbench.recommended') : $t('developerPlatform.workbench.waiting') }}</h2>
           </div>
         </div>
 
@@ -344,7 +433,7 @@ function clearWorkbench() {
               {{ index + 1 }}
             </div>
             <div class="suggestion-copy">
-              <span>{{ suggestion.category }} · {{ suggestion.label }}</span>
+              <span>{{ suggestion.category }} · {{ detectionLabel(suggestion.kind, suggestion.label) }}</span>
               <strong>{{ suggestion.toolName }}</strong>
               <p>{{ suggestion.description }}</p>
             </div>
@@ -353,46 +442,46 @@ function clearWorkbench() {
                 <template #icon>
                   <n-icon :component="IconPlus" />
                 </template>
-                Add to recipe
+                {{ $t('developerPlatform.workbench.addToRecipe') }}
               </n-button>
               <n-button size="small" type="primary" secondary @click="openSuggestion(suggestion)">
                 <template #icon>
                   <n-icon :component="IconExternalLink" />
                 </template>
-                {{ input.trim() && clipboardSupported ? 'Copy & open' : 'Open tool' }}
+                {{ input.trim() && clipboardSupported ? $t('developerPlatform.workbench.copyAndOpen') : $t('developerPlatform.workbench.openTool') }}
               </n-button>
             </div>
           </article>
         </div>
         <div v-else class="empty-suggestions">
-          Workbench will never guess aggressively. Paste recognizable data or choose a tool from the full toolbox.
+          {{ $t('developerPlatform.workbench.noSuggestions') }}
         </div>
       </section>
 
       <section v-if="workspace" class="recipe-section">
         <div class="section-heading recipe-heading">
           <div>
-            <span class="section-kicker">Workflow recipe</span>
+            <span class="section-kicker">{{ $t('developerPlatform.workbench.workflowRecipe') }}</span>
             <h2>{{ workspace.name }}</h2>
           </div>
           <div class="recipe-actions">
             <n-checkbox v-model:checked="includeDataInShare">
-              Include input/output data
+              {{ $t('developerPlatform.workbench.includeData') }}
             </n-checkbox>
             <n-button secondary @click="copyRecipeLink">
               <template #icon>
                 <n-icon :component="IconClipboard" />
               </template>
-              {{ copiedState === 'recipe-link' ? 'Copied link' : 'Copy recipe link' }}
+              {{ copiedState === 'recipe-link' ? $t('developerPlatform.workbench.copiedLink') : $t('developerPlatform.workbench.copyRecipeLink') }}
             </n-button>
             <router-link to="/workspace" class="edit-recipe-link">
-              Edit full workflow →
+              {{ $t('developerPlatform.workbench.editFullWorkflow') }}
             </router-link>
           </div>
         </div>
 
         <n-alert v-if="includeDataInShare" type="warning" :bordered="false" class="recipe-warning">
-          This link will contain the current step inputs, outputs and notes. Only enable this for data you are comfortable placing in a URL.
+          {{ $t('developerPlatform.workbench.shareWarning') }}
         </n-alert>
 
         <div class="recipe-flow">
@@ -409,7 +498,7 @@ function clearWorkbench() {
             </div>
           </template>
           <div v-if="recipeTools.length === 0" class="empty-recipe">
-            Add one of the smart suggestions above to start a reusable workflow.
+            {{ $t('developerPlatform.workbench.emptyRecipe') }}
           </div>
         </div>
       </section>
