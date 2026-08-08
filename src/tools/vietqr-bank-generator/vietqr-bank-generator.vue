@@ -157,9 +157,12 @@ function resetForm() {
   clearSensitiveStorage();
 }
 
-function loadImage(source: string) {
+function loadImage(source: string, crossOrigin = false) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
+    if (crossOrigin) {
+      image.crossOrigin = 'anonymous';
+    }
     image.onload = () => resolve(image);
     image.onerror = reject;
     image.src = source;
@@ -198,12 +201,35 @@ function fillRoundedRect(
   context.fill();
 }
 
+function drawContainImage(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
+  const drawWidth = image.naturalWidth * scale;
+  const drawHeight = image.naturalHeight * scale;
+  context.drawImage(
+    image,
+    x + (width - drawWidth) / 2,
+    y + (height - drawHeight) / 2,
+    drawWidth,
+    drawHeight,
+  );
+}
+
 async function createShareImage() {
   if (!qrDataUrl.value || !selectedBank.value) {
     return '';
   }
 
   const qrImage = await loadImage(qrDataUrl.value);
+  const bankLogo = selectedBank.value.logo
+    ? await loadImage(selectedBank.value.logo, true).catch(() => null)
+    : null;
   const canvas = document.createElement('canvas');
   canvas.width = 840;
   canvas.height = 1080;
@@ -253,10 +279,15 @@ async function createShareImage() {
   context.font = '500 13px sans-serif';
   context.fillText('PAYMENT QR', 188, 145);
 
-  context.textAlign = 'right';
-  context.fillStyle = '#64748b';
-  context.font = '700 16px sans-serif';
-  context.fillText(selectedBank.value.shortName, 710, 126, 250);
+  if (bankLogo) {
+    drawContainImage(context, bankLogo, 568, 99, 142, 50);
+  }
+  else {
+    context.textAlign = 'right';
+    context.fillStyle = '#64748b';
+    context.font = '700 16px sans-serif';
+    context.fillText(selectedBank.value.shortName, 710, 126, 250);
+  }
 
   context.textAlign = 'center';
   context.fillStyle = '#111827';
@@ -360,9 +391,11 @@ onMounted(() => {
             />
 
             <div v-if="selectedBank" class="bank-summary">
-              <div class="bank-mark">
-                {{ selectedBank.shortName.slice(0, 2).toUpperCase() }}
-              </div>
+              <img
+                :src="selectedBank.logo"
+                :alt="t('bankLogoAlt', { bank: selectedBank.shortName })"
+                class="bank-logo"
+              >
               <div min-w-0 flex-1>
                 <div font-600>
                   {{ selectedBank.shortName }}
@@ -446,8 +479,12 @@ onMounted(() => {
                       <span>PAYMENT QR</span>
                     </div>
                   </div>
-                  <div class="qr-bank-chip">
-                    {{ selectedBank.shortName }}
+                  <div class="qr-bank-logo-wrap">
+                    <img
+                      :src="selectedBank.logo"
+                      :alt="t('bankLogoAlt', { bank: selectedBank.shortName })"
+                      class="qr-bank-logo"
+                    >
                   </div>
                 </div>
 
@@ -517,20 +554,12 @@ onMounted(() => {
   background: rgba(248, 250, 252, 0.55);
 }
 
-.bank-mark {
-  display: flex;
-  width: 48px;
-  height: 48px;
-  align-items: center;
-  justify-content: center;
+.bank-logo {
+  display: block;
+  width: 72px;
+  height: 42px;
   flex: none;
-  border: 1px solid #e4e7ec;
-  border-radius: 14px;
-  background: #fff;
-  color: #4f46e5;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  object-fit: contain;
 }
 
 .bank-bin {
@@ -615,18 +644,20 @@ onMounted(() => {
   letter-spacing: 0.12em;
 }
 
-.qr-bank-chip {
-  max-width: 118px;
-  overflow: hidden;
-  padding: 7px 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  background: #f8fafc;
-  color: #475569;
-  font-size: 10px;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.qr-bank-logo-wrap {
+  display: flex;
+  width: 112px;
+  height: 42px;
+  align-items: center;
+  justify-content: flex-end;
+  flex: none;
+}
+
+.qr-bank-logo {
+  display: block;
+  max-width: 100%;
+  max-height: 38px;
+  object-fit: contain;
 }
 
 .qr-heading {
@@ -801,8 +832,9 @@ onMounted(() => {
     height: 34px;
   }
 
-  .qr-bank-chip {
-    max-width: 96px;
+  .qr-bank-logo-wrap {
+    width: 88px;
+    height: 38px;
   }
 
   .qr-heading {
