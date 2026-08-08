@@ -64,7 +64,7 @@ export function validateVietQrInput(input: VietQrInput): VietQrValidationResult 
   const description = input.description?.trim() ?? '';
 
   if (!BANK_BIN_PATTERN.test(bankId)) {
-    errors.push('Select a bank with a valid 6-digit NAPAS BIN.');
+    errors.push('Please choose a bank from the list.');
   }
 
   if (!ACCOUNT_PATTERN.test(accountNo)) {
@@ -129,8 +129,11 @@ export function makeVietQrContent(input: VietQrInput) {
 }
 
 export function bankSearchLabel(bank: VietQrBank) {
-  const swift = bank.swift_code ? ` · ${bank.swift_code}` : '';
-  return `${bank.shortName} · ${bank.bin} · ${bank.code}${swift}`;
+  if (bank.name.toLowerCase().includes(bank.shortName.toLowerCase())) {
+    return bank.name;
+  }
+
+  return `${bank.shortName} — ${bank.name}`;
 }
 
 export function matchesBankQuery(bank: VietQrBank, query: string) {
