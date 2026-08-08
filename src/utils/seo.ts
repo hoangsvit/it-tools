@@ -81,6 +81,18 @@ function getSchemaIds(canonicalUrl: string) {
   };
 }
 
+function createSchemaNode(
+  type: string,
+  properties: Record<string, unknown>,
+  id?: string,
+): Record<string, unknown> {
+  return {
+    ...properties,
+    '@type': type,
+    ...(id ? { '@id': id } : {}),
+  };
+}
+
 export function createStructuredData({
   title,
   description = SEO_CONFIG.defaultDescription,
@@ -92,15 +104,17 @@ export function createStructuredData({
   const resolvedTitle = getSeoTitle(title);
   const kind = resolveSeoPageKind(path, pageKind);
   const ids = getSchemaIds(canonicalUrl);
-  const pageSchema: Record<string, unknown> = {
-    ['@type']: kind === 'about' ? 'AboutPage' : 'WebPage',
-    ['@id']: ids.page,
-    url: canonicalUrl,
-    name: resolvedTitle,
-    description,
-    inLanguage: SEO_CONFIG.language,
-    isPartOf: { '@id': ids.website },
-  };
+  const pageSchema = createSchemaNode(
+    kind === 'about' ? 'AboutPage' : 'WebPage',
+    {
+      url: canonicalUrl,
+      name: resolvedTitle,
+      description,
+      inLanguage: SEO_CONFIG.language,
+      isPartOf: { '@id': ids.website },
+    },
+    ids.page,
+  );
 
   if (kind === 'about') {
     pageSchema.about = { '@id': ids.website };
@@ -108,24 +122,23 @@ export function createStructuredData({
 
   const graph: Record<string, unknown>[] = [pageSchema];
   if (kind === 'home' || kind === 'tool' || kind === 'workspace') {
-    const applicationSchema: Record<string, unknown> = {
-      ['@type']: 'WebApplication',
-      ['@id']: ids.application,
-      name: title?.trim() || SEO_CONFIG.siteName,
-      url: canonicalUrl,
-      description,
-      applicationCategory: 'DeveloperApplication',
-      operatingSystem: 'Any',
-      browserRequirements: 'Requires JavaScript and a modern web browser.',
-      isAccessibleForFree: true,
-      offers: {
-        ['@type']: 'Offer',
-        price: 0,
+    const applicationSchema = createSchemaNode(
+      'WebApplication',
+      {
+        name: title?.trim() || SEO_CONFIG.siteName,
+        url: canonicalUrl,
+        description,
+        applicationCategory: 'DeveloperApplication',
+        operatingSystem: 'Any',
+        browserRequirements: 'Requires JavaScript and a modern web browser.',
+        isAccessibleForFree: true,
+        offers: createSchemaNode('Offer', { price: 0 }),
+        creator: { '@id': ids.maintainer },
+        isPartOf: { '@id': ids.website },
+        inLanguage: SEO_CONFIG.language,
       },
-      creator: { '@id': ids.maintainer },
-      isPartOf: { '@id': ids.website },
-      inLanguage: SEO_CONFIG.language,
-    };
+      ids.application,
+    );
 
     if (keywords.length > 0) {
       applicationSchema.keywords = keywords.join(', ');
