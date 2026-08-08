@@ -121,6 +121,11 @@ describe('workspace smart suggestions', () => {
     expect(suggestions.some(item => item.toolPath === '/vietqr-bank-generator')).toBe(true);
   });
 
+  it('rejects BIC-like values whose institution code contains digits', () => {
+    expect(detectWorkspaceInput('1FTVVNVX')).not.toContainEqual(expect.objectContaining({ kind: 'bic' }));
+    expect(suggestWorkspaceTools({ value: '1FTVVNVX', tools })).toEqual([]);
+  });
+
   it('returns no suggestion for arbitrary text instead of guessing aggressively', () => {
     expect(suggestWorkspaceTools({
       value: 'please help me think about this later',
