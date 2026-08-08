@@ -18,5 +18,11 @@ export const tool = defineTool({
   keywords: ['vietqr', 'bank', 'bin', 'napas', 'swift', 'bic', 'qr', 'vietnam', 'payment', 'qribftta'],
   component: () => import('./vietqr-bank-generator.vue'),
   icon: BankTransfer,
+  origin: 'vietnam',
+  capabilities: ['text-input', 'clipboard', 'file-input', 'shareable-state', 'offline', 'sensitive-data'],
+  privacy: {
+    mode: 'local',
+    summary: 'Transfer payloads and generated QR images are processed locally in your browser.',
+  },
   createdAt: new Date('2026-08-08'),
 });
