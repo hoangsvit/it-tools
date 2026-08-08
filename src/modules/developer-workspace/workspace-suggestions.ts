@@ -13,6 +13,8 @@ export type WorkspaceDetectedKind =
   | 'cron'
   | 'user-agent'
   | 'email'
+  | 'iban'
+  | 'bic'
   | 'markdown';
 
 export interface WorkspaceToolCandidate {
@@ -47,6 +49,8 @@ const JWT_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 const MAC_PATTERN = /^(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}$/i;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+const IBAN_PATTERN = /^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/i;
+const BIC_PATTERN = /^[A-Z0-9]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?$/i;
 
 function isJson(value: string) {
   if (!value || (!value.startsWith('{') && !value.startsWith('['))) {
@@ -144,6 +148,7 @@ export function detectWorkspaceInput(rawValue: string): WorkspaceInputDetection[
 
 function buildDetectionRules(value: string): DetectionRule[] {
   const rules: DetectionRule[] = [];
+  const compactBankValue = value.replace(/[\s-]+/g, '');
 
   if (JWT_PATTERN.test(value)) {
     rules.push({
@@ -213,7 +218,7 @@ function buildDetectionRules(value: string): DetectionRule[] {
     });
   }
 
-  if (looksLikeBase64(value) && !JWT_PATTERN.test(value)) {
+  if (looksLikeBase64(value) && !JWT_PATTERN.test(value) && !IBAN_PATTERN.test(compactBankValue)) {
     rules.push({
       kind: 'base64',
       label: 'Base64',
@@ -290,6 +295,26 @@ function buildDetectionRules(value: string): DetectionRule[] {
       confidence: 0.96,
       preferredPaths: ['/email-normalizer'],
       keywords: ['email', 'normalize'],
+    });
+  }
+
+  if (IBAN_PATTERN.test(compactBankValue)) {
+    rules.push({
+      kind: 'iban',
+      label: 'IBAN',
+      confidence: 0.97,
+      preferredPaths: ['/iban-validator-and-parser'],
+      keywords: ['iban', 'bank', 'bban', 'validator', 'parser'],
+    });
+  }
+
+  if (BIC_PATTERN.test(compactBankValue)) {
+    rules.push({
+      kind: 'bic',
+      label: 'SWIFT / BIC',
+      confidence: 0.96,
+      preferredPaths: ['/swift-bic-validator', '/vietqr-bank-generator'],
+      keywords: ['swift', 'bic', 'bank', 'routing', 'validator'],
     });
   }
 
