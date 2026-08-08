@@ -32,6 +32,7 @@ describe('SWIFT/BIC parser', () => {
   it('rejects structurally invalid BIC values', () => {
     expect(parseBic('ABC').valid).toBe(false);
     expect(parseBic('BFTV1NVX').valid).toBe(false);
+    expect(parseBic('1FTVVNVX').valid).toBe(false);
     expect(parseBic('BFTVVNVXTOOLONG').valid).toBe(false);
   });
 });
