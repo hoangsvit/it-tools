@@ -5,20 +5,9 @@
     <link rel="icon" href="favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>IT Tools - Handy online tools for developers</title>
-    <meta itemprop="name" content="IT Tools - Handy online tools for developers" />
-    <meta
-      name="description"
-      content="Free online developer tools by ePlus.DEV: converters, encoders, generators, network utilities, text tools and more."
-    />
-    <meta
-      itemprop="description"
-      content="Free online developer tools by ePlus.DEV: converters, encoders, generators, network utilities, text tools and more."
-    />
     <meta name="author" content="David - ePlus.DEV" />
     <meta name="application-name" content="IT Tools" />
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="author" href="humans.txt" />
-    <link rel="canonical" href="https://tools.eplus.dev/" />
 
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
@@ -27,47 +16,47 @@
     <meta name="msapplication-TileColor" content="#da532c" />
     <meta name="theme-color" content="#ffffff" />
 
-    <meta property="og:url" content="https://tools.eplus.dev/" />
-    <meta property="og:type" content="website" />
+    <!-- Global social metadata shared by every route. Route-specific title,
+         description, URL, robots and canonical tags are managed by createSeoHead(). -->
     <meta property="og:site_name" content="IT Tools" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:title" content="IT Tools - Handy online tools for developers" />
-    <meta
-      property="og:description"
-      content="Free online developer tools by ePlus.DEV: converters, encoders, generators, network utilities, text tools and more."
-    />
     <meta property="og:image" content="https://tools.eplus.dev/banner.png?v=2" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:alt" content="IT Tools - Handy online tools for developers" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@david_nguyen94" />
     <meta name="twitter:creator" content="@david_nguyen94" />
-    <meta name="twitter:title" content="IT Tools - Handy online tools for developers" />
-    <meta
-      name="twitter:description"
-      content="Free online developer tools by ePlus.DEV: converters, encoders, generators, network utilities, text tools and more."
-    />
     <meta name="twitter:image" content="https://tools.eplus.dev/banner.png?v=2" />
     <meta name="twitter:image:alt" content="IT Tools - Handy online tools for developers" />
 
+    <!-- Site-wide entities only. Page/application schema is injected per route. -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "IT Tools",
-        "url": "https://tools.eplus.dev/",
-        "description": "Free online developer tools by ePlus.DEV: converters, encoders, generators, network utilities, text tools and more.",
-        "applicationCategory": "DeveloperApplication",
-        "operatingSystem": "Any",
-        "isAccessibleForFree": true,
-        "author": {
-          "@type": "Person",
-          "name": "David",
-          "sameAs": [
-            "https://github.com/hoangsvit",
-            "https://twitter.com/david_nguyen94"
-          ]
-        }
+        "@graph": [
+          {
+            "@type": "Person",
+            "@id": "https://tools.eplus.dev/#maintainer",
+            "name": "David Nguyen",
+            "url": "https://github.com/hoangsvit",
+            "sameAs": [
+              "https://github.com/hoangsvit",
+              "https://x.com/david_nguyen94"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://tools.eplus.dev/#website",
+            "url": "https://tools.eplus.dev/",
+            "name": "IT Tools",
+            "description": "Free online developer tools by ePlus.DEV: converters, encoders, generators, network utilities, text tools and more.",
+            "inLanguage": "en",
+            "creator": {
+              "@id": "https://tools.eplus.dev/#maintainer"
+            }
+          }
+        ]
       }
     </script>
   </head>
