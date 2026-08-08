@@ -2,9 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   bankSearchLabel,
   formatVietQrAmount,
+  getVietQrDescriptionValidationError,
+  isValidVietQrAccount,
+  isValidVietQrAmount,
+  isValidVietQrBankId,
   makeVietQrContent,
   matchesBankQuery,
   normalizeVietQrAmount,
+  parseVietQrAmountInput,
   validateVietQrInput,
 } from './vietqr-bank-generator.service';
 
@@ -47,7 +52,21 @@ describe('VietQR bank generator service', () => {
 
   it('normalizes and formats VND amounts', () => {
     expect(normalizeVietQrAmount('001,234,567 VND')).toBe('1234567');
-    expect(formatVietQrAmount('001234567')).toBe('1,234,567');
+    expect(formatVietQrAmount('001234567')).toBe('001,234,567');
+    expect(parseVietQrAmountInput('1,234,567')).toBe('1234567');
+    expect(parseVietQrAmountInput('1 234 567')).toBe('1234567');
+  });
+
+  it('preserves invalid amount input so validation can reject it', () => {
+    expect(parseVietQrAmountInput('-100')).toBe('-100');
+    expect(parseVietQrAmountInput('1.5')).toBe('1.5');
+    expect(parseVietQrAmountInput('1,,000')).toBe('1,,000');
+    expect(parseVietQrAmountInput('100 VND')).toBe('100 VND');
+
+    expect(isValidVietQrAmount('-100')).toBe(false);
+    expect(isValidVietQrAmount('1.5')).toBe(false);
+    expect(isValidVietQrAmount('1,,000')).toBe(false);
+    expect(isValidVietQrAmount('100 VND')).toBe(false);
   });
 
   it('never turns a negative raw amount into a positive QR payload', () => {
@@ -62,6 +81,27 @@ describe('VietQR bank generator service', () => {
       accountNo: '123456789',
       amount: '-100',
     })).toBe('');
+  });
+
+  it('validates bank BIN, account identifiers and amount boundaries', () => {
+    expect(isValidVietQrBankId('970436')).toBe(true);
+    expect(isValidVietQrBankId('97043')).toBe(false);
+    expect(isValidVietQrBankId('VCB')).toBe(false);
+
+    expect(isValidVietQrAccount('1234567890123456789012345')).toBe(true);
+    expect(isValidVietQrAccount('12345678901234567890123456')).toBe(false);
+    expect(isValidVietQrAccount('bad account!')).toBe(false);
+
+    expect(isValidVietQrAmount('9999999999999')).toBe(true);
+    expect(isValidVietQrAmount('10000000000000')).toBe(false);
+    expect(isValidVietQrAmount('0')).toBe(false);
+    expect(isValidVietQrAmount('')).toBe(true);
+  });
+
+  it('validates transfer content length and charset separately', () => {
+    expect(getVietQrDescriptionValidationError('thanh toan hoa don')).toBeNull();
+    expect(getVietQrDescriptionValidationError('Thanh toán')).toBe('contentCharset');
+    expect(getVietQrDescriptionValidationError('12345678901234567890123456')).toBe('contentLength');
   });
 
   it('accepts account identifiers up to 25 letters or digits', () => {
@@ -81,6 +121,22 @@ describe('VietQR bank generator service', () => {
 
     expect(result.valid).toBe(false);
     expect(result.errors).toEqual(['chooseBank', 'account', 'amount', 'contentCharset']);
+  });
+
+  it('rejects malformed thousands separators instead of silently repairing them', () => {
+    const result = validateVietQrInput({
+      bankId: '970436',
+      accountNo: '123456789',
+      amount: '1,,000',
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('amount');
+    expect(makeVietQrContent({
+      bankId: '970436',
+      accountNo: '123456789',
+      amount: '1,,000',
+    })).toBe('');
   });
 
   it('supports internal lookup by bank name, BIN, code and SWIFT/BIC', () => {
