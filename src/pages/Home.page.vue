@@ -41,7 +41,12 @@ function onUpdateFavoriteTools() {
           ePlus.DEV Edition
         </div>
         <div class="edition-copy">
-          Enhanced developer experience with smart tool discovery, local recent history and faster sharing.
+          <h1 class="edition-title">
+            Handy online tools for developers
+          </h1>
+          <div class="edition-description">
+            Enhanced developer experience with smart tool discovery, local recent history and faster sharing.
+          </div>
         </div>
         <router-link to="/workspace" class="workspace-cta">
           <n-icon :component="IconLayoutDashboard" size="16" />
@@ -187,8 +192,19 @@ function onUpdateFavoriteTools() {
 
 .edition-copy {
   flex: 1;
-  opacity: 0.72;
-  font-size: 13px;
+}
+
+.edition-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.edition-description {
+  margin-top: 3px;
+  opacity: 0.68;
+  font-size: 12px;
 }
 
 .workspace-cta {
