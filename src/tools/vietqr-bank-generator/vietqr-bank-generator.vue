@@ -22,12 +22,10 @@ const description = ref('');
 const qrDataUrl = ref('');
 const copyStatus = ref('Copy QR image');
 
-const bankOptions = computed(() => banks
-  .filter(bank => Boolean(bank.transferSupported))
-  .map(bank => ({
-    label: bankSearchLabel(bank),
-    value: bank.bin,
-  })));
+const bankOptions = computed(() => banks.map(bank => ({
+  label: `${bankSearchLabel(bank)}${bank.transferSupported ? '' : ' · VietQR transfer unavailable'}`,
+  value: bank.bin,
+})));
 
 const selectedBank = computed(() => banks.find(bank => bank.bin === selectedBankBin.value));
 const selectedBankInfo = computed<CKeyValueListItems>(() => {
@@ -42,6 +40,7 @@ const selectedBankInfo = computed<CKeyValueListItems>(() => {
     { label: 'BIN / Acquirer ID', value: bank.bin },
     { label: 'NAPAS code', value: bank.code },
     { label: 'SWIFT / BIC', value: bank.swift_code || 'Not published' },
+    { label: 'VietQR transfer supported', value: Boolean(bank.transferSupported), showCopyButton: false },
   ];
 });
 
@@ -59,12 +58,18 @@ const validation = computed(() => validateVietQrInput({
   description: description.value,
 }));
 
-const qrPayload = computed(() => makeVietQrContent({
-  bankId: selectedBankBin.value,
-  accountNo: accountNo.value,
-  amount: amount.value,
-  description: description.value,
-}));
+const qrPayload = computed(() => {
+  if (selectedBank.value && !selectedBank.value.transferSupported) {
+    return '';
+  }
+
+  return makeVietQrContent({
+    bankId: selectedBankBin.value,
+    accountNo: accountNo.value,
+    amount: amount.value,
+    description: description.value,
+  });
+});
 
 const previewTitle = computed(() => {
   if (!selectedBank.value || !accountNo.value) {
@@ -225,6 +230,10 @@ onMounted(() => {
               </div>
             </div>
 
+            <n-alert v-if="selectedBank && !selectedBank.transferSupported" type="warning" :bordered="false">
+              This bank is included in the local directory, but the reference data does not mark it as supporting VietQR transfers. QR generation is disabled for this selection.
+            </n-alert>
+
             <c-input-text
               v-model:value="accountNo"
               label="Account number"
@@ -304,7 +313,7 @@ onMounted(() => {
           </div>
 
           <div v-else py-12 text-center op-60>
-            Select a bank and enter a valid account number to generate VietQR instantly.
+            Select a VietQR-supported bank and enter a valid account number to generate VietQR instantly.
           </div>
         </c-card>
       </div>
