@@ -4,13 +4,32 @@ import {
   formatWorkspaceFileInspection,
   inspectWorkspaceFile,
 } from '@/modules/developer-workspace/workspace-file-inspector';
+import '@/modules/developer-workspace/developer-platform.i18n';
 import { useCopy } from '@/composable/copy';
 
+const { t } = useI18n();
 const inspection = ref<WorkspaceFileInspection | null>(null);
 const busy = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 let latestInspectionId = 0;
 const { copy } = useCopy({ createToast: true });
+
+const fileFacts = computed(() => inspection.value
+  ? [
+      { label: t('developerPlatform.workbench.size'), value: `${inspection.value.size.toLocaleString()} ${t('developerPlatform.common.bytes')}` },
+      { label: t('developerPlatform.fileInspector.mime'), value: inspection.value.mimeType },
+      { label: t('developerPlatform.fileInspector.extension'), value: inspection.value.extension || t('developerPlatform.common.none') },
+      { label: t('developerPlatform.fileInspector.kind'), value: inspection.value.kind },
+    ]
+  : []);
+
+const inspectionFacts = computed(() => inspection.value
+  ? [
+      { label: t('developerPlatform.fileInspector.dimensions'), value: inspection.value.width && inspection.value.height ? `${inspection.value.width}×${inspection.value.height}` : t('developerPlatform.common.notAvailable') },
+      { label: t('developerPlatform.fileInspector.estimatedPages'), value: inspection.value.pageCount ?? t('developerPlatform.common.notAvailable') },
+      { label: t('developerPlatform.fileInspector.detectedText'), value: inspection.value.detectedTextKinds.join(', ') || t('developerPlatform.common.none') },
+    ]
+  : []);
 
 async function inspect(file: File) {
   const inspectionId = ++latestInspectionId;
@@ -54,14 +73,14 @@ function copyReport() {
 <template>
   <div class="file-inspector">
     <n-alert type="info" :bordered="false">
-      Files stay in this browser. The inspector reads a local preview, detects common signatures and computes SHA-256 for files up to 20 MB.
+      {{ $t('developerPlatform.fileInspector.alert') }}
     </n-alert>
 
     <input ref="fileInput" class="hidden-input" type="file" @change="onChange">
 
     <button class="drop-zone" type="button" @click="fileInput?.click()" @dragover.prevent @drop.prevent="onDrop">
-      <strong>{{ busy ? 'Inspecting locally…' : 'Drop a file here or click to choose' }}</strong>
-      <span>PNG · JPEG · WebP · PDF · ZIP · GZIP · PE · JSON · text/config files</span>
+      <strong>{{ busy ? $t('developerPlatform.fileInspector.inspecting') : $t('developerPlatform.fileInspector.choose') }}</strong>
+      <span>{{ $t('developerPlatform.fileInspector.formats') }}</span>
     </button>
 
     <div v-if="inspection" class="result-stack">
@@ -71,38 +90,25 @@ function copyReport() {
           <h3>{{ inspection.name }}</h3>
         </div>
         <c-button @click="copyReport">
-          Copy report
+          {{ $t('developerPlatform.fileInspector.copyReport') }}
         </c-button>
       </div>
 
       <div class="fact-grid">
-        <c-card title="File">
-          <c-key-value-list
-            :items="[
-              { label: 'Size', value: `${inspection.size.toLocaleString()} bytes` },
-              { label: 'MIME', value: inspection.mimeType },
-              { label: 'Extension', value: inspection.extension || 'None' },
-              { label: 'Kind', value: inspection.kind },
-            ]"
-          />
+        <c-card :title="$t('developerPlatform.fileInspector.file')">
+          <c-key-value-list :items="fileFacts" />
         </c-card>
 
-        <c-card title="Inspection">
-          <c-key-value-list
-            :items="[
-              { label: 'Dimensions', value: inspection.width && inspection.height ? `${inspection.width}×${inspection.height}` : 'Not available' },
-              { label: 'Estimated pages', value: inspection.pageCount ?? 'Not available' },
-              { label: 'Detected text', value: inspection.detectedTextKinds.join(', ') || 'None' },
-            ]"
-          />
+        <c-card :title="$t('developerPlatform.fileInspector.inspection')">
+          <c-key-value-list :items="inspectionFacts" />
         </c-card>
       </div>
 
-      <c-card v-if="inspection.sha256" title="SHA-256">
+      <c-card v-if="inspection.sha256" :title="$t('developerPlatform.fileInspector.sha256')">
         <c-text-copyable :value="inspection.sha256" break-all font-mono />
       </c-card>
 
-      <c-card v-if="inspection.textPreview" title="Text preview">
+      <c-card v-if="inspection.textPreview" :title="$t('developerPlatform.fileInspector.textPreview')">
         <n-input :value="inspection.textPreview" type="textarea" :autosize="{ minRows: 8, maxRows: 20 }" readonly />
       </c-card>
     </div>
