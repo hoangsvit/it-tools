@@ -14,7 +14,10 @@ const privacyLabel = computed(() => {
   if (tool.value.privacy?.mode === 'mixed') {
     return 'Mixed';
   }
-  return 'Local';
+  if (tool.value.privacy?.mode === 'local') {
+    return 'Local';
+  }
+  return 'Undeclared';
 });
 </script>
 
@@ -25,7 +28,7 @@ const privacyLabel = computed(() => {
         <n-icon class="text-neutral-400 dark:text-neutral-600" size="40" :component="tool.icon" />
 
         <div flex items-center gap-8px>
-          <div class="privacy-mini" :class="`privacy-${tool.privacy?.mode ?? 'local'}`">
+          <div class="privacy-mini" :class="`privacy-${tool.privacy?.mode ?? 'undeclared'}`">
             {{ privacyLabel }}
           </div>
 
@@ -84,6 +87,11 @@ const privacyLabel = computed(() => {
 .privacy-mixed {
   background: rgba(240, 160, 32, 0.1);
   color: #d28a10;
+}
+
+.privacy-undeclared {
+  background: rgba(128, 128, 128, 0.1);
+  color: rgba(128, 128, 128, 0.9);
 }
 
 .origin-mini {
