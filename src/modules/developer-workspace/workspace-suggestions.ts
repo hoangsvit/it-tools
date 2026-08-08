@@ -54,7 +54,7 @@ const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/
 const IBAN_PATTERN = /^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/i;
 const BIC_PATTERN = /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?$/i;
 const VIETNAM_BANK_BIN_PATTERN = /^(?:96|97)\d{4}$/;
-const VIETNAMESE_TEXT_PATTERN = /[À-ỹĐđ]/;
+const VIETNAMESE_TEXT_PATTERN = /[ăâđêôơưĂÂĐÊÔƠƯạảãấầẩẫậắằẳẵặẹẻẽếềểễệịỉĩọỏõốồổỗộớờởỡợụủũứừửữựỵỷỹẠẢÃẤẦẨẪẬẮẰẲẴẶẸẺẼẾỀỂỄỆỊỈĨỌỎÕỐỒỔỖỘỚỜỞỠỢỤỦŨỨỪỬỮỰỴỶỸ]/;
 
 function isJson(value: string) {
   if (!value || (!value.startsWith('{') && !value.startsWith('['))) {
