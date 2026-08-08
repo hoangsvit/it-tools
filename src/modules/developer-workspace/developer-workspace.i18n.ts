@@ -1,3 +1,4 @@
+import './developer-platform.i18n';
 import { i18n } from '@/plugins/i18n.plugin';
 
 const messages = {
