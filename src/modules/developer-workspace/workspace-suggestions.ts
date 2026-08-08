@@ -15,7 +15,9 @@ export type WorkspaceDetectedKind =
   | 'email'
   | 'iban'
   | 'bic'
-  | 'markdown';
+  | 'markdown'
+  | 'vietnam-bank-bin'
+  | 'vietnamese-text';
 
 export interface WorkspaceToolCandidate {
   path: string
@@ -51,6 +53,8 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 const IBAN_PATTERN = /^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/i;
 const BIC_PATTERN = /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?$/i;
+const VIETNAM_BANK_BIN_PATTERN = /^(?:96|97)\d{4}$/;
+const VIETNAMESE_TEXT_PATTERN = /[À-ỹĐđ]/;
 
 function isJson(value: string) {
   if (!value || (!value.startsWith('{') && !value.startsWith('['))) {
@@ -315,6 +319,26 @@ function buildDetectionRules(value: string): DetectionRule[] {
       confidence: 0.96,
       preferredPaths: ['/swift-bic-validator', '/vietqr-bank-generator'],
       keywords: ['swift', 'bic', 'bank', 'routing', 'validator'],
+    });
+  }
+
+  if (VIETNAM_BANK_BIN_PATTERN.test(compactBankValue)) {
+    rules.push({
+      kind: 'vietnam-bank-bin',
+      label: 'Vietnam bank BIN',
+      confidence: 0.9,
+      preferredPaths: ['/vietnam-bank-bin-lookup', '/vietqr-bank-generator'],
+      keywords: ['vietnam', 'bank', 'bin', 'napas', 'vietqr'],
+    });
+  }
+
+  if (VIETNAMESE_TEXT_PATTERN.test(value) && value.length >= 3) {
+    rules.push({
+      kind: 'vietnamese-text',
+      label: 'Vietnamese text',
+      confidence: 0.72,
+      preferredPaths: ['/vietnamese-text-normalizer', '/slugify-string'],
+      keywords: ['vietnamese', 'unicode', 'normalize', 'diacritics', 'slug'],
     });
   }
 
