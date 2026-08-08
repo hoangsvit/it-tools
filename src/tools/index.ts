@@ -3,6 +3,8 @@ import { tool as base64StringConverter } from './base64-string-converter';
 import { tool as basicAuthGenerator } from './basic-auth-generator';
 import { tool as emailNormalizer } from './email-normalizer';
 import { tool as fileInspector } from './file-inspector';
+import { tool as gzipCompressor } from './gzip-compressor';
+import { tool as hexdumpInspector } from './hexdump-inspector';
 import { tool as asciiTextDrawer } from './ascii-text-drawer';
 import { tool as textToUnicode } from './text-to-unicode';
 import { tool as safelinkDecoder } from './safelink-decoder';
@@ -105,6 +107,7 @@ const coreCategories: ToolCategory[] = [
       romanNumeralConverter,
       base64StringConverter,
       base64FileConverter,
+      gzipCompressor,
       colorConverter,
       caseConverter,
       textToNatoAlphabet,
@@ -165,6 +168,7 @@ const coreCategories: ToolCategory[] = [
       regexTester,
       regexMemo,
       fileInspector,
+      hexdumpInspector,
     ],
   },
   {
