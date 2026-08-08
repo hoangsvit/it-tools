@@ -60,6 +60,24 @@ export const useDeveloperWorkspaceStore = defineStore('developer-workspace', () 
     return workspace;
   }
 
+  function importWorkspace({ name, steps }: Pick<DeveloperWorkspace, 'name' | 'steps'>) {
+    const workspace = createDeveloperWorkspace({ name: name || 'Shared workspace' });
+    workspace.steps = steps.slice(0, 30).map((step) => ({
+      ...createWorkspaceStep(step.toolPath),
+      input: step.input,
+      output: step.output,
+      notes: step.notes,
+    }));
+
+    if (workspace.steps.length === 0) {
+      workspace.steps = [createWorkspaceStep()];
+    }
+
+    workspaces.value = [workspace, ...workspaces.value];
+    activeWorkspaceId.value = workspace.id;
+    return workspace;
+  }
+
   function deleteWorkspace(workspaceId: string) {
     workspaces.value = workspaces.value.filter(workspace => workspace.id !== workspaceId);
 
@@ -163,6 +181,7 @@ export const useDeveloperWorkspaceStore = defineStore('developer-workspace', () 
     activeWorkspace,
     ensureActiveWorkspace,
     createWorkspace,
+    importWorkspace,
     deleteWorkspace,
     renameWorkspace,
     selectWorkspace,
