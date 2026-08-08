@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import QRCode from 'qrcode';
+import { useI18n } from 'vue-i18n';
 import bankDirectory from './banks.json';
+import { vietQrMessages } from './vietqr-bank-generator.i18n';
 import {
   type VietQrBank,
   bankSearchLabel,
@@ -13,6 +15,22 @@ import type { CKeyValueListItems } from '@/ui/c-key-value-list/c-key-value-list.
 
 const STORAGE_PREFIX = 'eplus-vietqr';
 const COPYRIGHT_YEAR = 2026;
+const VIETQR_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/6/68/VietQR_Logo.svg';
+
+const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
+  'Please choose a bank from the list.': 'validation.chooseBank',
+  'Account number or alias must contain 1-25 letters or digits.': 'validation.account',
+  'Amount must be a positive VND integer with at most 13 digits.': 'validation.amount',
+  'Transfer content must be 25 characters or fewer.': 'validation.contentLength',
+  'Transfer content must use unaccented letters, numbers and spaces only.': 'validation.contentCharset',
+};
+
+type CopyState = 'idle' | 'copied' | 'unsupported' | 'failed';
+
+const { t, locale } = useI18n({
+  useScope: 'local',
+  messages: vietQrMessages,
+});
 
 const banks = [...bankDirectory.data]
   .sort((a, b) => a.shortName.localeCompare(b.shortName)) as VietQrBank[];
@@ -21,10 +39,10 @@ const accountNo = ref('');
 const amount = ref('');
 const description = ref('');
 const qrDataUrl = ref('');
-const copyStatus = ref('Copy QR image');
+const copyState = ref<CopyState>('idle');
 
 const bankOptions = computed(() => banks.map(bank => ({
-  label: `${bankSearchLabel(bank)}${bank.transferSupported ? '' : ' · VietQR transfer unavailable'}`,
+  label: `${bankSearchLabel(bank)}${bank.transferSupported ? '' : ` · ${t('unavailableSuffix')}`}`,
   value: bank.bin,
 })));
 
@@ -36,12 +54,12 @@ const selectedBankInfo = computed<CKeyValueListItems>(() => {
 
   const bank = selectedBank.value;
   return [
-    { label: 'Bank', value: bank.name },
-    { label: 'Short name', value: bank.shortName },
-    { label: 'BIN / Acquirer ID', value: bank.bin },
-    { label: 'NAPAS code', value: bank.code },
-    { label: 'SWIFT / BIC', value: bank.swift_code || 'Not published' },
-    { label: 'VietQR transfer supported', value: Boolean(bank.transferSupported), showCopyButton: false },
+    { label: t('bankName'), value: bank.name },
+    { label: t('shortName'), value: bank.shortName },
+    { label: t('bin'), value: bank.bin },
+    { label: t('napasCode'), value: bank.code },
+    { label: t('swiftBic'), value: bank.swift_code || t('notPublished') },
+    { label: t('supported'), value: Boolean(bank.transferSupported), showCopyButton: false },
   ];
 });
 
@@ -59,6 +77,11 @@ const validation = computed(() => validateVietQrInput({
   description: description.value,
 }));
 
+const localizedValidationErrors = computed(() => validation.value.errors.map((error) => {
+  const key = VALIDATION_MESSAGE_KEYS[error];
+  return key ? t(key) : error;
+}));
+
 const qrPayload = computed(() => {
   if (selectedBank.value && !selectedBank.value.transferSupported) {
     return '';
@@ -72,19 +95,16 @@ const qrPayload = computed(() => {
   });
 });
 
-const previewTitle = computed(() => {
-  if (!selectedBank.value || !accountNo.value) {
-    return 'Bank transfer QR';
+const previewAmount = computed(() => {
+  if (!amount.value) {
+    return t('notSpecified');
   }
 
-  return `${selectedBank.value.shortName} · ${accountNo.value}`;
+  return `${new Intl.NumberFormat(locale.value).format(Number(amount.value))} ₫`;
 });
 
-const previewAmount = computed(() => amount.value
-  ? `${formatVietQrAmount(amount.value)} ₫`
-  : 'Amount not specified');
-
-const previewDescription = computed(() => description.value || 'Transfer content not specified');
+const previewDescription = computed(() => description.value || t('notSpecified'));
+const copyStatusLabel = computed(() => t(`copy.${copyState.value}`));
 
 watch(qrPayload, async (payload) => {
   if (!payload) {
@@ -132,13 +152,29 @@ function resetForm() {
   description.value = '';
 }
 
-function loadImage(source: string) {
+function loadImage(source: string, crossOrigin = false) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
+    if (crossOrigin) {
+      image.crossOrigin = 'anonymous';
+    }
     image.onload = () => resolve(image);
     image.onerror = reject;
     image.src = source;
   });
+}
+
+async function loadRemoteImage(source?: string) {
+  if (!source) {
+    return null;
+  }
+
+  try {
+    return await loadImage(source, true);
+  }
+  catch {
+    return null;
+  }
 }
 
 function roundedRect(
@@ -173,138 +209,172 @@ function fillRoundedRect(
   context.fill();
 }
 
+function drawContainedImage(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
+  const drawWidth = image.naturalWidth * scale;
+  const drawHeight = image.naturalHeight * scale;
+  context.drawImage(
+    image,
+    x + (width - drawWidth) / 2,
+    y + (height - drawHeight) / 2,
+    drawWidth,
+    drawHeight,
+  );
+}
+
 function drawInfoRow(
   context: CanvasRenderingContext2D,
   label: string,
   value: string,
   y: number,
+  accent = false,
 ) {
   context.textAlign = 'left';
   context.fillStyle = '#667085';
-  context.font = '500 18px sans-serif';
-  context.fillText(label, 94, y);
+  context.font = '500 17px sans-serif';
+  context.fillText(label, 110, y);
 
-  context.fillStyle = '#101828';
-  context.font = '600 25px sans-serif';
-  context.fillText(value, 94, y + 34, 712);
+  context.fillStyle = accent ? '#155eef' : '#101828';
+  context.font = `${accent ? '700' : '600'} 25px sans-serif`;
+  context.fillText(value, 110, y + 34, 680);
 }
 
 async function createShareImage() {
-  if (!qrDataUrl.value) {
+  if (!qrDataUrl.value || !selectedBank.value) {
     return '';
   }
 
   const qrImage = await loadImage(qrDataUrl.value);
+  const [bankLogo, vietQrLogo] = await Promise.all([
+    loadRemoteImage(selectedBank.value.logo),
+    loadRemoteImage(VIETQR_LOGO_URL),
+  ]);
+
   const canvas = document.createElement('canvas');
   canvas.width = 900;
-  canvas.height = 1160;
+  canvas.height = 1240;
   const context = canvas.getContext('2d');
   if (!context) {
     return '';
   }
 
   const background = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-  background.addColorStop(0, '#f4f7ff');
-  background.addColorStop(0.52, '#ffffff');
-  background.addColorStop(1, '#f5f3ff');
+  background.addColorStop(0, '#f8fafc');
+  background.addColorStop(1, '#eef4ff');
   context.fillStyle = background;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  context.globalAlpha = 0.35;
-  const halo = context.createRadialGradient(80, 50, 20, 80, 50, 360);
-  halo.addColorStop(0, '#7c5cff');
-  halo.addColorStop(1, 'rgba(124, 92, 255, 0)');
-  context.fillStyle = halo;
-  context.fillRect(0, 0, 500, 430);
-  context.globalAlpha = 1;
-
   context.shadowColor = 'rgba(16, 24, 40, 0.12)';
-  context.shadowBlur = 34;
-  context.shadowOffsetY = 14;
-  fillRoundedRect(context, 52, 46, 796, 1064, 38, '#ffffff');
+  context.shadowBlur = 36;
+  context.shadowOffsetY = 16;
+  fillRoundedRect(context, 52, 42, 796, 1148, 40, '#ffffff');
   context.shadowColor = 'transparent';
   context.shadowBlur = 0;
   context.shadowOffsetY = 0;
 
-  const headerGradient = context.createLinearGradient(72, 66, 828, 230);
-  headerGradient.addColorStop(0, '#4f46e5');
-  headerGradient.addColorStop(1, '#7c3aed');
-  fillRoundedRect(context, 72, 66, 756, 154, 30, headerGradient);
+  fillRoundedRect(context, 76, 70, 748, 185, 30, '#f8fafc');
+
+  if (bankLogo) {
+    drawContainedImage(context, bankLogo, 102, 94, 330, 82);
+  }
+  else {
+    context.textAlign = 'left';
+    context.fillStyle = '#101828';
+    context.font = '700 34px sans-serif';
+    context.fillText(selectedBank.value.shortName, 108, 145, 330);
+  }
 
   context.textAlign = 'left';
-  context.fillStyle = '#ffffff';
-  context.font = '700 29px sans-serif';
-  context.fillText('ePlus.DEV', 104, 119);
-  context.globalAlpha = 0.8;
-  context.font = '500 17px sans-serif';
-  context.fillText('BANK TRANSFER QR', 104, 151);
-  context.globalAlpha = 1;
+  context.fillStyle = '#344054';
+  context.font = '600 18px sans-serif';
+  context.fillText(selectedBank.value.shortName, 108, 205, 360);
+  context.fillStyle = '#667085';
+  context.font = '500 15px sans-serif';
+  context.fillText(selectedBank.value.name, 108, 229, 430);
 
-  context.textAlign = 'right';
-  context.fillStyle = '#ffffff';
-  context.font = '600 22px sans-serif';
-  context.fillText(selectedBank.value?.shortName || 'BANK', 794, 128);
-  context.globalAlpha = 0.76;
-  context.font = '500 16px sans-serif';
-  context.fillText(`BIN ${selectedBank.value?.bin || selectedBankBin.value}`, 794, 158);
-  context.globalAlpha = 1;
+  fillRoundedRect(context, 565, 98, 224, 98, 22, '#ffffff');
+  if (vietQrLogo) {
+    drawContainedImage(context, vietQrLogo, 594, 112, 166, 42);
+  }
+  else {
+    context.textAlign = 'center';
+    context.fillStyle = '#0b63ce';
+    context.font = '700 24px sans-serif';
+    context.fillText('VietQR', 677, 143);
+  }
+  context.textAlign = 'center';
+  context.fillStyle = '#475467';
+  context.font = '500 14px sans-serif';
+  context.fillText(t('compatible'), 677, 178, 190);
 
-  context.shadowColor = 'rgba(79, 70, 229, 0.18)';
-  context.shadowBlur = 26;
+  context.textAlign = 'center';
+  context.fillStyle = '#101828';
+  context.font = '700 27px sans-serif';
+  context.fillText(t('scanTitle'), 450, 302);
+
+  context.shadowColor = 'rgba(21, 94, 239, 0.14)';
+  context.shadowBlur = 24;
   context.shadowOffsetY = 8;
-  fillRoundedRect(context, 146, 256, 608, 608, 36, '#ffffff');
+  fillRoundedRect(context, 146, 334, 608, 608, 36, '#ffffff');
   context.shadowColor = 'transparent';
   context.shadowBlur = 0;
   context.shadowOffsetY = 0;
-  context.drawImage(qrImage, 170, 280, 560, 560);
+  context.drawImage(qrImage, 170, 358, 560, 560);
 
-  context.textAlign = 'center';
-  context.fillStyle = '#475467';
-  context.font = '500 16px sans-serif';
-  context.fillText('Scan with a compatible banking app and verify before transfer', 450, 895);
-
-  fillRoundedRect(context, 72, 928, 756, 126, 24, '#f8f9fc');
-  drawInfoRow(context, 'Recipient account', accountNo.value, 965);
+  fillRoundedRect(context, 76, 978, 748, 144, 24, '#f8fafc');
+  drawInfoRow(context, t('account'), accountNo.value, 1014);
 
   context.textAlign = 'right';
   context.fillStyle = '#667085';
-  context.font = '500 18px sans-serif';
-  context.fillText('Amount', 790, 965);
-  context.fillStyle = '#4f46e5';
+  context.font = '500 17px sans-serif';
+  context.fillText(t('amount'), 790, 1014);
+  context.fillStyle = '#155eef';
   context.font = '700 25px sans-serif';
-  context.fillText(previewAmount.value, 790, 999);
+  context.fillText(previewAmount.value, 790, 1048, 310);
 
   context.textAlign = 'left';
-  context.fillStyle = '#98a2b3';
+  context.fillStyle = '#667085';
   context.font = '500 15px sans-serif';
-  context.fillText(previewDescription.value, 94, 1032, 696);
+  context.fillText(`${t('content')}: ${previewDescription.value}`, 110, 1090, 670);
 
   context.textAlign = 'center';
   context.fillStyle = '#98a2b3';
-  context.font = '500 15px sans-serif';
-  context.fillText(`© ${COPYRIGHT_YEAR} ePlus.DEV · tools.eplus.dev`, 450, 1086);
+  context.font = '500 14px sans-serif';
+  context.fillText(`${t('generatedBy')} tools.eplus.dev · © ${COPYRIGHT_YEAR} ePlus.DEV`, 450, 1158);
 
   return canvas.toDataURL('image/png');
 }
 
 async function copyQrImage() {
   if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
-    copyStatus.value = 'Clipboard image copy unsupported';
+    copyState.value = 'unsupported';
     return;
   }
 
   try {
     const image = await createShareImage();
+    if (!image) {
+      copyState.value = 'failed';
+      return;
+    }
+
     const blob = await (await fetch(image)).blob();
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-    copyStatus.value = 'Copied';
+    copyState.value = 'copied';
   }
   catch {
-    copyStatus.value = 'Copy failed';
+    copyState.value = 'failed';
   }
 
   window.setTimeout(() => {
-    copyStatus.value = 'Copy QR image';
+    copyState.value = 'idle';
   }, 2000);
 }
 
@@ -328,24 +398,28 @@ onMounted(() => {
 <template>
   <div flex flex-col gap-5>
     <n-alert type="info" :bordered="false">
-      The Vietnam bank directory is bundled with this app, so opening the tool does not call a bank-directory API. The VietQR/NAPAS payload and QR image are also generated locally in your browser.
+      {{ t('privacy') }}
     </n-alert>
 
-    <div grid grid-cols-1 gap-5 class="lg:grid-cols-[minmax(0,1fr)_420px]">
+    <div grid grid-cols-1 gap-5 class="lg:grid-cols-[minmax(0,1fr)_440px]">
       <div flex flex-col gap-5>
-        <c-card title="Create VietQR bank transfer code">
+        <c-card :title="t('createTitle')">
           <div flex flex-col gap-4>
             <c-select
               v-model:value="selectedBankBin"
               :options="bankOptions"
               searchable
-              label="Bank"
-              placeholder="Search or choose a bank by name, BIN, code or SWIFT..."
+              :label="t('bankLabel')"
+              :placeholder="t('bankPlaceholder')"
             />
 
             <div v-if="selectedBank" class="bank-summary">
               <div class="bank-logo-wrap">
-                <img :src="selectedBank.logo" :alt="`${selectedBank.shortName} logo`" class="bank-logo">
+                <img
+                  :src="selectedBank.logo"
+                  :alt="t('bankLogoAlt', { bank: selectedBank.shortName })"
+                  class="bank-logo"
+                >
               </div>
               <div min-w-0 flex-1>
                 <div font-600>
@@ -361,32 +435,32 @@ onMounted(() => {
             </div>
 
             <n-alert v-if="selectedBank && !selectedBank.transferSupported" type="warning" :bordered="false">
-              This bank is included in the local directory, but the reference data does not mark it as supporting VietQR transfers. QR generation is disabled for this selection.
+              {{ t('unsupportedWarning') }}
             </n-alert>
 
             <c-input-text
               v-model:value="accountNo"
-              label="Account number"
-              placeholder="Recipient account number / alias"
+              :label="t('accountLabel')"
+              :placeholder="t('accountPlaceholder')"
               maxlength="25"
             />
 
             <c-input-text
               v-model:value="formattedAmount"
-              label="Amount (VND)"
-              placeholder="Optional, up to 13 digits"
+              :label="t('amountLabel')"
+              :placeholder="t('amountPlaceholder')"
             />
 
             <c-input-text
               v-model:value="description"
-              label="Transfer content"
-              placeholder="Optional, max 25 unaccented characters"
+              :label="t('contentLabel')"
+              :placeholder="t('contentPlaceholder')"
               maxlength="25"
             />
 
             <n-alert v-if="!validation.valid && (selectedBankBin || accountNo || amount || description)" type="error" :bordered="false">
               <ul m-0 pl-5>
-                <li v-for="error in validation.errors" :key="error">
+                <li v-for="error in localizedValidationErrors" :key="error">
                   {{ error }}
                 </li>
               </ul>
@@ -394,90 +468,96 @@ onMounted(() => {
 
             <div flex flex-wrap gap-3>
               <c-button @click="resetForm">
-                Clear
+                {{ t('clear') }}
               </c-button>
             </div>
           </div>
         </c-card>
 
-        <c-card v-if="selectedBankInfo.length" title="Technical bank details">
+        <c-card v-if="selectedBankInfo.length" :title="t('technicalTitle')">
           <div mb-3 text-sm op-65>
-            These identifiers are filled automatically from the selected bank. You do not need to enter them.
+            {{ t('technicalHint') }}
           </div>
           <c-key-value-list :items="selectedBankInfo" />
         </c-card>
 
-        <c-card v-if="qrPayload" title="VietQR payload">
+        <c-card v-if="qrPayload" :title="t('payloadTitle')">
           <c-text-copyable :value="qrPayload" font-mono break-all />
           <div mt-3 text-sm op-70>
-            Point of initiation 11 · Service QRIBFTTA · Currency VND (704) · CRC16-CCITT
+            {{ t('payloadMeta') }}
           </div>
         </c-card>
       </div>
 
       <div>
-        <c-card title="Live preview">
-          <div v-if="qrDataUrl" flex flex-col items-center gap-4>
+        <c-card :title="t('previewTitle')">
+          <div v-if="qrDataUrl && selectedBank" flex flex-col items-center gap-4>
             <div class="qr-share-card">
-              <div class="qr-share-header">
-                <div>
-                  <div class="qr-brand">
-                    ePlus.DEV
+              <div class="qr-bank-header">
+                <div class="qr-bank-primary">
+                  <img
+                    :src="selectedBank.logo"
+                    :alt="t('bankLogoAlt', { bank: selectedBank.shortName })"
+                    class="qr-bank-logo"
+                  >
+                  <div class="qr-bank-name">
+                    {{ selectedBank.shortName }}
                   </div>
-                  <div class="qr-eyebrow">
-                    BANK TRANSFER QR
+                  <div class="qr-bank-full-name">
+                    {{ selectedBank.name }}
                   </div>
                 </div>
-                <div class="qr-bank-badge">
-                  <strong>{{ selectedBank?.shortName }}</strong>
-                  <span>BIN {{ selectedBank?.bin }}</span>
+
+                <div class="vietqr-badge">
+                  <img :src="VIETQR_LOGO_URL" alt="VietQR" class="vietqr-logo">
+                  <span>{{ t('compatible') }}</span>
                 </div>
               </div>
 
-              <div class="qr-code-shell">
+              <div class="qr-scan-title">
+                {{ t('scanTitle') }}
+              </div>
+
+              <div class="qr-code-frame">
                 <img :src="qrDataUrl" alt="VietQR bank transfer code" class="qr-code-image">
               </div>
 
-              <div class="qr-verify-note">
-                Scan with a compatible banking app and verify before transfer
-              </div>
-
-              <div class="qr-payment-info">
-                <div class="qr-info-block">
-                  <span>Recipient account</span>
+              <div class="qr-details">
+                <div class="qr-detail-row qr-detail-account">
+                  <span>{{ t('account') }}</span>
                   <strong>{{ accountNo }}</strong>
                 </div>
-                <div class="qr-info-block qr-info-amount">
-                  <span>Amount</span>
-                  <strong>{{ previewAmount }}</strong>
+                <div class="qr-detail-row">
+                  <span>{{ t('amount') }}</span>
+                  <strong class="qr-amount">{{ previewAmount }}</strong>
                 </div>
-              </div>
-
-              <div class="qr-description">
-                {{ previewDescription }}
+                <div class="qr-detail-row">
+                  <span>{{ t('content') }}</span>
+                  <strong>{{ previewDescription }}</strong>
+                </div>
               </div>
 
               <div class="qr-copyright">
-                © {{ COPYRIGHT_YEAR }} ePlus.DEV · tools.eplus.dev
+                {{ t('generatedBy') }} tools.eplus.dev · © {{ COPYRIGHT_YEAR }} ePlus.DEV
               </div>
             </div>
 
             <div flex flex-wrap justify-center gap-3>
               <c-button @click="copyQrImage">
-                {{ copyStatus }}
+                {{ copyStatusLabel }}
               </c-button>
               <c-button @click="downloadQrImage">
-                Download PNG
+                {{ t('downloadPng') }}
               </c-button>
             </div>
 
             <n-alert type="warning" :bordered="false">
-              Always scan and verify the bank, recipient account, amount and transfer content in your banking app before confirming a transfer.
+              {{ t('verifyWarning') }}
             </n-alert>
           </div>
 
           <div v-else py-12 text-center op-60>
-            Select a VietQR-supported bank and enter a valid account number to generate VietQR instantly.
+            {{ t('emptyPreview') }}
           </div>
         </c-card>
       </div>
@@ -490,200 +570,218 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px;
-  border: 1px solid rgba(99, 102, 241, 0.16);
+  padding: 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(139, 92, 246, 0.03));
+  background: rgba(248, 250, 252, 0.55);
 }
 
 .bank-logo-wrap {
-  display: grid;
-  width: 54px;
-  height: 54px;
-  flex: 0 0 auto;
-  place-items: center;
-  overflow: hidden;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 14px;
+  display: flex;
+  width: 96px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 4px 8px;
+  border-radius: 10px;
   background: #fff;
 }
 
 .bank-logo {
-  width: 44px;
-  height: 36px;
+  max-width: 100%;
+  max-height: 38px;
   object-fit: contain;
 }
 
 .bank-bin {
-  flex: 0 0 auto;
-  padding: 6px 9px;
-  border-radius: 999px;
-  background: rgba(99, 102, 241, 0.1);
-  color: #4f46e5;
+  flex: none;
+  color: #667085;
+  font-family: monospace;
   font-size: 12px;
-  font-weight: 700;
 }
 
 .qr-share-card {
-  box-sizing: border-box;
   width: 100%;
-  max-width: 380px;
+  max-width: 390px;
   overflow: hidden;
-  padding: 14px;
-  border: 1px solid rgba(99, 102, 241, 0.14);
+  box-sizing: border-box;
+  padding: 18px;
+  border: 1px solid #e4e7ec;
   border-radius: 26px;
-  background:
-    radial-gradient(circle at 10% 0%, rgba(124, 92, 255, 0.14), transparent 34%),
-    linear-gradient(145deg, #f7f9ff 0%, #fff 48%, #f7f4ff 100%);
-  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+  background: #fff;
+  box-shadow: 0 18px 44px rgba(16, 24, 40, 0.12);
+  color: #101828;
 }
 
-.qr-share-header {
+.qr-bank-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding: 17px 18px;
+  gap: 14px;
+  padding: 16px;
   border-radius: 18px;
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
-  color: #fff;
+  background: #f8fafc;
 }
 
-.qr-brand {
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.qr-eyebrow {
-  margin-top: 3px;
-  opacity: 0.78;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-}
-
-.qr-bank-badge {
-  display: flex;
+.qr-bank-primary {
   min-width: 0;
-  flex-direction: column;
-  align-items: flex-end;
-  text-align: right;
+  flex: 1;
 }
 
-.qr-bank-badge strong {
-  max-width: 130px;
+.qr-bank-logo {
+  display: block;
+  width: auto;
+  max-width: 190px;
+  height: 52px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.qr-bank-name {
+  margin-top: 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.qr-bank-full-name {
+  margin-top: 2px;
   overflow: hidden;
-  font-size: 13px;
+  color: #667085;
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.qr-bank-badge span {
-  margin-top: 2px;
-  opacity: 0.72;
-  font-size: 9px;
+.vietqr-badge {
+  display: flex;
+  min-width: 112px;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 10px;
+  border: 1px solid #e4e7ec;
+  border-radius: 14px;
+  background: #fff;
+  color: #475467;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
 }
 
-.qr-code-shell {
-  width: calc(100% - 28px);
-  margin: 18px auto 0;
+.vietqr-logo {
+  width: 96px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.qr-scan-title {
+  margin: 18px 0 12px;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.qr-code-frame {
+  width: min(100%, 330px);
+  margin: 0 auto;
+  box-sizing: border-box;
   padding: 10px;
-  border-radius: 24px;
+  border: 1px solid #eaecf0;
+  border-radius: 22px;
   background: #fff;
-  box-shadow: 0 12px 30px rgba(79, 70, 229, 0.13);
+  box-shadow: 0 10px 28px rgba(21, 94, 239, 0.08);
 }
 
 .qr-code-image {
   display: block;
   width: 100%;
-  border-radius: 16px;
   object-fit: contain;
 }
 
-.qr-verify-note {
-  margin: 12px 14px 0;
-  color: #667085;
-  font-size: 10px;
-  line-height: 1.45;
-  text-align: center;
-}
-
-.qr-payment-info {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: 10px;
-  margin: 14px 2px 0;
-  padding: 13px 14px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.88);
-}
-
-.qr-info-block {
-  min-width: 0;
-}
-
-.qr-info-block span {
-  display: block;
-  margin-bottom: 3px;
-  color: #98a2b3;
-  font-size: 9px;
-  font-weight: 600;
-}
-
-.qr-info-block strong {
-  display: block;
+.qr-details {
+  margin-top: 16px;
   overflow: hidden;
-  color: #101828;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  border: 1px solid #eaecf0;
+  border-radius: 16px;
+  background: #f9fafb;
 }
 
-.qr-info-amount {
+.qr-detail-row {
+  display: grid;
+  grid-template-columns: minmax(88px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  padding: 10px 13px;
+  border-top: 1px solid #eaecf0;
+}
+
+.qr-detail-row:first-child {
+  border-top: 0;
+}
+
+.qr-detail-row span {
+  color: #667085;
+  font-size: 11px;
+}
+
+.qr-detail-row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
   text-align: right;
 }
 
-.qr-info-amount strong {
-  color: #4f46e5;
+.qr-detail-account strong {
+  font-family: monospace;
+  letter-spacing: 0.02em;
 }
 
-.qr-description {
-  margin: 8px 16px 0;
-  overflow: hidden;
-  color: #667085;
-  font-size: 10px;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.qr-detail-row .qr-amount {
+  color: #155eef;
+  font-size: 15px;
 }
 
 .qr-copyright {
-  margin-top: 14px;
-  padding-bottom: 2px;
+  margin-top: 13px;
   color: #98a2b3;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 10px;
   text-align: center;
 }
 
 @media (max-width: 480px) {
+  .bank-summary {
+    align-items: flex-start;
+  }
+
+  .bank-bin {
+    display: none;
+  }
+
   .qr-share-card {
-    max-width: 100%;
-    border-radius: 22px;
+    padding: 13px;
+    border-radius: 20px;
   }
 
-  .qr-share-header {
-    padding: 15px;
+  .qr-bank-header {
+    gap: 10px;
+    padding: 13px;
   }
 
-  .qr-payment-info {
-    grid-template-columns: 1fr;
+  .qr-bank-logo {
+    max-width: 148px;
+    height: 44px;
   }
 
-  .qr-info-amount {
-    text-align: left;
+  .vietqr-badge {
+    min-width: 92px;
+    padding: 8px;
+  }
+
+  .vietqr-logo {
+    width: 78px;
+    height: 24px;
   }
 }
 </style>
