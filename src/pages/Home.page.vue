@@ -5,6 +5,7 @@ import { computed } from 'vue';
 import Draggable from 'vuedraggable';
 import ColoredCard from '../components/ColoredCard.vue';
 import ToolCard from '../components/ToolCard.vue';
+import '@/modules/developer-workspace/developer-platform.i18n';
 import { useToolStore } from '@/tools/tools.store';
 import type { ToolWithCategory } from '@/tools/tools.types';
 import { developerWorkflows } from '@/tools/developer-workflows';
@@ -19,8 +20,10 @@ const { t } = useI18n();
 const favoriteTools = computed(() => toolStore.favoriteTools);
 const recentTools = computed(() => toolStore.recentTools.slice(0, 4));
 const workflows = computed(() => developerWorkflows
-  .map(workflow => ({
+  .map((workflow, workflowIndex) => ({
     ...workflow,
+    name: t(`developerPlatform.home.workflowCards.${workflowIndex}.name`, workflow.name),
+    description: t(`developerPlatform.home.workflowCards.${workflowIndex}.description`, workflow.description),
     tools: workflow.paths
       .map(path => toolStore.tools.find(tool => tool.path === path))
       .filter((tool): tool is ToolWithCategory => Boolean(tool)),
@@ -37,48 +40,48 @@ function onUpdateFavoriteTools() {
     <div class="grid-wrapper">
       <div class="edition-banner">
         <div class="edition-badge">
-          ePlus.DEV Edition
+          {{ $t('developerPlatform.home.edition') }}
         </div>
         <div class="edition-copy">
           <h1 class="edition-title">
-            Handy online tools for developers
+            {{ $t('developerPlatform.home.title') }}
           </h1>
           <div class="edition-description">
-            Smart input detection, browser-local workflows, privacy metadata and Vietnam-specific developer utilities.
+            {{ $t('developerPlatform.home.description') }}
           </div>
         </div>
         <div class="platform-actions">
           <router-link to="/workbench" class="workspace-cta primary-cta">
             <n-icon :component="IconBolt" size="16" />
-            Smart Workbench
+            {{ $t('developerPlatform.home.smartWorkbench') }}
           </router-link>
           <router-link to="/workspace" class="workspace-cta">
             <n-icon :component="IconLayoutDashboard" size="16" />
-            Workflows
+            {{ $t('developerPlatform.home.workflows') }}
           </router-link>
           <router-link to="/privacy" class="workspace-cta">
             <n-icon :component="IconShieldCheck" size="16" />
-            Privacy
+            {{ $t('developerPlatform.home.privacy') }}
           </router-link>
         </div>
         <div class="edition-shortcut">
-          <span>Quick search</span>
+          <span>{{ $t('developerPlatform.home.quickSearch') }}</span>
           <kbd>Ctrl / Cmd + K</kbd>
         </div>
       </div>
 
-      <section class="workflow-section" aria-label="Developer workflows">
+      <section class="workflow-section" :aria-label="$t('developerPlatform.home.workflowTitle')">
         <div class="workflow-heading">
           <div>
             <div class="workflow-title">
-              Developer workflows
+              {{ $t('developerPlatform.home.workflowTitle') }}
             </div>
             <div class="workflow-subtitle">
-              Curated tool chains for common engineering tasks.
+              {{ $t('developerPlatform.home.workflowSubtitle') }}
             </div>
           </div>
           <div class="workflow-count">
-            {{ workflows.length }} flows
+            {{ workflows.length }} {{ $t('developerPlatform.home.flows') }}
           </div>
         </div>
 
@@ -151,7 +154,7 @@ function onUpdateFavoriteTools() {
       <div v-if="recentTools.length > 0">
         <h3 class="mb-5px mt-25px flex items-center gap-6px text-neutral-400 font-500">
           <n-icon :component="IconHistory" size="18" />
-          Recently used
+          {{ $t('developerPlatform.home.recentlyUsed') }}
         </h3>
         <div class="grid grid-cols-1 gap-12px lg:grid-cols-3 md:grid-cols-3 sm:grid-cols-2 xl:grid-cols-4">
           <ToolCard v-for="tool in recentTools" :key="tool.path" :tool="tool" />
