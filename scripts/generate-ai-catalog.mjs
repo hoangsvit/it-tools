@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -31,7 +31,10 @@ const tools = readdirSync(toolsDir, { withFileTypes: true })
     try {
       const source = readFileSync(join(toolsDir, entry.name, 'index.ts'), 'utf8');
       const path = getLiteral(source, 'path');
-      if (!path) return [];
+      if (!path) {
+        return [];
+      }
+
       return [{
         id: entry.name,
         name: getLiteral(source, 'name') ?? titleFromSlug(entry.name),
