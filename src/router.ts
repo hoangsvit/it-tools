@@ -32,6 +32,11 @@ const router = createRouter({
       component: () => import('./pages/DeveloperWorkspace.page.vue'),
     },
     {
+      path: '/privacy',
+      name: 'privacy-dashboard',
+      component: () => import('./pages/PrivacyDashboard.page.vue'),
+    },
+    {
       path: '/about',
       name: 'about',
       component: () => import('./pages/About.vue'),
