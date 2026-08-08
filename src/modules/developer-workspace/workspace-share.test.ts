@@ -37,6 +37,32 @@ describe('workspace sharing', () => {
     expect(decoded?.steps[0]?.notes).toBe('Sensitive');
   });
 
+  it('bounds imported recipe fields', () => {
+    const oversizedWorkspace: DeveloperWorkspace = {
+      ...workspace,
+      name: 'n'.repeat(120),
+      steps: [{
+        ...workspace.steps[0],
+        toolPath: `/${'p'.repeat(300)}`,
+        input: 'i'.repeat(20_000),
+        output: 'o'.repeat(20_000),
+        notes: 'n'.repeat(8_000),
+      }],
+    };
+
+    const decoded = decodeWorkspaceShare(encodeWorkspaceShare(oversizedWorkspace, true));
+
+    expect(decoded?.name).toHaveLength(80);
+    expect(decoded?.steps[0]?.toolPath).toHaveLength(200);
+    expect(decoded?.steps[0]?.input).toHaveLength(12_000);
+    expect(decoded?.steps[0]?.output).toHaveLength(12_000);
+    expect(decoded?.steps[0]?.notes).toHaveLength(4_000);
+  });
+
+  it('rejects oversized encoded payloads before decoding', () => {
+    expect(decodeWorkspaceShare('A'.repeat(64_001))).toBeNull();
+  });
+
   it('rejects invalid payloads', () => {
     expect(decodeWorkspaceShare('not-a-valid-recipe')).toBeNull();
   });
