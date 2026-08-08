@@ -444,6 +444,80 @@ function drawShareRow(
   context.fillText(value, 750, y, 410);
 }
 
+function drawQrGuides(context: CanvasRenderingContext2D, theme: typeof THEME_PRESETS[ThemeName]) {
+  const left = 150;
+  const top = 267;
+  const right = 750;
+  const bottom = 867;
+  const length = 54;
+  const radius = 16;
+
+  context.save();
+  context.lineWidth = 7;
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+
+  context.strokeStyle = theme.accentLeft;
+  context.beginPath();
+  context.moveTo(left + length, top);
+  context.lineTo(left + radius, top);
+  context.quadraticCurveTo(left, top, left, top + radius);
+  context.lineTo(left, top + length);
+  context.stroke();
+  context.beginPath();
+  context.moveTo(left, bottom - length);
+  context.lineTo(left, bottom - radius);
+  context.quadraticCurveTo(left, bottom, left + radius, bottom);
+  context.lineTo(left + length, bottom);
+  context.stroke();
+
+  context.strokeStyle = theme.accentRight;
+  context.beginPath();
+  context.moveTo(right - length, top);
+  context.lineTo(right - radius, top);
+  context.quadraticCurveTo(right, top, right, top + radius);
+  context.lineTo(right, top + length);
+  context.stroke();
+  context.beginPath();
+  context.moveTo(right, bottom - length);
+  context.lineTo(right, bottom - radius);
+  context.quadraticCurveTo(right, bottom, right - radius, bottom);
+  context.lineTo(right - length, bottom);
+  context.stroke();
+
+  context.restore();
+}
+
+function drawStageDecorations(context: CanvasRenderingContext2D, theme: typeof THEME_PRESETS[ThemeName]) {
+  context.save();
+
+  context.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+  context.lineWidth = 2;
+  for (const radius of [90, 126, 166, 210]) {
+    context.globalAlpha = radius === 90 ? 0.8 : 0.35;
+    context.beginPath();
+    context.arc(845, 260, radius, 0, Math.PI * 2);
+    context.stroke();
+  }
+
+  context.globalAlpha = 0.28;
+  context.fillStyle = theme.accentRight;
+  for (let row = 0; row < 6; row += 1) {
+    for (let column = 0; column < 6; column += 1) {
+      context.beginPath();
+      context.arc(54 + column * 28, 318 + row * 28, 3, 0, Math.PI * 2);
+      context.fill();
+    }
+  }
+
+  context.globalAlpha = 0.95;
+  context.translate(104, 76);
+  context.rotate(Math.PI / 4);
+  fillRoundedRect(context, -10, -10, 20, 20, 3, 'rgba(255, 255, 255, 0.95)');
+
+  context.restore();
+}
+
 async function createShareImage() {
   if (!qrDataUrl.value || !selectedBank.value) {
     return '';
@@ -485,6 +559,8 @@ async function createShareImage() {
   context.arc(810, 1040, 130, 0, Math.PI * 2);
   context.fill();
 
+  drawStageDecorations(context, theme);
+
   context.shadowColor = theme.shadow;
   context.shadowBlur = 48;
   context.shadowOffsetY = 20;
@@ -504,7 +580,7 @@ async function createShareImage() {
     context.fillText(selectedBank.value.shortName, 450, 138, 330);
   }
 
-  context.fillStyle = '#667085';
+  context.fillStyle = '#98a2b3';
   context.font = '500 13px sans-serif';
   context.fillText(selectedBank.value.name, 450, 180, 610);
 
@@ -518,6 +594,7 @@ async function createShareImage() {
   context.shadowColor = 'transparent';
   context.shadowBlur = 0;
   context.drawImage(qrImage, 178, 295, 544, 544);
+  drawQrGuides(context, theme);
 
   const accountGradient = context.createLinearGradient(130, 0, 770, 0);
   accountGradient.addColorStop(0, '#fafaff');
@@ -814,85 +891,99 @@ onBeforeUnmount(() => {
             </button>
           </div>
 
-          <div class="preview-stage" :style="themeStyle">
-            <div class="decor-blob decor-blob-left" />
-            <div class="decor-blob decor-blob-right" />
-            <div class="decor-rings" />
-            <div class="decor-dots" />
-            <div class="decor-star" />
+          <div
+            class="preview-stage"
+            :class="{ 'preview-stage-exported': qrDataUrl && selectedBank && shareImageObjectUrl }"
+            :style="themeStyle"
+          >
+            <template v-if="qrDataUrl && selectedBank && shareImageObjectUrl">
+              <img
+                :src="shareImageObjectUrl"
+                :alt="t('previewTitle')"
+                class="share-preview-image"
+              >
+            </template>
 
-            <div v-if="qrDataUrl && selectedBank" class="payment-sheet">
-              <div class="bank-brand">
-                <img
-                  :src="selectedBank.logo"
-                  :alt="t('bankLogoAlt', { bank: selectedBank.shortName })"
-                  class="preview-bank-logo"
-                >
-                <div class="preview-bank-name">
-                  {{ selectedBank.name }}
+            <template v-else>
+              <div class="decor-blob decor-blob-left" />
+              <div class="decor-blob decor-blob-right" />
+              <div class="decor-rings" />
+              <div class="decor-dots" />
+              <div class="decor-star" />
+
+              <div v-if="qrDataUrl && selectedBank" class="payment-sheet">
+                <div class="bank-brand">
+                  <img
+                    :src="selectedBank.logo"
+                    :alt="t('bankLogoAlt', { bank: selectedBank.shortName })"
+                    class="preview-bank-logo"
+                  >
+                  <div class="preview-bank-name">
+                    {{ selectedBank.name }}
+                  </div>
+                </div>
+
+                <div class="scan-title">
+                  {{ t('scanTitle') }}
+                </div>
+
+                <div class="qr-frame">
+                  <span class="qr-guide qr-guide-tl" />
+                  <span class="qr-guide qr-guide-tr" />
+                  <span class="qr-guide qr-guide-bl" />
+                  <span class="qr-guide qr-guide-br" />
+                  <div class="qr-surface">
+                    <img :src="qrDataUrl" alt="VietQR bank transfer code" class="qr-code-image">
+                  </div>
+                </div>
+
+                <div class="account-card">
+                  <span>{{ t('accountLabel') }}</span>
+                  <strong>{{ accountNo }}</strong>
+                </div>
+
+                <div v-if="amount || description" class="payment-details">
+                  <div v-if="amount" class="detail-row">
+                    <span>{{ t('amount') }}</span>
+                    <strong class="amount-value">{{ previewAmount }}</strong>
+                  </div>
+                  <div v-if="description" class="detail-row">
+                    <span>{{ t('content') }}</span>
+                    <strong>{{ previewDescription }}</strong>
+                  </div>
+                </div>
+
+                <div class="sheet-copyright">
+                  © {{ COPYRIGHT_YEAR }} ePlus.DEV · tools.eplus.dev
                 </div>
               </div>
 
-              <div class="scan-title">
-                {{ t('scanTitle') }}
-              </div>
+              <div v-else class="payment-sheet payment-sheet-empty">
+                <div class="empty-preview-title">
+                  {{ t('previewTitle') }}
+                </div>
+                <div class="empty-preview-copy">
+                  {{ t('emptyPreview') }}
+                </div>
 
-              <div class="qr-frame">
-                <span class="qr-guide qr-guide-tl" />
-                <span class="qr-guide qr-guide-tr" />
-                <span class="qr-guide qr-guide-bl" />
-                <span class="qr-guide qr-guide-br" />
-                <div class="qr-surface">
-                  <img :src="qrDataUrl" alt="VietQR bank transfer code" class="qr-code-image">
+                <div class="empty-qr-frame">
+                  <span class="qr-guide qr-guide-tl" />
+                  <span class="qr-guide qr-guide-tr" />
+                  <span class="qr-guide qr-guide-bl" />
+                  <span class="qr-guide qr-guide-br" />
+                  <div class="empty-qr-grid" />
+                </div>
+
+                <div class="empty-account-card">
+                  <span>{{ t('accountLabel') }}</span>
+                  <strong>•••• •••• ••••</strong>
+                </div>
+
+                <div class="sheet-copyright">
+                  © {{ COPYRIGHT_YEAR }} ePlus.DEV · tools.eplus.dev
                 </div>
               </div>
-
-              <div class="account-card">
-                <span>{{ t('accountLabel') }}</span>
-                <strong>{{ accountNo }}</strong>
-              </div>
-
-              <div v-if="amount || description" class="payment-details">
-                <div v-if="amount" class="detail-row">
-                  <span>{{ t('amount') }}</span>
-                  <strong class="amount-value">{{ previewAmount }}</strong>
-                </div>
-                <div v-if="description" class="detail-row">
-                  <span>{{ t('content') }}</span>
-                  <strong>{{ previewDescription }}</strong>
-                </div>
-              </div>
-
-              <div class="sheet-copyright">
-                © {{ COPYRIGHT_YEAR }} ePlus.DEV · tools.eplus.dev
-              </div>
-            </div>
-
-            <div v-else class="payment-sheet payment-sheet-empty">
-              <div class="empty-preview-title">
-                {{ t('previewTitle') }}
-              </div>
-              <div class="empty-preview-copy">
-                {{ t('emptyPreview') }}
-              </div>
-
-              <div class="empty-qr-frame">
-                <span class="qr-guide qr-guide-tl" />
-                <span class="qr-guide qr-guide-tr" />
-                <span class="qr-guide qr-guide-bl" />
-                <span class="qr-guide qr-guide-br" />
-                <div class="empty-qr-grid" />
-              </div>
-
-              <div class="empty-account-card">
-                <span>{{ t('accountLabel') }}</span>
-                <strong>•••• •••• ••••</strong>
-              </div>
-
-              <div class="sheet-copyright">
-                © {{ COPYRIGHT_YEAR }} ePlus.DEV · tools.eplus.dev
-              </div>
-            </div>
+            </template>
 
             <template v-if="qrDataUrl && selectedBank">
               <div class="qr-actions">
@@ -1085,6 +1176,28 @@ onBeforeUnmount(() => {
     linear-gradient(160deg, var(--theme-from) 0%, var(--theme-mid) 50%, var(--theme-to) 100%);
   isolation: isolate;
   transition: background 220ms ease;
+}
+
+.preview-stage-exported {
+  min-height: 0;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.share-preview-image {
+  display: block;
+  width: 100%;
+  max-width: 390px;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 30px;
+  box-shadow: 0 18px 44px var(--theme-shadow);
+}
+
+.preview-stage-exported .qr-actions {
+  margin-top: 16px;
 }
 
 .decor-blob {
@@ -1474,6 +1587,16 @@ onBeforeUnmount(() => {
   .preview-stage {
     min-height: 560px;
     padding: 12px;
+    border-radius: 22px;
+  }
+
+  .preview-stage-exported {
+    min-height: 0;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .share-preview-image {
     border-radius: 22px;
   }
 
