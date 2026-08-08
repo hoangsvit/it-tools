@@ -11,7 +11,6 @@ export function defineTool(tool: ToolDefinition): Tool {
   return {
     isNew,
     origin: 'core',
-    capabilities: ['text-input', 'clipboard', 'offline'],
     ...tool,
   };
 }
