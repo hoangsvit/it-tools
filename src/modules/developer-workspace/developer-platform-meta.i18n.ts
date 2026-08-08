@@ -25,7 +25,7 @@ const messages = {
       },
     },
     tools: {
-      categories: {
+      'categories': {
         vietnam: 'Vietnam',
       },
       'file-inspector': {
@@ -72,7 +72,7 @@ const messages = {
       },
     },
     tools: {
-      categories: {
+      'categories': {
         vietnam: 'Việt Nam',
       },
       'file-inspector': {
