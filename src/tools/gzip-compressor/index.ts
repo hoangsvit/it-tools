@@ -1,4 +1,4 @@
-import { FileZip } from '@vicons/tabler';
+import { File } from '@vicons/tabler';
 import { defineTool } from '../tool';
 
 export const tool = defineTool({
@@ -7,7 +7,7 @@ export const tool = defineTool({
   description: 'Compress text to GZip or decompress Base64-encoded GZip data entirely in your browser.',
   keywords: ['gzip', 'compress', 'decompress', 'deflate', 'base64', 'archive', 'browser', 'local'],
   component: () => import('./gzip-compressor.vue'),
-  icon: FileZip,
+  icon: File,
   createdAt: new Date('2026-08-09'),
   privacy: {
     mode: 'local',
