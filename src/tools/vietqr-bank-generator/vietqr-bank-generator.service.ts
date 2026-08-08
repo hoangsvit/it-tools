@@ -60,7 +60,7 @@ export function validateVietQrInput(input: VietQrInput): VietQrValidationResult 
   const errors: string[] = [];
   const bankId = input.bankId.trim();
   const accountNo = input.accountNo.trim();
-  const amount = normalizeVietQrAmount(input.amount?.trim() ?? '');
+  const rawAmount = input.amount?.trim() ?? '';
   const description = input.description?.trim() ?? '';
 
   if (!BANK_BIN_PATTERN.test(bankId)) {
@@ -71,7 +71,7 @@ export function validateVietQrInput(input: VietQrInput): VietQrValidationResult 
     errors.push('Account number or alias must contain 1-19 letters or digits.');
   }
 
-  if (input.amount?.trim() && (!AMOUNT_PATTERN.test(amount) || Number(amount) <= 0)) {
+  if (rawAmount && (!AMOUNT_PATTERN.test(rawAmount) || Number(rawAmount) <= 0)) {
     errors.push('Amount must be a positive VND integer with at most 13 digits.');
   }
 
