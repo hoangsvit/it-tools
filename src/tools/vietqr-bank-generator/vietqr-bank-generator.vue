@@ -147,7 +147,7 @@ async function fetchBankApps(url: string) {
     throw new Error(`HTTP ${response.status}`);
   }
 
-  const payload = await response.json() as { apps?: VietQrBankApp[], data?: VietQrBankApp[] };
+  const payload = await response.json() as { apps?: VietQrBankApp[]; data?: VietQrBankApp[] };
   return payload.apps ?? payload.data ?? [];
 }
 
