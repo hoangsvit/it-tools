@@ -17,6 +17,70 @@ const STORAGE_PREFIX = 'eplus-vietqr';
 const COPYRIGHT_YEAR = new Date().getFullYear();
 const SENSITIVE_STORAGE_KEYS = ['account', 'amount', 'content'] as const;
 
+const THEME_PRESETS = {
+  purple: {
+    label: 'Purple',
+    swatch: 'linear-gradient(135deg, #8b5cf6, #60a5fa)',
+    stageFrom: '#f7f5ff',
+    stageMid: '#eef5ff',
+    stageTo: '#faf5ff',
+    glowLeft: 'rgba(167, 139, 250, 0.30)',
+    glowRight: 'rgba(96, 165, 250, 0.25)',
+    accentLeft: '#60a5fa',
+    accentRight: '#a78bfa',
+    shadow: 'rgba(99, 102, 241, 0.16)',
+  },
+  blue: {
+    label: 'Blue',
+    swatch: 'linear-gradient(135deg, #2563eb, #22d3ee)',
+    stageFrom: '#f1f7ff',
+    stageMid: '#eaf6ff',
+    stageTo: '#f3fbff',
+    glowLeft: 'rgba(59, 130, 246, 0.28)',
+    glowRight: 'rgba(34, 211, 238, 0.24)',
+    accentLeft: '#2563eb',
+    accentRight: '#22d3ee',
+    shadow: 'rgba(37, 99, 235, 0.15)',
+  },
+  emerald: {
+    label: 'Emerald',
+    swatch: 'linear-gradient(135deg, #10b981, #2dd4bf)',
+    stageFrom: '#f0fdf8',
+    stageMid: '#ecfdf5',
+    stageTo: '#f0fdfa',
+    glowLeft: 'rgba(16, 185, 129, 0.24)',
+    glowRight: 'rgba(45, 212, 191, 0.22)',
+    accentLeft: '#10b981',
+    accentRight: '#2dd4bf',
+    shadow: 'rgba(16, 185, 129, 0.14)',
+  },
+  rose: {
+    label: 'Rose',
+    swatch: 'linear-gradient(135deg, #f43f5e, #fb7185)',
+    stageFrom: '#fff4f7',
+    stageMid: '#fff1f5',
+    stageTo: '#fff7f8',
+    glowLeft: 'rgba(244, 63, 94, 0.22)',
+    glowRight: 'rgba(251, 113, 133, 0.22)',
+    accentLeft: '#f43f5e',
+    accentRight: '#fb7185',
+    shadow: 'rgba(244, 63, 94, 0.13)',
+  },
+  slate: {
+    label: 'Slate',
+    swatch: 'linear-gradient(135deg, #334155, #94a3b8)',
+    stageFrom: '#f8fafc',
+    stageMid: '#f1f5f9',
+    stageTo: '#f8fafc',
+    glowLeft: 'rgba(100, 116, 139, 0.20)',
+    glowRight: 'rgba(148, 163, 184, 0.20)',
+    accentLeft: '#475569',
+    accentRight: '#94a3b8',
+    shadow: 'rgba(51, 65, 85, 0.13)',
+  },
+} as const;
+
+type ThemeName = keyof typeof THEME_PRESETS;
 type CopyState = 'idle' | 'copied' | 'unsupported' | 'failed';
 
 const { t, locale } = useI18n({
@@ -33,6 +97,25 @@ const amount = ref('');
 const description = ref('');
 const qrDataUrl = ref('');
 const copyState = ref<CopyState>('idle');
+const selectedTheme = ref<ThemeName>('purple');
+
+const themeOptions = Object.entries(THEME_PRESETS).map(([value, theme]) => ({
+  value: value as ThemeName,
+  label: theme.label,
+  swatch: theme.swatch,
+}));
+
+const activeTheme = computed(() => THEME_PRESETS[selectedTheme.value]);
+const themeStyle = computed(() => ({
+  '--theme-from': activeTheme.value.stageFrom,
+  '--theme-mid': activeTheme.value.stageMid,
+  '--theme-to': activeTheme.value.stageTo,
+  '--theme-glow-left': activeTheme.value.glowLeft,
+  '--theme-glow-right': activeTheme.value.glowRight,
+  '--theme-accent-left': activeTheme.value.accentLeft,
+  '--theme-accent-right': activeTheme.value.accentRight,
+  '--theme-shadow': activeTheme.value.shadow,
+}));
 
 const bankOptions = computed(() => banks.map(bank => ({
   label: `${bankSearchLabel(bank)}${bank.transferSupported ? '' : ` · ${t('unavailableSuffix')}`}`,
@@ -138,6 +221,12 @@ watch(selectedBankBin, (value) => {
   }
 });
 
+watch(selectedTheme, (value) => {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(`${STORAGE_PREFIX}:theme`, value);
+  }
+});
+
 function clearSensitiveStorage() {
   for (const key of SENSITIVE_STORAGE_KEYS) {
     window.localStorage.removeItem(`${STORAGE_PREFIX}:${key}`);
@@ -146,6 +235,10 @@ function clearSensitiveStorage() {
 
 function restoreForm() {
   selectedBankBin.value = window.localStorage.getItem(`${STORAGE_PREFIX}:bank`) ?? '';
+  const storedTheme = window.localStorage.getItem(`${STORAGE_PREFIX}:theme`);
+  if (storedTheme && storedTheme in THEME_PRESETS) {
+    selectedTheme.value = storedTheme as ThemeName;
+  }
   clearSensitiveStorage();
 }
 
@@ -246,6 +339,7 @@ async function createShareImage() {
     return '';
   }
 
+  const theme = activeTheme.value;
   const qrImage = await loadImage(qrDataUrl.value);
   const bankLogo = selectedBank.value.logo
     ? await loadImage(selectedBank.value.logo, true).catch(() => null)
@@ -260,18 +354,18 @@ async function createShareImage() {
   }
 
   const background = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-  background.addColorStop(0, '#f4f2ff');
-  background.addColorStop(0.48, '#eef5ff');
-  background.addColorStop(1, '#f8f5ff');
+  background.addColorStop(0, theme.stageFrom);
+  background.addColorStop(0.48, theme.stageMid);
+  background.addColorStop(1, theme.stageTo);
   context.fillStyle = background;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  context.fillStyle = 'rgba(139, 92, 246, 0.12)';
+  context.fillStyle = theme.glowLeft;
   context.beginPath();
   context.arc(70, 920, 240, 0, Math.PI * 2);
   context.fill();
 
-  context.fillStyle = 'rgba(59, 130, 246, 0.10)';
+  context.fillStyle = theme.glowRight;
   context.beginPath();
   context.arc(860, 330, 250, 0, Math.PI * 2);
   context.fill();
@@ -281,7 +375,7 @@ async function createShareImage() {
   context.arc(810, 1040, 130, 0, Math.PI * 2);
   context.fill();
 
-  context.shadowColor = 'rgba(76, 81, 130, 0.16)';
+  context.shadowColor = theme.shadow;
   context.shadowBlur = 48;
   context.shadowOffsetY = 20;
   fillRoundedRect(context, 82, 52, 736, 1096, 42, 'rgba(255,255,255,0.94)');
@@ -308,7 +402,7 @@ async function createShareImage() {
   context.font = '800 34px sans-serif';
   context.fillText(t('scanTitle'), 450, 235, 610);
 
-  context.shadowColor = 'rgba(99, 102, 241, 0.18)';
+  context.shadowColor = theme.shadow;
   context.shadowBlur = 30;
   fillRoundedRect(context, 158, 275, 584, 584, 36, '#ffffff');
   context.shadowColor = 'transparent';
@@ -317,7 +411,7 @@ async function createShareImage() {
 
   const accountGradient = context.createLinearGradient(130, 0, 770, 0);
   accountGradient.addColorStop(0, '#fafaff');
-  accountGradient.addColorStop(1, '#f5f8ff');
+  accountGradient.addColorStop(1, theme.stageMid);
   fillRoundedRect(context, 130, 891, 640, 104, 22, accountGradient);
 
   context.fillStyle = '#98a2b3';
@@ -485,7 +579,25 @@ onMounted(() => {
 
       <div class="preview-column">
         <c-card :title="t('previewTitle')">
-          <div class="preview-stage">
+          <div class="theme-picker" role="radiogroup" aria-label="Color theme">
+            <button
+              v-for="theme in themeOptions"
+              :key="theme.value"
+              type="button"
+              class="theme-swatch"
+              :class="{ active: selectedTheme === theme.value }"
+              :style="{ background: theme.swatch }"
+              :title="theme.label"
+              :aria-label="theme.label"
+              :aria-checked="selectedTheme === theme.value"
+              role="radio"
+              @click="selectedTheme = theme.value"
+            >
+              <span v-if="selectedTheme === theme.value" class="theme-check">✓</span>
+            </button>
+          </div>
+
+          <div class="preview-stage" :style="themeStyle">
             <div class="decor-blob decor-blob-left" />
             <div class="decor-blob decor-blob-right" />
             <div class="decor-rings" />
@@ -700,18 +812,62 @@ onMounted(() => {
   min-width: 0;
 }
 
+.theme-picker {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: -4px 2px 12px;
+}
+
+.theme-swatch {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.theme-swatch:hover {
+  transform: translateY(-1px) scale(1.05);
+}
+
+.theme-swatch.active {
+  border-color: rgba(15, 23, 42, 0.72);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.92), 0 3px 12px rgba(15, 23, 42, 0.16);
+}
+
+.theme-swatch:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.theme-check {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.32);
+}
+
 .preview-stage {
   position: relative;
   min-height: 620px;
   overflow: hidden;
   padding: 22px;
-  border: 1px solid rgba(129, 140, 248, 0.14);
+  border: 1px solid rgba(129, 140, 248, 0.12);
   border-radius: 30px;
   background:
-    radial-gradient(circle at 14% 8%, rgba(196, 181, 253, 0.38), transparent 30%),
-    radial-gradient(circle at 94% 20%, rgba(147, 197, 253, 0.32), transparent 30%),
-    linear-gradient(160deg, #f7f5ff 0%, #eef5ff 50%, #faf5ff 100%);
+    radial-gradient(circle at 14% 8%, var(--theme-glow-left), transparent 30%),
+    radial-gradient(circle at 94% 20%, var(--theme-glow-right), transparent 30%),
+    linear-gradient(160deg, var(--theme-from) 0%, var(--theme-mid) 50%, var(--theme-to) 100%);
   isolation: isolate;
+  transition: background 220ms ease;
 }
 
 .decor-blob {
@@ -727,7 +883,7 @@ onMounted(() => {
   height: 250px;
   left: -120px;
   bottom: 40px;
-  background: radial-gradient(circle, rgba(167, 139, 250, 0.28), rgba(167, 139, 250, 0.02) 70%);
+  background: radial-gradient(circle, var(--theme-glow-left), transparent 70%);
 }
 
 .decor-blob-right {
@@ -735,7 +891,7 @@ onMounted(() => {
   height: 270px;
   top: 130px;
   right: -150px;
-  background: radial-gradient(circle, rgba(96, 165, 250, 0.24), rgba(96, 165, 250, 0.02) 70%);
+  background: radial-gradient(circle, var(--theme-glow-right), transparent 70%);
 }
 
 .decor-rings {
@@ -761,8 +917,8 @@ onMounted(() => {
   height: 78px;
   top: 178px;
   left: 18px;
-  opacity: 0.33;
-  background-image: radial-gradient(circle, #9aa4c6 1.4px, transparent 1.4px);
+  opacity: 0.27;
+  background-image: radial-gradient(circle, var(--theme-accent-right) 1.4px, transparent 1.4px);
   background-size: 14px 14px;
   pointer-events: none;
 }
@@ -792,7 +948,7 @@ onMounted(() => {
   border-radius: 30px;
   background: rgba(255, 255, 255, 0.91);
   box-shadow:
-    0 24px 64px rgba(89, 92, 148, 0.16),
+    0 24px 64px var(--theme-shadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(12px);
   color: #101828;
@@ -864,7 +1020,7 @@ onMounted(() => {
   padding: 12px;
   border-radius: 26px;
   background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 16px 34px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 16px 34px var(--theme-shadow);
 }
 
 .empty-qr-grid {
@@ -887,7 +1043,7 @@ onMounted(() => {
   padding: 13px 16px 14px;
   border: 1px solid rgba(226, 232, 240, 0.72);
   border-radius: 18px;
-  background: linear-gradient(110deg, rgba(250, 250, 255, 0.96), rgba(245, 248, 255, 0.96));
+  background: linear-gradient(110deg, rgba(255, 255, 255, 0.96), var(--theme-mid));
 }
 
 .empty-account-card span {
@@ -918,7 +1074,7 @@ onMounted(() => {
   border-radius: 27px;
   background: #fff;
   box-shadow:
-    0 18px 38px rgba(99, 102, 241, 0.14),
+    0 18px 38px var(--theme-shadow),
     inset 0 0 0 1px rgba(226, 232, 240, 0.76);
 }
 
@@ -941,32 +1097,32 @@ onMounted(() => {
 .qr-guide-tl {
   top: -8px;
   left: -8px;
-  border-top: 3px solid #60a5fa;
-  border-left: 3px solid #60a5fa;
+  border-top: 3px solid var(--theme-accent-left);
+  border-left: 3px solid var(--theme-accent-left);
   border-radius: 9px 0 0;
 }
 
 .qr-guide-tr {
   top: -8px;
   right: -8px;
-  border-top: 3px solid #a78bfa;
-  border-right: 3px solid #a78bfa;
+  border-top: 3px solid var(--theme-accent-right);
+  border-right: 3px solid var(--theme-accent-right);
   border-radius: 0 9px 0 0;
 }
 
 .qr-guide-bl {
   bottom: -8px;
   left: -8px;
-  border-bottom: 3px solid #60a5fa;
-  border-left: 3px solid #60a5fa;
+  border-bottom: 3px solid var(--theme-accent-left);
+  border-left: 3px solid var(--theme-accent-left);
   border-radius: 0 0 0 9px;
 }
 
 .qr-guide-br {
   right: -8px;
   bottom: -8px;
-  border-right: 3px solid #a78bfa;
-  border-bottom: 3px solid #a78bfa;
+  border-right: 3px solid var(--theme-accent-right);
+  border-bottom: 3px solid var(--theme-accent-right);
   border-radius: 0 0 9px;
 }
 
@@ -978,7 +1134,7 @@ onMounted(() => {
   padding: 13px 16px 14px;
   border: 1px solid rgba(226, 232, 240, 0.72);
   border-radius: 18px;
-  background: linear-gradient(110deg, rgba(250, 250, 255, 0.96), rgba(245, 248, 255, 0.96));
+  background: linear-gradient(110deg, rgba(255, 255, 255, 0.96), var(--theme-mid));
   text-align: center;
 }
 
@@ -1086,6 +1242,16 @@ onMounted(() => {
 
   .bank-bin {
     display: none;
+  }
+
+  .theme-picker {
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+
+  .theme-swatch {
+    width: 32px;
+    height: 32px;
   }
 
   .preview-stage {
