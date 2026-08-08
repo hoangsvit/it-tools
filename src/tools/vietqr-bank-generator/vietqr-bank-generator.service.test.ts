@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   bankSearchLabel,
-  crc16,
   formatVietQrAmount,
   makeVietQrContent,
   matchesBankQuery,
@@ -22,30 +21,40 @@ const bank = {
 };
 
 describe('VietQR bank generator service', () => {
-  it('matches the reference static VietQR payload', () => {
+  it('matches the vietqr.net reference payload without amount', () => {
     expect(makeVietQrContent({
       bankId: '970423',
       accountNo: '0123456789',
     })).toBe('00020101021138540010A00000072701240006970423011001234567890208QRIBFTTA53037045802VN6304F64B');
   });
 
-  it('uses a dynamic point-of-initiation method when an amount is present', () => {
-    const content = makeVietQrContent({
-      bankId: bank.bin,
-      accountNo: '123456789',
-      amount: '79000',
-      description: 'Invoice 2026',
-    });
+  it('matches the vietqr.net reference payload with amount', () => {
+    expect(makeVietQrContent({
+      bankId: '963388',
+      accountNo: '3456789143',
+      amount: '2345123',
+    })).toBe('00020101021138540010A00000072701240006963388011034567891430208QRIBFTTA5303704540723451235802VN6304EBDA');
+  });
 
-    expect(content).toContain('010212');
-    expect(content).toContain('540579000');
-    expect(content).toContain('0812Invoice 2026');
-    expect(content.endsWith(crc16(content.slice(0, -4)))).toBe(true);
+  it('matches the vietqr.net reference payload with amount and transfer content', () => {
+    expect(makeVietQrContent({
+      bankId: '963388',
+      accountNo: '3456789143',
+      amount: '2345123',
+      description: 'thanh toan hoa don',
+    })).toBe('00020101021138540010A00000072701240006963388011034567891430208QRIBFTTA5303704540723451235802VN62220818thanh toan hoa don630445F2');
   });
 
   it('normalizes and formats VND amounts', () => {
     expect(normalizeVietQrAmount('001,234,567 VND')).toBe('1234567');
     expect(formatVietQrAmount('001234567')).toBe('1,234,567');
+  });
+
+  it('accepts account identifiers up to 25 letters or digits', () => {
+    expect(validateVietQrInput({
+      bankId: '970436',
+      accountNo: '1234567890123456789012345',
+    }).valid).toBe(true);
   });
 
   it('rejects invalid bank, account, amount and accented transfer content', () => {
