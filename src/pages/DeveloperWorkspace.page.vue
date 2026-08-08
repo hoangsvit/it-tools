@@ -12,6 +12,7 @@ import {
 import { useHead } from '@vueuse/head';
 import { computed, onMounted, ref } from 'vue';
 import { useCopy } from '@/composable/copy';
+import '@/modules/developer-workspace/developer-workspace.i18n';
 import { useDeveloperWorkspaceStore } from '@/modules/developer-workspace/developer-workspace.store';
 import type { WorkspaceStep } from '@/modules/developer-workspace/workspace.model';
 import { getWorkspaceProgress } from '@/modules/developer-workspace/workspace.model';
@@ -24,18 +25,25 @@ const workspaceStore = useDeveloperWorkspaceStore();
 const toolStore = useToolStore();
 const router = useRouter();
 const dialog = useDialog();
+const { t } = useI18n();
 const { copy, isSupported: clipboardSupported } = useCopy({ createToast: false });
 const copiedTarget = ref('');
 const pastedTarget = ref('');
 
 useHead(createSeoHead({
-  title: 'Developer Workspace',
-  description: 'Paste developer data, get smart tool suggestions, chain outputs into the next step and keep the workflow private in your browser.',
+  title: t('developerWorkspace.seoTitle'),
+  description: t('developerWorkspace.seoDescription'),
   path: '/workspace',
   keywords: ['developer workspace', 'smart tool suggestions', 'tool chaining', 'developer workflow', 'ePlus.DEV'],
 }));
 
-onMounted(() => workspaceStore.ensureActiveWorkspace());
+onMounted(() => {
+  if (workspaceStore.workspaces.length === 0) {
+    workspaceStore.createWorkspace(t('developerWorkspace.initialName'));
+    return;
+  }
+  workspaceStore.ensureActiveWorkspace();
+});
 
 const workspace = computed(() => workspaceStore.activeWorkspace);
 const workspaceOptions = computed(() => workspaceStore.workspaces.map(item => ({
@@ -80,8 +88,17 @@ function suggestionsForStep(step: WorkspaceStep) {
   });
 }
 
+function detectionLabel(suggestion?: WorkspaceToolSuggestion) {
+  if (!suggestion) {
+    return '';
+  }
+  return t(`developerPlatform.detections.${suggestion.kind}`, suggestion.label);
+}
+
 function createWorkspace() {
-  workspaceStore.createWorkspace(`Workspace ${workspaceStore.workspaces.length + 1}`);
+  workspaceStore.createWorkspace(t('developerWorkspace.numberedName', {
+    number: workspaceStore.workspaces.length + 1,
+  }));
 }
 
 function deleteWorkspace() {
@@ -93,10 +110,10 @@ function deleteWorkspace() {
   const workspaceName = workspace.value.name;
 
   dialog.warning({
-    title: 'Delete workspace',
-    content: `Delete “${workspaceName}” and its locally stored step data?`,
-    positiveText: 'Delete',
-    negativeText: 'Cancel',
+    title: t('developerWorkspace.deleteTitle'),
+    content: t('developerWorkspace.deleteContent', { name: workspaceName }),
+    positiveText: t('developerWorkspace.delete'),
+    negativeText: t('developerWorkspace.cancel'),
     onPositiveClick: () => workspaceStore.deleteWorkspace(workspaceId),
   });
 }
@@ -208,25 +225,22 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
       <header class="workspace-hero">
         <div class="hero-copy">
           <div class="workspace-kicker">
-            ePlus.DEV Developer Workspace
+            {{ $t('developerWorkspace.kicker') }}
           </div>
-          <h1>Paste data. Let Workspace pick the right tools.</h1>
-          <p>
-            Start with the data instead of hunting through the toolbox. Workspace detects common developer formats,
-            recommends the best matching tools, then suggests the next step from each output.
-          </p>
+          <h1>{{ $t('developerWorkspace.title') }}</h1>
+          <p>{{ $t('developerWorkspace.intro') }}</p>
         </div>
 
         <div class="hero-side">
           <div class="privacy-badge">
-            <span /> Browser-local only
+            <span /> {{ $t('developerWorkspace.browserLocalOnly') }}
           </div>
           <div class="smart-flow">
-            <div><strong>1</strong><span>Paste input</span></div>
+            <div><strong>1</strong><span>{{ $t('developerWorkspace.pasteInput') }}</span></div>
             <i>→</i>
-            <div><strong>2</strong><span>Auto-detect</span></div>
+            <div><strong>2</strong><span>{{ $t('developerWorkspace.autoDetect') }}</span></div>
             <i>→</i>
-            <div><strong>3</strong><span>Add next</span></div>
+            <div><strong>3</strong><span>{{ $t('developerWorkspace.addNext') }}</span></div>
           </div>
         </div>
       </header>
@@ -234,7 +248,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
       <section v-if="workspace" class="workspace-shell">
         <div class="workspace-toolbar">
           <label class="field">
-            <span>Workspace</span>
+            <span>{{ $t('developerWorkspace.workspace') }}</span>
             <n-select
               :value="workspace.id"
               :options="workspaceOptions"
@@ -244,7 +258,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
           </label>
 
           <label class="field">
-            <span>Name</span>
+            <span>{{ $t('developerWorkspace.name') }}</span>
             <n-input
               :value="workspace.name"
               maxlength="80"
@@ -257,28 +271,28 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
               <template #icon>
                 <n-icon :component="IconClipboard" />
               </template>
-              {{ copiedTarget === 'workspace-json' ? 'Copied JSON' : 'Copy JSON' }}
+              {{ copiedTarget === 'workspace-json' ? $t('developerWorkspace.copiedJson') : $t('developerWorkspace.copyJson') }}
             </n-button>
             <n-button secondary @click="createWorkspace">
               <template #icon>
                 <n-icon :component="IconPlus" />
               </template>
-              New
+              {{ $t('developerWorkspace.new') }}
             </n-button>
             <n-button quaternary type="error" @click="deleteWorkspace">
               <template #icon>
                 <n-icon :component="IconTrash" />
               </template>
-              Delete
+              {{ $t('developerWorkspace.delete') }}
             </n-button>
           </div>
         </div>
 
         <div class="workspace-status">
-          <div><strong>{{ progress.configured }}/{{ progress.total }}</strong> tools selected</div>
-          <div><strong>{{ progress.withOutput }}</strong> steps completed</div>
+          <div><strong>{{ progress.configured }}/{{ progress.total }}</strong> {{ $t('developerWorkspace.toolsSelected') }}</div>
+          <div><strong>{{ progress.withOutput }}</strong> {{ $t('developerWorkspace.stepsCompleted') }}</div>
           <div class="status-tip">
-            Paste input first. Smart suggestions appear automatically when Workspace recognizes the data.
+            {{ $t('developerWorkspace.statusTip') }}
           </div>
         </div>
 
@@ -294,9 +308,9 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
             <div class="step-body">
               <div class="step-topline">
                 <div>
-                  <strong>Step {{ index + 1 }}</strong>
+                  <strong>{{ $t('developerWorkspace.step', { number: index + 1 }) }}</strong>
                   <span v-if="toolForStep(step)">· {{ toolForStep(step)?.name }}</span>
-                  <span v-else>· Paste data to get a suggestion</span>
+                  <span v-else>· {{ $t('developerWorkspace.pasteForSuggestion') }}</span>
                 </div>
 
                 <div class="step-controls">
@@ -305,7 +319,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                     circle
                     size="small"
                     :disabled="index === 0"
-                    title="Move step up"
+                    :title="$t('developerWorkspace.moveUp')"
                     @click="workspaceStore.moveStep(workspace.id, step.id, -1)"
                   >
                     <template #icon>
@@ -317,7 +331,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                     circle
                     size="small"
                     :disabled="index === workspace.steps.length - 1"
-                    title="Move step down"
+                    :title="$t('developerWorkspace.moveDown')"
                     @click="workspaceStore.moveStep(workspace.id, step.id, 1)"
                   >
                     <template #icon>
@@ -329,7 +343,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                     circle
                     size="small"
                     type="error"
-                    title="Remove step"
+                    :title="$t('developerWorkspace.removeStep')"
                     @click="workspaceStore.removeStep(workspace.id, step.id)"
                   >
                     <template #icon>
@@ -343,8 +357,8 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                 <div class="payload-panel">
                   <div class="panel-heading">
                     <div>
-                      <strong>Input</strong>
-                      <small>Paste data here first — tool selection is optional</small>
+                      <strong>{{ $t('developerWorkspace.input') }}</strong>
+                      <small>{{ $t('developerWorkspace.inputHint') }}</small>
                     </div>
                     <div class="panel-actions">
                       <n-button
@@ -354,7 +368,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                         :disabled="!workspace.steps[index - 1]?.output.trim()"
                         @click="workspaceStore.usePreviousOutput(workspace.id, step.id)"
                       >
-                        Use previous output
+                        {{ $t('developerWorkspace.usePreviousOutput') }}
                       </n-button>
                       <n-button
                         size="tiny"
@@ -362,7 +376,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                         :disabled="!clipboardReadSupported"
                         @click="pasteValue(step.id, 'input')"
                       >
-                        {{ pastedTarget === `${step.id}-input` ? 'Pasted' : 'Paste' }}
+                        {{ pastedTarget === `${step.id}-input` ? $t('developerWorkspace.pasted') : $t('developerWorkspace.paste') }}
                       </n-button>
                       <n-button
                         size="tiny"
@@ -370,7 +384,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                         :disabled="!step.input || !clipboardSupported"
                         @click="copyValue(step.input, `${step.id}-input`)"
                       >
-                        {{ copiedTarget === `${step.id}-input` ? 'Copied' : 'Copy' }}
+                        {{ copiedTarget === `${step.id}-input` ? $t('developerWorkspace.copied') : $t('developerWorkspace.copy') }}
                       </n-button>
                     </div>
                   </div>
@@ -378,7 +392,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                     :value="step.input"
                     type="textarea"
                     :autosize="{ minRows: 5, maxRows: 14 }"
-                    placeholder="Try a JWT, JSON, URL, YAML, XML, Base64, IP, SQL, docker run command..."
+                    :placeholder="$t('developerWorkspace.inputPlaceholder')"
                     @update:value="updateStepText(step.id, 'input', $event)"
                   />
                 </div>
@@ -390,8 +404,8 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                 <div class="payload-panel">
                   <div class="panel-heading">
                     <div>
-                      <strong>Output</strong>
-                      <small>Paste the result back; Workspace will suggest what to do next</small>
+                      <strong>{{ $t('developerWorkspace.output') }}</strong>
+                      <small>{{ $t('developerWorkspace.outputHint') }}</small>
                     </div>
                     <div class="panel-actions">
                       <n-button
@@ -400,7 +414,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                         :disabled="!clipboardReadSupported"
                         @click="pasteValue(step.id, 'output')"
                       >
-                        {{ pastedTarget === `${step.id}-output` ? 'Pasted' : 'Paste result' }}
+                        {{ pastedTarget === `${step.id}-output` ? $t('developerWorkspace.pasted') : $t('developerWorkspace.pasteResult') }}
                       </n-button>
                       <n-button
                         size="tiny"
@@ -408,7 +422,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                         :disabled="!step.output || !clipboardSupported"
                         @click="copyValue(step.output, `${step.id}-output`)"
                       >
-                        {{ copiedTarget === `${step.id}-output` ? 'Copied' : 'Copy' }}
+                        {{ copiedTarget === `${step.id}-output` ? $t('developerWorkspace.copied') : $t('developerWorkspace.copy') }}
                       </n-button>
                       <n-button
                         v-if="index < workspace.steps.length - 1"
@@ -418,7 +432,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                         :disabled="!step.output.trim()"
                         @click="workspaceStore.sendOutputToNext(workspace.id, step.id)"
                       >
-                        Send to next
+                        {{ $t('developerWorkspace.sendNext') }}
                       </n-button>
                     </div>
                   </div>
@@ -426,7 +440,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                     :value="step.output"
                     type="textarea"
                     :autosize="{ minRows: 5, maxRows: 14 }"
-                    placeholder="Copy the tool result, come back, then press Paste result..."
+                    :placeholder="$t('developerWorkspace.outputPlaceholder')"
                     @update:value="updateStepText(step.id, 'output', $event)"
                   />
                 </div>
@@ -435,13 +449,13 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
               <div v-if="suggestionsForStep(step).length" class="smart-suggestions">
                 <div class="suggestions-heading">
                   <div>
-                    <span class="smart-label">Smart suggestions</span>
-                    <strong>Detected {{ suggestionsForStep(step)[0]?.label }}</strong>
-                    <small v-if="step.output.trim()">Based on this step's output</small>
-                    <small v-else>Based on this step's input</small>
+                    <span class="smart-label">{{ $t('developerWorkspace.smartSuggestions') }}</span>
+                    <strong>{{ $t('developerWorkspace.detected', { label: detectionLabel(suggestionsForStep(step)[0]) }) }}</strong>
+                    <small v-if="step.output.trim()">{{ $t('developerWorkspace.basedOnOutput') }}</small>
+                    <small v-else>{{ $t('developerWorkspace.basedOnInput') }}</small>
                   </div>
                   <span class="confidence-pill">
-                    {{ Math.round((suggestionsForStep(step)[0]?.confidence ?? 0) * 100) }}% confidence
+                    {{ $t('developerWorkspace.confidence', { value: Math.round((suggestionsForStep(step)[0]?.confidence ?? 0) * 100) }) }}
                   </span>
                 </div>
 
@@ -460,7 +474,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                       <small>{{ suggestion.description }}</small>
                     </span>
                     <span class="suggestion-action">
-                      {{ step.output.trim() ? 'Add next' : 'Use tool' }} →
+                      {{ step.output.trim() ? $t('developerWorkspace.addNext') : $t('developerWorkspace.useTool') }} →
                     </span>
                   </button>
                 </div>
@@ -470,18 +484,18 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                 v-else-if="step.input.trim() && !step.output.trim() && !step.toolPath"
                 class="no-suggestion"
               >
-                Workspace could not identify this input confidently. Choose a tool manually below instead of guessing.
+                {{ $t('developerWorkspace.noSuggestion') }}
               </div>
 
               <div class="tool-row">
                 <label class="field step-tool">
-                  <span>{{ step.toolPath ? 'Selected tool' : 'Manual tool selection' }}</span>
+                  <span>{{ step.toolPath ? $t('developerWorkspace.selectedTool') : $t('developerWorkspace.manualSelection') }}</span>
                   <n-select
                     :value="step.toolPath"
                     :options="toolOptions"
                     filterable
                     clearable
-                    placeholder="Search all tools"
+                    :placeholder="$t('developerWorkspace.searchTools')"
                     @update:value="updateStepTool(step.id, $event)"
                   />
                 </label>
@@ -498,16 +512,16 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                     <template #icon>
                       <n-icon :component="IconExternalLink" />
                     </template>
-                    {{ step.input.trim() && clipboardSupported ? 'Copy input & open' : 'Open tool' }}
+                    {{ step.input.trim() && clipboardSupported ? $t('developerWorkspace.copyInputOpen') : $t('developerWorkspace.openTool') }}
                   </n-button>
                 </div>
               </div>
 
               <div class="notes-row">
-                <span>Notes</span>
+                <span>{{ $t('developerWorkspace.notes') }}</span>
                 <n-input
                   :value="step.notes"
-                  placeholder="Optional context, assumptions, TODOs..."
+                  :placeholder="$t('developerWorkspace.notesPlaceholder')"
                   @update:value="updateStepText(step.id, 'notes', $event)"
                 />
                 <n-button
@@ -516,7 +530,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
                   :disabled="!step.input && !step.output && !step.notes"
                   @click="workspaceStore.clearStepData(workspace.id, step.id)"
                 >
-                  Clear data
+                  {{ $t('developerWorkspace.clearData') }}
                 </n-button>
               </div>
             </div>
@@ -528,7 +542,7 @@ function updateStepText(stepId: string, field: 'input' | 'output' | 'notes', val
             <template #icon>
               <n-icon :component="IconPlus" />
             </template>
-            Add blank step manually
+            {{ $t('developerWorkspace.addBlankStep') }}
           </n-button>
         </div>
       </section>
