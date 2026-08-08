@@ -9,15 +9,22 @@ import { useCopy } from '@/composable/copy';
 const inspection = ref<WorkspaceFileInspection | null>(null);
 const busy = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
+let latestInspectionId = 0;
 const { copy } = useCopy({ createToast: true });
 
 async function inspect(file: File) {
+  const inspectionId = ++latestInspectionId;
   busy.value = true;
   try {
-    inspection.value = await inspectWorkspaceFile(file);
+    const nextInspection = await inspectWorkspaceFile(file);
+    if (inspectionId === latestInspectionId) {
+      inspection.value = nextInspection;
+    }
   }
   finally {
-    busy.value = false;
+    if (inspectionId === latestInspectionId) {
+      busy.value = false;
+    }
   }
 }
 
