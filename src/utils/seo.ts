@@ -93,8 +93,8 @@ export function createStructuredData({
   const kind = resolveSeoPageKind(path, pageKind);
   const ids = getSchemaIds(canonicalUrl);
   const pageSchema: Record<string, unknown> = {
-    '@type': kind === 'about' ? 'AboutPage' : 'WebPage',
-    '@id': ids.page,
+    ['@type']: kind === 'about' ? 'AboutPage' : 'WebPage',
+    ['@id']: ids.page,
     url: canonicalUrl,
     name: resolvedTitle,
     description,
@@ -109,8 +109,8 @@ export function createStructuredData({
   const graph: Record<string, unknown>[] = [pageSchema];
   if (kind === 'home' || kind === 'tool' || kind === 'workspace') {
     const applicationSchema: Record<string, unknown> = {
-      '@type': 'WebApplication',
-      '@id': ids.application,
+      ['@type']: 'WebApplication',
+      ['@id']: ids.application,
       name: title?.trim() || SEO_CONFIG.siteName,
       url: canonicalUrl,
       description,
@@ -119,7 +119,7 @@ export function createStructuredData({
       browserRequirements: 'Requires JavaScript and a modern web browser.',
       isAccessibleForFree: true,
       offers: {
-        '@type': 'Offer',
+        ['@type']: 'Offer',
         price: 0,
       },
       creator: { '@id': ids.maintainer },
@@ -148,7 +148,7 @@ export function createStructuredData({
 }
 
 export function serializeStructuredData(value: unknown) {
-  return JSON.stringify(value).replaceAll('<', '\\u003c');
+  return JSON.stringify(value).replace(/</g, '\\u003c');
 }
 
 export function createSeoHead({
