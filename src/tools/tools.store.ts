@@ -22,6 +22,12 @@ export const useToolStore = defineStore('tools', () => {
       name: t(`tools.${toolI18nKey}.title`, tool.name),
       description: t(`tools.${toolI18nKey}.description`, tool.description),
       category: t(`tools.categories.${tool.category.toLowerCase()}`, tool.category),
+      privacy: tool.privacy
+        ? {
+            ...tool.privacy,
+            summary: t(`tools.${toolI18nKey}.privacySummary`, tool.privacy.summary),
+          }
+        : undefined,
     });
   }));
 
