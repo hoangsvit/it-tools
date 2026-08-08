@@ -62,7 +62,7 @@ export const useDeveloperWorkspaceStore = defineStore('developer-workspace', () 
 
   function importWorkspace({ name, steps }: Pick<DeveloperWorkspace, 'name' | 'steps'>) {
     const workspace = createDeveloperWorkspace({ name: name || 'Shared workspace' });
-    workspace.steps = steps.slice(0, 30).map((step) => ({
+    workspace.steps = steps.slice(0, 30).map(step => ({
       ...createWorkspaceStep(step.toolPath),
       input: step.input,
       output: step.output,
