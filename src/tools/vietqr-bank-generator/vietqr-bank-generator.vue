@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import {
   type VietQrBank,
+  type VietQrBankApp,
   type VietQrTemplate,
+  bankAppSearchLabel,
   bankSearchLabel,
+  buildVietQrDeeplink,
   buildVietQrQuickLink,
+  validateVietQrDeeplinkInput,
   validateVietQrInput,
 } from './vietqr-bank-generator.service';
 import type { CKeyValueListItems } from '@/ui/c-key-value-list/c-key-value-list.types';
@@ -20,12 +24,27 @@ const accountName = ref('');
 const template = ref<VietQrTemplate>('compact2');
 const generatedUrl = ref('');
 
+const bankApps = ref<VietQrBankApp[]>([]);
+const bankAppsLoading = ref(false);
+const bankAppsError = ref('');
+const selectedAppId = ref<string>();
+const appId = ref('');
+const deeplinkBankCode = ref('');
+const returnUrl = ref('');
+const generatedDeeplink = ref('');
+
 const bankOptions = computed(() => banks.value.map(bank => ({
   label: bankSearchLabel(bank),
   value: bank.bin,
 })));
 
+const bankAppOptions = computed(() => bankApps.value.map(app => ({
+  label: bankAppSearchLabel(app),
+  value: app.appId,
+})));
+
 const selectedBank = computed(() => banks.value.find(bank => bank.bin === selectedBankBin.value));
+const selectedBankApp = computed(() => bankApps.value.find(app => app.appId === selectedAppId.value));
 
 const selectedBankInfo = computed<CKeyValueListItems>(() => {
   if (!selectedBank.value) {
@@ -53,9 +72,31 @@ const validation = computed(() => validateVietQrInput({
   accountName: accountName.value,
 }));
 
+const deeplinkValidation = computed(() => validateVietQrDeeplinkInput({
+  appId: appId.value,
+  accountNo: accountNo.value,
+  bankCode: deeplinkBankCode.value,
+  amount: amount.value,
+  description: description.value,
+  accountName: accountName.value,
+  returnUrl: returnUrl.value,
+}));
+
 watch(selectedBankBin, (bin) => {
-  if (bin) {
-    bankId.value = bin;
+  if (!bin) {
+    return;
+  }
+
+  bankId.value = bin;
+  const bank = banks.value.find(item => item.bin === bin);
+  if (bank) {
+    deeplinkBankCode.value = bank.code;
+  }
+});
+
+watch(selectedAppId, (value) => {
+  if (value) {
+    appId.value = value;
   }
 });
 
@@ -65,8 +106,18 @@ watch(bankId, (value) => {
   }
 });
 
+watch(appId, (value) => {
+  if (selectedAppId.value && selectedAppId.value !== value.trim()) {
+    selectedAppId.value = undefined;
+  }
+});
+
 watch([bankId, accountNo, amount, description, accountName, template], () => {
   generatedUrl.value = '';
+});
+
+watch([appId, deeplinkBankCode, accountNo, amount, description, accountName, returnUrl], () => {
+  generatedDeeplink.value = '';
 });
 
 async function loadBanks() {
@@ -90,6 +141,47 @@ async function loadBanks() {
   }
 }
 
+async function fetchBankApps(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const payload = await response.json() as { apps?: VietQrBankApp[], data?: VietQrBankApp[] };
+  return payload.apps ?? payload.data ?? [];
+}
+
+async function loadBankApps() {
+  bankAppsLoading.value = true;
+  bankAppsError.value = '';
+
+  try {
+    const results = await Promise.allSettled([
+      fetchBankApps('https://api.vietqr.io/v2/android-app-deeplinks'),
+      fetchBankApps('https://api.vietqr.io/v2/ios-app-deeplinks'),
+    ]);
+
+    const apps = results.flatMap(result => result.status === 'fulfilled' ? result.value : []);
+    const uniqueApps = new Map<string, VietQrBankApp>();
+    for (const app of apps) {
+      if (!uniqueApps.has(app.appId)) {
+        uniqueApps.set(app.appId, app);
+      }
+    }
+
+    bankApps.value = [...uniqueApps.values()].sort((a, b) => a.appName.localeCompare(b.appName));
+    if (bankApps.value.length === 0) {
+      throw new Error('no app directory returned');
+    }
+  }
+  catch (error) {
+    bankAppsError.value = `Unable to load the VietQR bank app directory (${error instanceof Error ? error.message : 'unknown error'}). You can still enter an app ID manually.`;
+  }
+  finally {
+    bankAppsLoading.value = false;
+  }
+}
+
 function generateQr() {
   if (!validation.value.valid) {
     return;
@@ -105,13 +197,31 @@ function generateQr() {
   });
 }
 
-onMounted(loadBanks);
+function generateDeeplink() {
+  if (!deeplinkValidation.value.valid) {
+    return;
+  }
+
+  generatedDeeplink.value = buildVietQrDeeplink({
+    appId: appId.value,
+    accountNo: accountNo.value,
+    bankCode: deeplinkBankCode.value,
+    amount: amount.value,
+    description: description.value,
+    accountName: accountName.value,
+    returnUrl: returnUrl.value,
+  });
+}
+
+onMounted(async () => {
+  await Promise.all([loadBanks(), loadBankApps()]);
+});
 </script>
 
 <template>
   <div flex flex-col gap-5>
     <n-alert type="info" :bordered="false">
-      The bank directory is loaded from VietQR's public API. This tool does not verify that an account exists. A QR preview is only requested from VietQR after you click Generate.
+      Bank and app directories are loaded from VietQR's public APIs. This tool does not verify that an account exists. A QR preview is only requested from VietQR after you click Generate.
     </n-alert>
 
     <c-card title="Vietnam bank directory">
@@ -219,6 +329,81 @@ onMounted(loadBanks);
         <div flex justify-center>
           <img :src="generatedUrl" alt="Generated VietQR" max-h-420px max-w-full rounded-lg object-contain>
         </div>
+      </div>
+    </c-card>
+
+    <c-card title="Open a Vietnam bank app with VietQR Deeplink">
+      <n-alert mb-4 type="warning" :bordered="false">
+        The deeplink can open the selected bank app on a supported mobile device. Whether recipient, amount or transfer content are prefilled depends on that bank app's current deeplink support; always verify the transfer in the bank app before confirming.
+      </n-alert>
+
+      <div grid grid-cols-1 gap-4 md:grid-cols-2>
+        <c-select
+          v-model:value="selectedAppId"
+          :options="bankAppOptions"
+          searchable
+          label="Bank app"
+          :placeholder="bankAppsLoading ? 'Loading bank apps...' : 'Search a bank app...'"
+        />
+        <c-input-text
+          v-model:value="appId"
+          label="App ID"
+          placeholder="vcb"
+        />
+        <c-input-text
+          v-model:value="deeplinkBankCode"
+          label="Recipient bank code"
+          placeholder="VCB"
+        />
+        <c-input-text
+          v-model:value="returnUrl"
+          label="Return URL (optional)"
+          placeholder="https://example.com/payment/complete"
+        />
+      </div>
+
+      <div v-if="selectedBankApp" mt-4 flex items-center gap-4 rounded-lg border="1 solid #00000018" p-4>
+        <img :src="selectedBankApp.appLogo" :alt="`${selectedBankApp.appName} logo`" h-48px w-48px rounded-lg object-contain>
+        <div min-w-0 flex-1>
+          <div font-600>
+            {{ selectedBankApp.appName }}
+          </div>
+          <div truncate text-sm op-70>
+            {{ selectedBankApp.bankName }} · {{ selectedBankApp.appId }}
+          </div>
+        </div>
+      </div>
+
+      <n-alert v-if="bankAppsError" mt-4 type="warning" :bordered="false">
+        {{ bankAppsError }}
+      </n-alert>
+
+      <n-alert v-if="!deeplinkValidation.valid && (appId || deeplinkBankCode || accountNo || returnUrl)" mt-4 type="error" :bordered="false">
+        <ul m-0 pl-5>
+          <li v-for="error in deeplinkValidation.errors" :key="error">
+            {{ error }}
+          </li>
+        </ul>
+      </n-alert>
+
+      <div mt-5 flex flex-wrap gap-3>
+        <c-button :disabled="!deeplinkValidation.valid" @click="generateDeeplink">
+          Generate bank app deeplink
+        </c-button>
+        <c-button @click="loadBankApps">
+          Refresh app directory
+        </c-button>
+      </div>
+
+      <div v-if="generatedDeeplink" mt-5>
+        <div mb-2 text-sm font-600>
+          Bank app deeplink
+        </div>
+        <c-text-copyable :value="generatedDeeplink" font-mono />
+        <a :href="generatedDeeplink" target="_blank" rel="noopener noreferrer" mt-3 inline-flex items-center gap-1 text-primary underline>
+          Open deeplink on this device
+          <icon-mdi-open-in-new />
+        </a>
       </div>
     </c-card>
   </div>
