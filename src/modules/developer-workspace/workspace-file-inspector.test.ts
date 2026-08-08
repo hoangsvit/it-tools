@@ -5,6 +5,7 @@ describe('workspace file inspector', () => {
   it('detects common binary signatures', () => {
     expect(detectWorkspaceFileKind(Uint8Array.from([0xFF, 0xD8, 0xFF]))).toBe('jpeg');
     expect(detectWorkspaceFileKind(Uint8Array.from([0x50, 0x4B, 0x03, 0x04]))).toBe('zip');
+    expect(detectWorkspaceFileKind(Uint8Array.from([0x50, 0x4B, 0x05, 0x06]))).toBe('zip');
     expect(detectWorkspaceFileKind(new TextEncoder().encode('%PDF-1.7'))).toBe('pdf');
   });
 
