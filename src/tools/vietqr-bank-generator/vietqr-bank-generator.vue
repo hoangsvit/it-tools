@@ -14,8 +14,7 @@ import {
 import type { CKeyValueListItems } from '@/ui/c-key-value-list/c-key-value-list.types';
 
 const STORAGE_PREFIX = 'eplus-vietqr';
-const COPYRIGHT_YEAR = 2026;
-const VIETQR_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/6/68/VietQR_Logo.svg';
+const COPYRIGHT_YEAR = new Date().getFullYear();
 
 const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
   'Please choose a bank from the list.': 'validation.chooseBank',
@@ -229,21 +228,23 @@ function drawContainedImage(
   );
 }
 
-function drawInfoRow(
+function drawCanvasLabel(
   context: CanvasRenderingContext2D,
   label: string,
   value: string,
+  x: number,
   y: number,
+  maxWidth: number,
   accent = false,
 ) {
   context.textAlign = 'left';
   context.fillStyle = '#667085';
-  context.font = '500 17px sans-serif';
-  context.fillText(label, 110, y);
+  context.font = '500 16px sans-serif';
+  context.fillText(label, x, y, maxWidth);
 
-  context.fillStyle = accent ? '#155eef' : '#101828';
-  context.font = `${accent ? '700' : '600'} 25px sans-serif`;
-  context.fillText(value, 110, y + 34, 680);
+  context.fillStyle = accent ? '#4f46e5' : '#101828';
+  context.font = `${accent ? '700' : '600'} 24px sans-serif`;
+  context.fillText(value, x, y + 34, maxWidth);
 }
 
 async function createShareImage() {
@@ -252,102 +253,82 @@ async function createShareImage() {
   }
 
   const qrImage = await loadImage(qrDataUrl.value);
-  const [bankLogo, vietQrLogo] = await Promise.all([
-    loadRemoteImage(selectedBank.value.logo),
-    loadRemoteImage(VIETQR_LOGO_URL),
-  ]);
+  const bankLogo = await loadRemoteImage(selectedBank.value.logo);
 
   const canvas = document.createElement('canvas');
   canvas.width = 900;
-  canvas.height = 1240;
+  canvas.height = 1220;
   const context = canvas.getContext('2d');
   if (!context) {
     return '';
   }
 
   const background = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-  background.addColorStop(0, '#f8fafc');
-  background.addColorStop(1, '#eef4ff');
+  background.addColorStop(0, '#f6f7ff');
+  background.addColorStop(0.55, '#f8f5ff');
+  background.addColorStop(1, '#f4f7fb');
   context.fillStyle = background;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  context.shadowColor = 'rgba(16, 24, 40, 0.12)';
-  context.shadowBlur = 36;
-  context.shadowOffsetY = 16;
-  fillRoundedRect(context, 52, 42, 796, 1148, 40, '#ffffff');
+  context.shadowColor = 'rgba(16, 24, 40, 0.14)';
+  context.shadowBlur = 44;
+  context.shadowOffsetY = 20;
+  fillRoundedRect(context, 70, 52, 760, 1110, 44, '#ffffff');
   context.shadowColor = 'transparent';
   context.shadowBlur = 0;
   context.shadowOffsetY = 0;
 
-  fillRoundedRect(context, 76, 70, 748, 185, 30, '#f8fafc');
-
   if (bankLogo) {
-    drawContainedImage(context, bankLogo, 102, 94, 330, 82);
-  }
-  else {
-    context.textAlign = 'left';
-    context.fillStyle = '#101828';
-    context.font = '700 34px sans-serif';
-    context.fillText(selectedBank.value.shortName, 108, 145, 330);
-  }
-
-  context.textAlign = 'left';
-  context.fillStyle = '#344054';
-  context.font = '600 18px sans-serif';
-  context.fillText(selectedBank.value.shortName, 108, 205, 360);
-  context.fillStyle = '#667085';
-  context.font = '500 15px sans-serif';
-  context.fillText(selectedBank.value.name, 108, 229, 430);
-
-  fillRoundedRect(context, 565, 98, 224, 98, 22, '#ffffff');
-  if (vietQrLogo) {
-    drawContainedImage(context, vietQrLogo, 594, 112, 166, 42);
+    drawContainedImage(context, bankLogo, 235, 92, 430, 92);
   }
   else {
     context.textAlign = 'center';
-    context.fillStyle = '#0b63ce';
-    context.font = '700 24px sans-serif';
-    context.fillText('VietQR', 677, 143);
+    context.fillStyle = '#101828';
+    context.font = '700 38px sans-serif';
+    context.fillText(selectedBank.value.shortName, 450, 150, 560);
   }
+
+  fillRoundedRect(context, 338, 198, 224, 44, 22, '#f2f4f7');
   context.textAlign = 'center';
   context.fillStyle = '#475467';
-  context.font = '500 14px sans-serif';
-  context.fillText(t('compatible'), 677, 178, 190);
+  context.font = '600 14px sans-serif';
+  context.fillText(t('compatible'), 450, 226, 190);
+
+  fillRoundedRect(context, 142, 278, 616, 616, 34, '#ffffff');
+  context.drawImage(qrImage, 164, 300, 572, 572);
+
+  context.setLineDash([10, 10]);
+  context.strokeStyle = '#d0d5dd';
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(108, 930);
+  context.lineTo(792, 930);
+  context.stroke();
+  context.setLineDash([]);
+
+  context.fillStyle = '#f7f6ff';
+  context.beginPath();
+  context.arc(70, 930, 18, 0, Math.PI * 2);
+  context.fill();
+  context.beginPath();
+  context.arc(830, 930, 18, 0, Math.PI * 2);
+  context.fill();
 
   context.textAlign = 'center';
+  context.fillStyle = '#667085';
+  context.font = '600 15px sans-serif';
+  context.fillText(selectedBank.value.shortName, 450, 976, 620);
   context.fillStyle = '#101828';
-  context.font = '700 27px sans-serif';
-  context.fillText(t('scanTitle'), 450, 302);
+  context.font = '700 31px monospace';
+  context.fillText(accountNo.value, 450, 1018, 650);
 
-  context.shadowColor = 'rgba(21, 94, 239, 0.14)';
-  context.shadowBlur = 24;
-  context.shadowOffsetY = 8;
-  fillRoundedRect(context, 146, 334, 608, 608, 36, '#ffffff');
-  context.shadowColor = 'transparent';
-  context.shadowBlur = 0;
-  context.shadowOffsetY = 0;
-  context.drawImage(qrImage, 170, 358, 560, 560);
-
-  fillRoundedRect(context, 76, 978, 748, 144, 24, '#f8fafc');
-  drawInfoRow(context, t('account'), accountNo.value, 1014);
-
-  context.textAlign = 'right';
-  context.fillStyle = '#667085';
-  context.font = '500 17px sans-serif';
-  context.fillText(t('amount'), 790, 1014);
-  context.fillStyle = '#155eef';
-  context.font = '700 25px sans-serif';
-  context.fillText(previewAmount.value, 790, 1048, 310);
-
-  context.textAlign = 'left';
-  context.fillStyle = '#667085';
-  context.font = '500 15px sans-serif';
-  context.fillText(`${t('content')}: ${previewDescription.value}`, 110, 1090, 670);
+  drawCanvasLabel(context, t('amount'), previewAmount.value, 120, 1064, 300, Boolean(amount.value));
+  drawCanvasLabel(context, t('content'), previewDescription.value, 480, 1064, 300);
 
   context.textAlign = 'center';
   context.fillStyle = '#98a2b3';
   context.font = '500 14px sans-serif';
-  context.fillText(`${t('generatedBy')} tools.eplus.dev · © ${COPYRIGHT_YEAR} ePlus.DEV`, 450, 1158);
+  context.fillText(`© ${COPYRIGHT_YEAR} ePlus.DEV · tools.eplus.dev`, 450, 1140);
 
   return canvas.toDataURL('image/png');
 }
@@ -401,7 +382,7 @@ onMounted(() => {
       {{ t('privacy') }}
     </n-alert>
 
-    <div grid grid-cols-1 gap-5 class="lg:grid-cols-[minmax(0,1fr)_440px]">
+    <div grid grid-cols-1 gap-5 class="lg:grid-cols-[minmax(0,1fr)_460px]">
       <div flex flex-col gap-5>
         <c-card :title="t('createTitle')">
           <div flex flex-col gap-4>
@@ -491,64 +472,62 @@ onMounted(() => {
 
       <div>
         <c-card :title="t('previewTitle')">
-          <div v-if="qrDataUrl && selectedBank" flex flex-col items-center gap-4>
-            <div class="qr-share-card">
-              <div class="qr-bank-header">
-                <div class="qr-bank-primary">
+          <div v-if="qrDataUrl && selectedBank" flex flex-col gap-4>
+            <div class="qr-preview-stage">
+              <div class="qr-receive-card">
+                <div class="qr-identity">
                   <img
                     :src="selectedBank.logo"
                     :alt="t('bankLogoAlt', { bank: selectedBank.shortName })"
                     class="qr-bank-logo"
                   >
-                  <div class="qr-bank-name">
+                  <div class="qr-compatible-pill">
+                    {{ t('compatible') }}
+                  </div>
+                </div>
+
+                <div class="qr-code-frame">
+                  <img :src="qrDataUrl" alt="VietQR bank transfer code" class="qr-code-image">
+                </div>
+
+                <div class="qr-action-bar">
+                  <button type="button" class="qr-action" @click="downloadQrImage">
+                    <span class="qr-action-icon">↓</span>
+                    <span>{{ t('downloadPng') }}</span>
+                  </button>
+                  <div class="qr-action-divider" />
+                  <button type="button" class="qr-action" @click="copyQrImage">
+                    <span class="qr-action-icon">⧉</span>
+                    <span>{{ copyStatusLabel }}</span>
+                  </button>
+                </div>
+
+                <div class="qr-tear-line" />
+
+                <div class="qr-recipient">
+                  <div class="qr-bank-short-name">
                     {{ selectedBank.shortName }}
                   </div>
-                  <div class="qr-bank-full-name">
-                    {{ selectedBank.name }}
+                  <div class="qr-account-number">
+                    {{ accountNo }}
                   </div>
                 </div>
 
-                <div class="vietqr-badge">
-                  <img :src="VIETQR_LOGO_URL" alt="VietQR" class="vietqr-logo">
-                  <span>{{ t('compatible') }}</span>
+                <div class="qr-payment-details">
+                  <div class="qr-payment-item">
+                    <span>{{ t('amount') }}</span>
+                    <strong :class="{ 'is-accent': amount }">{{ previewAmount }}</strong>
+                  </div>
+                  <div class="qr-payment-item">
+                    <span>{{ t('content') }}</span>
+                    <strong>{{ previewDescription }}</strong>
+                  </div>
+                </div>
+
+                <div class="qr-copyright">
+                  © {{ COPYRIGHT_YEAR }} ePlus.DEV · tools.eplus.dev
                 </div>
               </div>
-
-              <div class="qr-scan-title">
-                {{ t('scanTitle') }}
-              </div>
-
-              <div class="qr-code-frame">
-                <img :src="qrDataUrl" alt="VietQR bank transfer code" class="qr-code-image">
-              </div>
-
-              <div class="qr-details">
-                <div class="qr-detail-row qr-detail-account">
-                  <span>{{ t('account') }}</span>
-                  <strong>{{ accountNo }}</strong>
-                </div>
-                <div class="qr-detail-row">
-                  <span>{{ t('amount') }}</span>
-                  <strong class="qr-amount">{{ previewAmount }}</strong>
-                </div>
-                <div class="qr-detail-row">
-                  <span>{{ t('content') }}</span>
-                  <strong>{{ previewDescription }}</strong>
-                </div>
-              </div>
-
-              <div class="qr-copyright">
-                {{ t('generatedBy') }} tools.eplus.dev · © {{ COPYRIGHT_YEAR }} ePlus.DEV
-              </div>
-            </div>
-
-            <div flex flex-wrap justify-center gap-3>
-              <c-button @click="copyQrImage">
-                {{ copyStatusLabel }}
-              </c-button>
-              <c-button @click="downloadQrImage">
-                {{ t('downloadPng') }}
-              </c-button>
             </div>
 
             <n-alert type="warning" :bordered="false">
@@ -601,97 +580,66 @@ onMounted(() => {
   font-size: 12px;
 }
 
-.qr-share-card {
+.qr-preview-stage {
+  padding: 18px;
+  border: 1px solid rgba(99, 102, 241, 0.1);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(236, 72, 153, 0.08), transparent 30%),
+    radial-gradient(circle at 84% 4%, rgba(59, 130, 246, 0.1), transparent 34%),
+    linear-gradient(180deg, #f7f5ff 0%, #f8faff 52%, #f5f7fb 100%);
+}
+
+.qr-receive-card {
+  position: relative;
   width: 100%;
-  max-width: 390px;
+  max-width: 402px;
   overflow: hidden;
   box-sizing: border-box;
-  padding: 18px;
-  border: 1px solid #e4e7ec;
-  border-radius: 26px;
+  margin: 0 auto;
+  border: 1px solid #eaecf0;
+  border-radius: 28px;
   background: #fff;
-  box-shadow: 0 18px 44px rgba(16, 24, 40, 0.12);
+  box-shadow: 0 20px 54px rgba(16, 24, 40, 0.13);
   color: #101828;
 }
 
-.qr-bank-header {
+.qr-identity {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 16px;
-  border-radius: 18px;
-  background: #f8fafc;
-}
-
-.qr-bank-primary {
-  min-width: 0;
-  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 22px 8px;
 }
 
 .qr-bank-logo {
   display: block;
   width: auto;
-  max-width: 190px;
-  height: 52px;
+  max-width: 230px;
+  height: 66px;
   object-fit: contain;
-  object-position: left center;
+  object-position: center;
 }
 
-.qr-bank-name {
-  margin-top: 10px;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.qr-bank-full-name {
-  margin-top: 2px;
-  overflow: hidden;
-  color: #667085;
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.vietqr-badge {
-  display: flex;
-  min-width: 112px;
-  flex: none;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 9px 10px;
+.qr-compatible-pill {
+  padding: 5px 11px;
   border: 1px solid #e4e7ec;
-  border-radius: 14px;
-  background: #fff;
-  color: #475467;
+  border-radius: 999px;
+  background: #f9fafb;
+  color: #667085;
   font-size: 10px;
-  font-weight: 600;
-  text-align: center;
-}
-
-.vietqr-logo {
-  width: 96px;
-  height: 28px;
-  object-fit: contain;
-}
-
-.qr-scan-title {
-  margin: 18px 0 12px;
-  font-size: 18px;
   font-weight: 700;
-  text-align: center;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .qr-code-frame {
-  width: min(100%, 330px);
-  margin: 0 auto;
+  width: min(calc(100% - 46px), 326px);
+  margin: 4px auto 10px;
   box-sizing: border-box;
-  padding: 10px;
-  border: 1px solid #eaecf0;
-  border-radius: 22px;
+  padding: 6px;
+  border-radius: 12px;
   background: #fff;
-  box-shadow: 0 10px 28px rgba(21, 94, 239, 0.08);
 }
 
 .qr-code-image {
@@ -700,53 +648,140 @@ onMounted(() => {
   object-fit: contain;
 }
 
-.qr-details {
-  margin-top: 16px;
+.qr-action-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+  align-items: stretch;
+  margin: 0 18px 16px;
   overflow: hidden;
   border: 1px solid #eaecf0;
-  border-radius: 16px;
+  border-radius: 14px;
   background: #f9fafb;
 }
 
-.qr-detail-row {
-  display: grid;
-  grid-template-columns: minmax(88px, auto) minmax(0, 1fr);
-  align-items: center;
-  gap: 14px;
-  padding: 10px 13px;
-  border-top: 1px solid #eaecf0;
-}
-
-.qr-detail-row:first-child {
-  border-top: 0;
-}
-
-.qr-detail-row span {
-  color: #667085;
-  font-size: 11px;
-}
-
-.qr-detail-row strong {
+.qr-action {
+  display: flex;
   min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 10px;
+  border: 0;
+  background: transparent;
+  color: #344054;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.qr-action:hover {
+  background: #f2f4f7;
+  color: #4f46e5;
+}
+
+.qr-action-icon {
+  color: #4f46e5;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.qr-action-divider {
+  width: 1px;
+  background: #d0d5dd;
+}
+
+.qr-tear-line {
+  position: relative;
+  height: 1px;
+  margin: 6px 24px 0;
+  border-top: 1px dashed #d0d5dd;
+}
+
+.qr-tear-line::before,
+.qr-tear-line::after {
+  position: absolute;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f7f6ff;
+  content: '';
+  transform: translateY(-50%);
+}
+
+.qr-tear-line::before {
+  left: -36px;
+}
+
+.qr-tear-line::after {
+  right: -36px;
+}
+
+.qr-recipient {
+  padding: 22px 22px 14px;
+  text-align: center;
+}
+
+.qr-bank-short-name {
+  color: #667085;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.qr-account-number {
+  margin-top: 7px;
   overflow-wrap: anywhere;
-  font-size: 13px;
-  text-align: right;
+  color: #101828;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: clamp(20px, 6vw, 27px);
+  font-weight: 800;
+  letter-spacing: 0.025em;
 }
 
-.qr-detail-account strong {
-  font-family: monospace;
-  letter-spacing: 0.02em;
+.qr-payment-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 18px 18px;
 }
 
-.qr-detail-row .qr-amount {
-  color: #155eef;
-  font-size: 15px;
+.qr-payment-item {
+  min-width: 0;
+  padding: 12px 13px;
+  border: 1px solid #eaecf0;
+  border-radius: 14px;
+  background: #f9fafb;
+}
+
+.qr-payment-item span {
+  display: block;
+  margin-bottom: 4px;
+  color: #667085;
+  font-size: 10px;
+}
+
+.qr-payment-item strong {
+  display: block;
+  overflow: hidden;
+  color: #344054;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qr-payment-item strong.is-accent {
+  color: #4f46e5;
+  font-size: 14px;
 }
 
 .qr-copyright {
-  margin-top: 13px;
+  padding: 0 16px 16px;
   color: #98a2b3;
-  font-size: 10px;
+  font-size: 9px;
   text-align: center;
 }
 
@@ -759,29 +794,46 @@ onMounted(() => {
     display: none;
   }
 
-  .qr-share-card {
-    padding: 13px;
-    border-radius: 20px;
+  .qr-preview-stage {
+    padding: 10px;
+    border-radius: 22px;
   }
 
-  .qr-bank-header {
-    gap: 10px;
-    padding: 13px;
+  .qr-receive-card {
+    border-radius: 22px;
+  }
+
+  .qr-identity {
+    padding-top: 20px;
   }
 
   .qr-bank-logo {
-    max-width: 148px;
-    height: 44px;
+    max-width: 190px;
+    height: 56px;
   }
 
-  .vietqr-badge {
-    min-width: 92px;
-    padding: 8px;
+  .qr-code-frame {
+    width: min(calc(100% - 32px), 310px);
   }
 
-  .vietqr-logo {
-    width: 78px;
-    height: 24px;
+  .qr-action-bar {
+    margin-inline: 12px;
+  }
+
+  .qr-action {
+    gap: 5px;
+    padding-inline: 6px;
+    font-size: 11px;
+  }
+
+  .qr-payment-details {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding-inline: 13px;
+  }
+
+  .qr-payment-item strong {
+    white-space: normal;
   }
 }
 </style>
