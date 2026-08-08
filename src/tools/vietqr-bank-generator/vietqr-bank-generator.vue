@@ -59,6 +59,12 @@ watch(selectedBankBin, (bin) => {
   }
 });
 
+watch(bankId, (value) => {
+  if (selectedBankBin.value && selectedBankBin.value !== value.trim()) {
+    selectedBankBin.value = undefined;
+  }
+});
+
 watch([bankId, accountNo, amount, description, accountName, template], () => {
   generatedUrl.value = '';
 });
@@ -113,11 +119,9 @@ onMounted(loadBanks);
         <c-select
           v-model:value="selectedBankBin"
           :options="bankOptions"
-          :disabled="banksLoading"
           searchable
           label="Search bank / BIN / NAPAS / SWIFT"
-          :placeholder="banksLoading ? 'Loading bank directory...' : 'Search Vietcombank, 970436, VCB, BFTVVNVX...'
-          "
+          :placeholder="banksLoading ? 'Loading bank directory...' : 'Search Vietcombank, 970436, VCB, BFTVVNVX...'"
         />
 
         <n-alert v-if="banksError" type="warning" :bordered="false">
