@@ -50,7 +50,11 @@ export function detectWorkspaceFileKind(bytes: Uint8Array, fileName = '', mimeTy
   if (asciiAt(bytes, 0, '%PDF-')) {
     return 'pdf';
   }
-  if (startsWith(bytes, [0x50, 0x4B, 0x03, 0x04])) {
+  if (
+    startsWith(bytes, [0x50, 0x4B, 0x03, 0x04])
+    || startsWith(bytes, [0x50, 0x4B, 0x05, 0x06])
+    || startsWith(bytes, [0x50, 0x4B, 0x07, 0x08])
+  ) {
     return 'zip';
   }
   if (startsWith(bytes, [0x1F, 0x8B])) {
