@@ -22,7 +22,7 @@ export interface VietQrValidationResult {
   errors: string[]
 }
 
-const ACCOUNT_PATTERN = /^[A-Za-z0-9]{1,19}$/;
+const ACCOUNT_PATTERN = /^[A-Za-z0-9]{1,25}$/;
 const AMOUNT_PATTERN = /^\d{1,13}$/;
 const BANK_BIN_PATTERN = /^\d{6}$/;
 const DESCRIPTION_PATTERN = /^[A-Za-z0-9 ]*$/;
@@ -68,7 +68,7 @@ export function validateVietQrInput(input: VietQrInput): VietQrValidationResult 
   }
 
   if (!ACCOUNT_PATTERN.test(accountNo)) {
-    errors.push('Account number or alias must contain 1-19 letters or digits.');
+    errors.push('Account number or alias must contain 1-25 letters or digits.');
   }
 
   if (rawAmount && (!AMOUNT_PATTERN.test(rawAmount) || Number(rawAmount) <= 0)) {
@@ -106,8 +106,11 @@ export function makeVietQrContent(input: VietQrInput) {
     + tlv('01', beneficiary)
     + tlv('02', 'QRIBFTTA');
 
+  // Keep point-of-initiation method 11 to match vietqr.net's reference
+  // implementation and its published payload test vectors, including QR codes
+  // that contain a prefilled amount.
   let payload = tlv('00', '01')
-    + tlv('01', normalizedInput.amount ? '12' : '11')
+    + tlv('01', '11')
     + tlv('38', merchantAccount)
     + tlv('53', '704');
 
