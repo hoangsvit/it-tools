@@ -27,6 +27,11 @@ const router = createRouter({
       component: HomePage,
     },
     {
+      path: '/workbench',
+      name: 'developer-workbench',
+      component: () => import('./pages/DeveloperWorkbench.page.vue'),
+    },
+    {
       path: '/workspace',
       name: 'developer-workspace',
       component: () => import('./pages/DeveloperWorkspace.page.vue'),
