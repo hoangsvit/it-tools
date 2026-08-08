@@ -33,10 +33,18 @@ const ACCOUNT_PATTERN = /^[A-Za-z0-9]{1,25}$/;
 const AMOUNT_PATTERN = /^\d{1,13}$/;
 const BANK_BIN_PATTERN = /^\d{6}$/;
 const DESCRIPTION_PATTERN = /^[A-Za-z0-9 ]*$/;
-const FORMATTED_AMOUNT_PATTERN = /^[\d,\s]*$/;
+const PLAIN_AMOUNT_PATTERN = /^\d+$/;
+const COMMA_FORMATTED_AMOUNT_PATTERN = /^\d{1,3}(?:,\d{3})+$/;
+const SPACE_FORMATTED_AMOUNT_PATTERN = /^\d{1,3}(?: \d{3})+$/;
 
 function tlv(id: string, value: string) {
   return `${id}${value.length.toString().padStart(2, '0')}${value}`;
+}
+
+function isAcceptedAmountInput(value: string) {
+  return PLAIN_AMOUNT_PATTERN.test(value)
+    || COMMA_FORMATTED_AMOUNT_PATTERN.test(value)
+    || SPACE_FORMATTED_AMOUNT_PATTERN.test(value);
 }
 
 export function crc16(value: string) {
@@ -59,9 +67,71 @@ export function normalizeVietQrAmount(value: string) {
   return value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 13);
 }
 
+/**
+ * Parse a user-entered amount without turning invalid input into a different
+ * valid amount. Valid thousands separators are normalized; invalid input is
+ * preserved so the field validator can report it to the user.
+ */
+export function parseVietQrAmountInput(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  if (!isAcceptedAmountInput(trimmed)) {
+    return value;
+  }
+
+  return normalizeVietQrAmount(trimmed);
+}
+
 export function formatVietQrAmount(value: string) {
-  const normalized = normalizeVietQrAmount(value);
-  return normalized.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  // Keep invalid raw input visible instead of masking the validation error.
+  if (!PLAIN_AMOUNT_PATTERN.test(trimmed)) {
+    return value;
+  }
+
+  return trimmed.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+export function isValidVietQrBankId(value: string) {
+  return BANK_BIN_PATTERN.test(value.trim());
+}
+
+export function isValidVietQrAccount(value: string) {
+  return ACCOUNT_PATTERN.test(value.trim());
+}
+
+export function isValidVietQrAmount(value: string) {
+  const raw = value.trim();
+  if (!raw) {
+    return true;
+  }
+
+  if (!isAcceptedAmountInput(raw)) {
+    return false;
+  }
+
+  const normalized = normalizeVietQrAmount(raw);
+  return AMOUNT_PATTERN.test(normalized) && Number(normalized) > 0;
+}
+
+export function getVietQrDescriptionValidationError(value: string): VietQrValidationError | null {
+  const normalized = value.trim();
+  if (normalized.length > 25) {
+    return 'contentLength';
+  }
+
+  if (normalized && !DESCRIPTION_PATTERN.test(normalized)) {
+    return 'contentCharset';
+  }
+
+  return null;
 }
 
 export function normalizeVietQrInput(input: VietQrInput): VietQrInput {
@@ -70,7 +140,7 @@ export function normalizeVietQrInput(input: VietQrInput): VietQrInput {
   return {
     bankId: input.bankId.trim(),
     accountNo: input.accountNo.trim(),
-    amount: FORMATTED_AMOUNT_PATTERN.test(rawAmount)
+    amount: rawAmount && isAcceptedAmountInput(rawAmount)
       ? normalizeVietQrAmount(rawAmount)
       : rawAmount,
     description: input.description?.trim() ?? '',
@@ -85,23 +155,21 @@ export function validateVietQrInput(input: VietQrInput): VietQrValidationResult 
   const amount = normalized.amount ?? '';
   const description = normalized.description ?? '';
 
-  if (!BANK_BIN_PATTERN.test(bankId)) {
+  if (!isValidVietQrBankId(bankId)) {
     errors.push('chooseBank');
   }
 
-  if (!ACCOUNT_PATTERN.test(accountNo)) {
+  if (!isValidVietQrAccount(accountNo)) {
     errors.push('account');
   }
 
-  if (amount && (!AMOUNT_PATTERN.test(amount) || Number(amount) <= 0)) {
+  if (!isValidVietQrAmount(amount)) {
     errors.push('amount');
   }
 
-  if (description.length > 25) {
-    errors.push('contentLength');
-  }
-  else if (description && !DESCRIPTION_PATTERN.test(description)) {
-    errors.push('contentCharset');
+  const descriptionError = getVietQrDescriptionValidationError(description);
+  if (descriptionError) {
+    errors.push(descriptionError);
   }
 
   return {
