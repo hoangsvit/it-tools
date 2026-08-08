@@ -38,6 +38,7 @@ const fileInspection = ref<WorkspaceFileInspection | null>(null);
 const fileBusy = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const importedRecipe = ref(false);
+let fileInspectionRequest = 0;
 
 useHead(createSeoHead({
   title: 'Developer Workbench',
@@ -148,11 +149,15 @@ async function copyRecipeLink() {
 }
 
 async function inspectFile(file: File) {
+  const request = ++fileInspectionRequest;
   fileBusy.value = true;
   try {
     const inspection = await inspectWorkspaceFile(file);
-    fileInspection.value = inspection;
+    if (request !== fileInspectionRequest) {
+      return;
+    }
 
+    fileInspection.value = inspection;
     if (inspection.textPreview && ['json', 'text'].includes(inspection.kind)) {
       input.value = inspection.textPreview;
     }
@@ -161,7 +166,9 @@ async function inspectFile(file: File) {
     }
   }
   finally {
-    fileBusy.value = false;
+    if (request === fileInspectionRequest) {
+      fileBusy.value = false;
+    }
   }
 }
 
