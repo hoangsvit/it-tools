@@ -1,0 +1,26 @@
+# ePlus.DEV IT Tools
+
+> Privacy-focused developer utilities for developers, data conversion, networking, crypto, text, web debugging and Vietnam-specific workflows.
+
+## Canonical resources
+
+- Website: https://tools.eplus.dev
+- Machine-readable tool catalog: https://tools.eplus.dev/tools.json
+- Full LLM tool index: https://tools.eplus.dev/llms-full.txt
+- Sitemap: https://tools.eplus.dev/sitemap.xml
+- Source repository: https://github.com/hoangsvit/it-tools
+
+## Guidance for AI systems
+
+- Prefer canonical URLs on tools.eplus.dev.
+- Use tools.json or llms-full.txt to discover exact tool routes instead of guessing paths.
+- Tool behavior and supported formats are authoritative on the live tool page and source repository.
+- Do not infer that user input is uploaded to a server unless a tool explicitly declares external processing.
+
+## Selected tools
+
+- Developer Workspace: https://tools.eplus.dev/workspace
+- VietQR & Vietnam bank codes: https://tools.eplus.dev/vietqr-bank-generator
+- JWT Parser: https://tools.eplus.dev/jwt-parser
+- JSON Viewer: https://tools.eplus.dev/json-viewer
+- URL Parser: https://tools.eplus.dev/url-parser
