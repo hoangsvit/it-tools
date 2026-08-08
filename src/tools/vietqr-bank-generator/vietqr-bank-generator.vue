@@ -212,8 +212,8 @@ async function downloadQrImage() {
 }
 
 onMounted(async () => {
-  restoreForm();
   await loadBanks();
+  restoreForm();
 });
 </script>
 
@@ -232,7 +232,7 @@ onMounted(async () => {
               :options="bankOptions"
               searchable
               label="Bank"
-              :placeholder="banksLoading ? 'Loading banks...' : 'Search bank name, BIN, NAPAS code or SWIFT...'"
+              :placeholder="banksLoading ? 'Loading banks...' : 'Search or choose a bank by name...'"
             />
 
             <n-alert v-if="banksError" type="warning" :bordered="false">
@@ -293,7 +293,10 @@ onMounted(async () => {
           </div>
         </c-card>
 
-        <c-card v-if="selectedBankInfo.length" title="Bank codes">
+        <c-card v-if="selectedBankInfo.length" title="Technical bank details">
+          <div mb-3 text-sm op-65>
+            These identifiers are filled automatically from the selected bank. You do not need to enter them.
+          </div>
           <c-key-value-list :items="selectedBankInfo" />
         </c-card>
 
