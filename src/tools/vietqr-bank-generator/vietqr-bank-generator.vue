@@ -87,6 +87,7 @@ const { t, locale } = useI18n({
   useScope: 'local',
   messages: vietQrMessages,
 });
+const route = useRoute();
 
 const banks = [...bankDirectory.data]
   .sort((a, b) => a.shortName.localeCompare(b.shortName)) as VietQrBank[];
@@ -180,6 +181,70 @@ const previewAmount = computed(() => {
 const previewDescription = computed(() => description.value || t('notSpecified'));
 const copyStatusLabel = computed(() => t(`copy.${copyState.value}`));
 
+function firstQueryValue(value: unknown) {
+  if (Array.isArray(value)) {
+    return typeof value[0] === 'string' ? value[0] : '';
+  }
+  return typeof value === 'string' ? value : '';
+}
+
+function queryValue(...keys: string[]) {
+  for (const key of keys) {
+    const value = firstQueryValue(route.query[key]);
+    if (value) {
+      return value;
+    }
+  }
+  return '';
+}
+
+function resolveBankParameter(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return '';
+  }
+
+  const bank = banks.find(candidate => [
+    candidate.bin,
+    candidate.code,
+    candidate.shortName,
+    candidate.swift_code,
+  ].some(identifier => identifier?.toLowerCase() === normalized));
+
+  return bank?.bin ?? '';
+}
+
+function applyUrlParameters() {
+  const bankParam = queryValue('bank', 'bin', 'bankId');
+  const accountParam = queryValue('account', 'accountNo');
+  const amountParam = queryValue('amount');
+  const contentParam = queryValue('content', 'description');
+  const themeParam = queryValue('theme').toLowerCase();
+
+  if (bankParam) {
+    const resolvedBank = resolveBankParameter(bankParam);
+    if (resolvedBank) {
+      selectedBankBin.value = resolvedBank;
+    }
+  }
+
+  if (accountParam) {
+    accountNo.value = accountParam.trim().slice(0, 25);
+  }
+
+  if (amountParam) {
+    amount.value = normalizeVietQrAmount(amountParam).slice(0, 13);
+  }
+
+  if (contentParam) {
+    description.value = contentParam.trim().slice(0, 25);
+  }
+
+  if (themeParam && themeParam in THEME_PRESETS) {
+    selectedTheme.value = themeParam as ThemeName;
+  }
+}
+
 watch(qrPayload, async (payload) => {
   if (!payload) {
     qrDataUrl.value = '';
@@ -226,6 +291,10 @@ watch(selectedTheme, (value) => {
     window.localStorage.setItem(`${STORAGE_PREFIX}:theme`, value);
   }
 });
+
+watch(() => route.query, () => {
+  applyUrlParameters();
+}, { deep: true });
 
 function clearSensitiveStorage() {
   for (const key of SENSITIVE_STORAGE_KEYS) {
@@ -478,6 +547,7 @@ async function downloadQrImage() {
 
 onMounted(() => {
   restoreForm();
+  applyUrlParameters();
 });
 </script>
 
