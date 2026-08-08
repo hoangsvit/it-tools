@@ -13,6 +13,14 @@ interface WorkspaceSharePayload {
   steps: WorkspaceShareStep[]
 }
 
+const MAX_ENCODED_RECIPE_LENGTH = 64_000;
+const MAX_WORKSPACE_NAME_LENGTH = 80;
+const MAX_WORKSPACE_STEPS = 30;
+const MAX_TOOL_PATH_LENGTH = 200;
+const MAX_STEP_INPUT_LENGTH = 12_000;
+const MAX_STEP_OUTPUT_LENGTH = 12_000;
+const MAX_STEP_NOTES_LENGTH = 4_000;
+
 function bytesToBase64Url(bytes: Uint8Array) {
   let binary = '';
   for (const byte of bytes) {
@@ -32,11 +40,20 @@ function base64UrlToBytes(value: string) {
   return Uint8Array.from(binary, character => character.charCodeAt(0));
 }
 
+function boundShareStep(step: WorkspaceShareStep): WorkspaceShareStep {
+  return {
+    toolPath: step.toolPath.slice(0, MAX_TOOL_PATH_LENGTH),
+    ...(step.input === undefined ? {} : { input: step.input.slice(0, MAX_STEP_INPUT_LENGTH) }),
+    ...(step.output === undefined ? {} : { output: step.output.slice(0, MAX_STEP_OUTPUT_LENGTH) }),
+    ...(step.notes === undefined ? {} : { notes: step.notes.slice(0, MAX_STEP_NOTES_LENGTH) }),
+  };
+}
+
 export function encodeWorkspaceShare(workspace: DeveloperWorkspace, includeData = false) {
   const payload: WorkspaceSharePayload = {
     version: 1,
-    name: workspace.name,
-    steps: workspace.steps.map(step => ({
+    name: workspace.name.slice(0, MAX_WORKSPACE_NAME_LENGTH),
+    steps: workspace.steps.slice(0, MAX_WORKSPACE_STEPS).map(step => boundShareStep({
       toolPath: step.toolPath,
       ...(includeData
         ? {
@@ -64,6 +81,10 @@ function isShareStep(value: unknown): value is WorkspaceShareStep {
 }
 
 export function decodeWorkspaceShare(value: string): Pick<DeveloperWorkspace, 'name' | 'steps'> | null {
+  if (!value || value.length > MAX_ENCODED_RECIPE_LENGTH) {
+    return null;
+  }
+
   try {
     const decoded = new TextDecoder().decode(base64UrlToBytes(value));
     const payload = JSON.parse(decoded) as Partial<WorkspaceSharePayload>;
@@ -72,13 +93,16 @@ export function decodeWorkspaceShare(value: string): Pick<DeveloperWorkspace, 'n
       return null;
     }
 
-    const validSteps = payload.steps.filter(isShareStep).slice(0, 30);
+    const validSteps = payload.steps
+      .slice(0, MAX_WORKSPACE_STEPS)
+      .filter(isShareStep)
+      .map(boundShareStep);
     if (validSteps.length === 0) {
       return null;
     }
 
     return {
-      name: payload.name.slice(0, 80) || 'Shared workspace',
+      name: payload.name.slice(0, MAX_WORKSPACE_NAME_LENGTH) || 'Shared workspace',
       steps: validSteps.map((step, index): WorkspaceStep => ({
         id: `shared-step-${index + 1}`,
         toolPath: step.toolPath,
