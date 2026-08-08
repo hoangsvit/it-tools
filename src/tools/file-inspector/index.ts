@@ -1,5 +1,6 @@
 import { File } from '@vicons/tabler';
 import { defineTool } from '../tool';
+import '@/modules/developer-workspace/developer-platform-meta.i18n';
 
 export const tool = defineTool({
   name: 'Browser file inspector',
