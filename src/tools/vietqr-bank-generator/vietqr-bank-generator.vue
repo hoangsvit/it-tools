@@ -221,6 +221,24 @@ function drawContainImage(
   );
 }
 
+function drawCanvasInfoRow(
+  context: CanvasRenderingContext2D,
+  label: string,
+  value: string,
+  y: number,
+  bold = false,
+) {
+  context.textAlign = 'left';
+  context.fillStyle = '#6b7280';
+  context.font = '500 15px sans-serif';
+  context.fillText(label, 142, y);
+
+  context.textAlign = 'right';
+  context.fillStyle = '#111827';
+  context.font = `${bold ? '700' : '600'} 18px sans-serif`;
+  context.fillText(value, 698, y, 380);
+}
+
 async function createShareImage() {
   if (!qrDataUrl.value || !selectedBank.value) {
     return '';
@@ -232,99 +250,75 @@ async function createShareImage() {
     : null;
   const canvas = document.createElement('canvas');
   canvas.width = 840;
-  canvas.height = 1080;
+  canvas.height = 1100;
   const context = canvas.getContext('2d');
   if (!context) {
     return '';
   }
 
-  const background = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-  background.addColorStop(0, '#f5f3ff');
-  background.addColorStop(0.48, '#f8fbff');
-  background.addColorStop(1, '#f8fafc');
-  context.fillStyle = background;
+  context.fillStyle = '#f3f4f6';
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  context.fillStyle = 'rgba(124, 58, 237, 0.08)';
-  context.beginPath();
-  context.arc(90, 120, 150, 0, Math.PI * 2);
-  context.fill();
-  context.fillStyle = 'rgba(59, 130, 246, 0.07)';
-  context.beginPath();
-  context.arc(760, 260, 190, 0, Math.PI * 2);
-  context.fill();
-
-  context.shadowColor = 'rgba(15, 23, 42, 0.13)';
-  context.shadowBlur = 46;
-  context.shadowOffsetY = 22;
-  fillRoundedRect(context, 90, 58, 660, 956, 38, '#ffffff');
+  context.shadowColor = 'rgba(17, 24, 39, 0.10)';
+  context.shadowBlur = 32;
+  context.shadowOffsetY = 14;
+  fillRoundedRect(context, 92, 48, 656, 1004, 30, '#ffffff');
   context.shadowColor = 'transparent';
   context.shadowBlur = 0;
   context.shadowOffsetY = 0;
 
-  const brandGradient = context.createLinearGradient(140, 0, 320, 0);
-  brandGradient.addColorStop(0, '#7c3aed');
-  brandGradient.addColorStop(1, '#2563eb');
-  fillRoundedRect(context, 130, 104, 42, 42, 13, brandGradient);
-  context.textAlign = 'center';
-  context.fillStyle = '#ffffff';
-  context.font = '800 17px sans-serif';
-  context.fillText('e+', 151, 131);
-
-  context.textAlign = 'left';
-  context.fillStyle = '#111827';
-  context.font = '800 24px sans-serif';
-  context.fillText('ePlus.DEV', 188, 124);
-  context.fillStyle = '#94a3b8';
-  context.font = '500 13px sans-serif';
-  context.fillText('PAYMENT QR', 188, 145);
-
   if (bankLogo) {
-    drawContainImage(context, bankLogo, 568, 99, 142, 50);
+    drawContainImage(context, bankLogo, 270, 92, 300, 72);
   }
   else {
-    context.textAlign = 'right';
-    context.fillStyle = '#64748b';
-    context.font = '700 16px sans-serif';
-    context.fillText(selectedBank.value.shortName, 710, 126, 250);
+    context.textAlign = 'center';
+    context.fillStyle = '#111827';
+    context.font = '800 30px sans-serif';
+    context.fillText(selectedBank.value.shortName, 420, 136, 300);
   }
 
   context.textAlign = 'center';
+  context.fillStyle = '#6b7280';
+  context.font = '500 14px sans-serif';
+  context.fillText(selectedBank.value.name, 420, 190, 540);
+
   context.fillStyle = '#111827';
-  context.font = '800 34px sans-serif';
-  context.fillText(t('scanTitle'), 420, 207, 570);
-  context.fillStyle = '#64748b';
-  context.font = '500 15px sans-serif';
-  context.fillText(selectedBank.value.name, 420, 239, 560);
+  context.font = '700 28px sans-serif';
+  context.fillText(t('scanTitle'), 420, 238, 520);
 
-  context.shadowColor = 'rgba(79, 70, 229, 0.10)';
-  context.shadowBlur = 30;
-  fillRoundedRect(context, 168, 278, 504, 504, 28, '#ffffff');
-  context.shadowColor = 'transparent';
-  context.shadowBlur = 0;
-  context.drawImage(qrImage, 184, 294, 472, 472);
+  context.strokeStyle = '#e5e7eb';
+  context.lineWidth = 2;
+  roundedRect(context, 174, 270, 492, 492, 22);
+  context.stroke();
+  context.drawImage(qrImage, 190, 286, 460, 460);
 
-  context.fillStyle = '#64748b';
-  context.font = '600 13px sans-serif';
-  context.fillText(t('accountLabel'), 420, 823);
+  context.fillStyle = '#6b7280';
+  context.font = '500 14px sans-serif';
+  context.fillText(t('accountLabel'), 420, 810);
   context.fillStyle = '#111827';
-  context.font = '800 29px monospace';
-  context.fillText(accountNo.value, 420, 861, 560);
+  context.font = '800 30px monospace';
+  context.fillText(accountNo.value, 420, 851, 560);
 
+  context.strokeStyle = '#e5e7eb';
+  context.lineWidth = 1;
+  context.beginPath();
+  context.moveTo(142, 892);
+  context.lineTo(698, 892);
+  context.stroke();
+
+  let rowY = 930;
   if (amount.value) {
-    fillRoundedRect(context, 222, 890, 396, 62, 31, '#f5f3ff');
-    context.fillStyle = '#6d28d9';
-    context.font = '800 24px sans-serif';
-    context.fillText(previewAmount.value, 420, 930, 340);
+    drawCanvasInfoRow(context, t('amount'), previewAmount.value, rowY, true);
+    rowY += 48;
+  }
+  if (description.value) {
+    drawCanvasInfoRow(context, t('content'), previewDescription.value, rowY);
   }
 
-  context.fillStyle = '#64748b';
-  context.font = '500 14px sans-serif';
-  context.fillText(previewDescription.value, 420, amount.value ? 980 : 922, 560);
-
-  context.fillStyle = '#94a3b8';
+  context.textAlign = 'center';
+  context.fillStyle = '#9ca3af';
   context.font = '500 12px sans-serif';
-  context.fillText(`© ${COPYRIGHT_YEAR} ePlus.DEV · tools.eplus.dev`, 420, 1000);
+  context.fillText(`© ${COPYRIGHT_YEAR} ePlus.DEV · tools.eplus.dev`, 420, 1022);
 
   return canvas.toDataURL('image/png');
 }
@@ -378,7 +372,7 @@ onMounted(() => {
       {{ t('privacy') }}
     </n-alert>
 
-    <div grid grid-cols-1 gap-5 class="lg:grid-cols-[minmax(0,1fr)_440px]">
+    <div grid grid-cols-1 gap-5 class="lg:grid-cols-[minmax(0,1fr)_420px]">
       <div flex flex-col gap-5>
         <c-card :title="t('createTitle')">
           <div flex flex-col gap-4>
@@ -391,16 +385,18 @@ onMounted(() => {
             />
 
             <div v-if="selectedBank" class="bank-summary">
-              <img
-                :src="selectedBank.logo"
-                :alt="t('bankLogoAlt', { bank: selectedBank.shortName })"
-                class="bank-logo"
-              >
+              <div class="bank-logo-box">
+                <img
+                  :src="selectedBank.logo"
+                  :alt="t('bankLogoAlt', { bank: selectedBank.shortName })"
+                  class="bank-logo"
+                >
+              </div>
               <div min-w-0 flex-1>
-                <div font-600>
+                <div class="bank-summary-title">
                   {{ selectedBank.shortName }}
                 </div>
-                <div truncate text-sm op-70>
+                <div class="bank-summary-name">
                   {{ selectedBank.name }}
                 </div>
               </div>
@@ -420,18 +416,20 @@ onMounted(() => {
               maxlength="25"
             />
 
-            <c-input-text
-              v-model:value="formattedAmount"
-              :label="t('amountLabel')"
-              :placeholder="t('amountPlaceholder')"
-            />
+            <div grid grid-cols-1 gap-4 class="md:grid-cols-2">
+              <c-input-text
+                v-model:value="formattedAmount"
+                :label="t('amountLabel')"
+                :placeholder="t('amountPlaceholder')"
+              />
 
-            <c-input-text
-              v-model:value="description"
-              :label="t('contentLabel')"
-              :placeholder="t('contentPlaceholder')"
-              maxlength="25"
-            />
+              <c-input-text
+                v-model:value="description"
+                :label="t('contentLabel')"
+                :placeholder="t('contentPlaceholder')"
+                maxlength="25"
+              />
+            </div>
 
             <n-alert v-if="!validation.valid && (selectedBankBin || accountNo || amount || description)" type="error" :bordered="false">
               <ul m-0 pl-5>
@@ -464,54 +462,44 @@ onMounted(() => {
         </c-card>
       </div>
 
-      <div>
+      <div class="preview-column">
         <c-card :title="t('previewTitle')">
           <div v-if="qrDataUrl && selectedBank" flex flex-col gap-4>
             <div class="qr-preview-stage">
               <div class="qr-payment-card">
-                <div class="qr-card-header">
-                  <div class="qr-brand">
-                    <div class="qr-brand-mark">
-                      e+
-                    </div>
-                    <div class="qr-brand-copy">
-                      <strong>ePlus.DEV</strong>
-                      <span>PAYMENT QR</span>
-                    </div>
-                  </div>
-                  <div class="qr-bank-logo-wrap">
-                    <img
-                      :src="selectedBank.logo"
-                      :alt="t('bankLogoAlt', { bank: selectedBank.shortName })"
-                      class="qr-bank-logo"
-                    >
+                <div class="qr-bank-header">
+                  <img
+                    :src="selectedBank.logo"
+                    :alt="t('bankLogoAlt', { bank: selectedBank.shortName })"
+                    class="qr-bank-logo"
+                  >
+                  <div class="qr-bank-name">
+                    {{ selectedBank.name }}
                   </div>
                 </div>
 
                 <div class="qr-heading">
-                  <strong>{{ t('scanTitle') }}</strong>
-                  <span>{{ selectedBank.name }}</span>
+                  {{ t('scanTitle') }}
                 </div>
 
                 <div class="qr-code-shell">
-                  <span class="qr-corner qr-corner-tl" />
-                  <span class="qr-corner qr-corner-tr" />
-                  <span class="qr-corner qr-corner-bl" />
-                  <span class="qr-corner qr-corner-br" />
                   <img :src="qrDataUrl" alt="VietQR bank transfer code" class="qr-code-image">
                 </div>
 
-                <div class="qr-recipient">
+                <div class="qr-account">
                   <span>{{ t('accountLabel') }}</span>
                   <strong>{{ accountNo }}</strong>
                 </div>
 
-                <div v-if="amount" class="qr-amount-pill">
-                  {{ previewAmount }}
-                </div>
-
-                <div v-if="description" class="qr-note">
-                  {{ previewDescription }}
+                <div v-if="amount || description" class="qr-details">
+                  <div v-if="amount" class="qr-detail-row">
+                    <span>{{ t('amount') }}</span>
+                    <strong class="qr-amount">{{ previewAmount }}</strong>
+                  </div>
+                  <div v-if="description" class="qr-detail-row">
+                    <span>{{ t('content') }}</span>
+                    <strong>{{ previewDescription }}</strong>
+                  </div>
                 </div>
 
                 <div class="qr-copyright">
@@ -548,204 +536,131 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 16px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  border-radius: 14px;
-  background: rgba(248, 250, 252, 0.55);
+  padding: 13px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.bank-logo-box {
+  display: flex;
+  width: 76px;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1px solid #f0f1f3;
+  border-radius: 10px;
+  background: #fff;
 }
 
 .bank-logo {
   display: block;
-  width: 72px;
-  height: 42px;
-  flex: none;
+  max-width: 64px;
+  max-height: 34px;
   object-fit: contain;
+}
+
+.bank-summary-title {
+  color: var(--c-text-color, #111827);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bank-summary-name {
+  max-width: 100%;
+  overflow: hidden;
+  margin-top: 3px;
+  opacity: 0.65;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bank-bin {
   flex: none;
-  color: #667085;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: rgba(148, 163, 184, 0.10);
   font-family: monospace;
-  font-size: 12px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.preview-column {
+  min-width: 0;
 }
 
 .qr-preview-stage {
-  position: relative;
-  overflow: hidden;
-  padding: 24px;
-  border: 1px solid rgba(99, 102, 241, 0.09);
-  border-radius: 30px;
-  background:
-    radial-gradient(circle at 8% 8%, rgba(124, 58, 237, 0.12), transparent 32%),
-    radial-gradient(circle at 92% 18%, rgba(37, 99, 235, 0.10), transparent 30%),
-    linear-gradient(145deg, #f7f5ff 0%, #f8fbff 50%, #f8fafc 100%);
+  padding: 18px;
+  border-radius: 20px;
+  background: #f3f4f6;
 }
 
 .qr-payment-card {
-  position: relative;
   width: 100%;
-  max-width: 378px;
+  max-width: 360px;
   box-sizing: border-box;
   margin: 0 auto;
-  padding: 22px 22px 16px;
-  border: 1px solid rgba(226, 232, 240, 0.95);
-  border-radius: 26px;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
-  color: #0f172a;
+  padding: 24px 22px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(17, 24, 39, 0.08);
+  color: #111827;
 }
 
-.qr-card-header {
+.qr-bank-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.qr-brand {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 10px;
-}
-
-.qr-brand-mark {
-  display: flex;
-  width: 38px;
-  height: 38px;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #7c3aed, #2563eb);
-  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.23);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.qr-brand-copy {
-  display: flex;
-  min-width: 0;
   flex-direction: column;
-  line-height: 1.1;
-}
-
-.qr-brand-copy strong {
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.qr-brand-copy span {
-  margin-top: 4px;
-  color: #94a3b8;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-
-.qr-bank-logo-wrap {
-  display: flex;
-  width: 112px;
-  height: 42px;
   align-items: center;
-  justify-content: flex-end;
-  flex: none;
+  min-height: 62px;
+  justify-content: center;
+  text-align: center;
 }
 
 .qr-bank-logo {
   display: block;
-  max-width: 100%;
-  max-height: 38px;
+  max-width: 138px;
+  max-height: 46px;
   object-fit: contain;
 }
 
-.qr-heading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 24px 0 12px;
-  text-align: center;
-}
-
-.qr-heading strong {
-  color: #0f172a;
-  font-size: 20px;
-  font-weight: 850;
-  letter-spacing: -0.025em;
-}
-
-.qr-heading span {
-  max-width: 280px;
+.qr-bank-name {
+  max-width: 100%;
   overflow: hidden;
-  margin-top: 5px;
-  color: #64748b;
+  margin-top: 7px;
+  color: #6b7280;
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.qr-heading {
+  margin: 18px 0 12px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
 .qr-code-shell {
-  position: relative;
-  width: min(100%, 296px);
+  width: min(100%, 292px);
   box-sizing: border-box;
   margin: 0 auto;
-  padding: 12px;
-  border-radius: 22px;
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
   background: #fff;
-  box-shadow:
-    0 15px 35px rgba(79, 70, 229, 0.08),
-    inset 0 0 0 1px rgba(226, 232, 240, 0.9);
 }
 
 .qr-code-image {
   display: block;
   width: 100%;
-  border-radius: 10px;
   object-fit: contain;
 }
 
-.qr-corner {
-  position: absolute;
-  z-index: 1;
-  width: 24px;
-  height: 24px;
-  pointer-events: none;
-}
-
-.qr-corner-tl {
-  top: -4px;
-  left: -4px;
-  border-top: 3px solid #7c3aed;
-  border-left: 3px solid #7c3aed;
-  border-radius: 9px 0 0;
-}
-
-.qr-corner-tr {
-  top: -4px;
-  right: -4px;
-  border-top: 3px solid #2563eb;
-  border-right: 3px solid #2563eb;
-  border-radius: 0 9px 0 0;
-}
-
-.qr-corner-bl {
-  bottom: -4px;
-  left: -4px;
-  border-bottom: 3px solid #7c3aed;
-  border-left: 3px solid #7c3aed;
-  border-radius: 0 0 0 9px;
-}
-
-.qr-corner-br {
-  right: -4px;
-  bottom: -4px;
-  border-right: 3px solid #2563eb;
-  border-bottom: 3px solid #2563eb;
-  border-radius: 0 0 9px;
-}
-
-.qr-recipient {
+.qr-account {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -753,59 +668,81 @@ onMounted(() => {
   text-align: center;
 }
 
-.qr-recipient span {
-  color: #94a3b8;
-  font-size: 9px;
-  font-weight: 600;
+.qr-account span {
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 500;
 }
 
-.qr-recipient strong {
+.qr-account strong {
   max-width: 100%;
   margin-top: 5px;
   overflow-wrap: anywhere;
-  color: #0f172a;
+  color: #111827;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: clamp(19px, 5.5vw, 24px);
-  font-weight: 850;
-  letter-spacing: 0.03em;
+  font-size: clamp(19px, 5vw, 23px);
+  font-weight: 750;
+  letter-spacing: 0.02em;
 }
 
-.qr-amount-pill {
-  width: fit-content;
-  max-width: 100%;
-  box-sizing: border-box;
-  margin: 14px auto 0;
-  padding: 9px 16px;
+.qr-details {
+  margin-top: 18px;
+  padding-top: 4px;
+  border-top: 1px solid #f0f1f3;
+}
+
+.qr-detail-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.qr-detail-row:last-child {
+  border-bottom: 0;
+}
+
+.qr-detail-row span {
+  flex: none;
+  color: #9ca3af;
+  font-size: 10px;
+}
+
+.qr-detail-row strong {
+  min-width: 0;
   overflow: hidden;
-  border-radius: 999px;
-  background: #f5f3ff;
-  color: #6d28d9;
-  font-size: 16px;
-  font-weight: 850;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.qr-note {
-  max-width: 100%;
-  margin-top: 12px;
-  overflow: hidden;
-  color: #64748b;
-  font-size: 11px;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.qr-detail-row .qr-amount {
+  color: #111827;
+  font-size: 15px;
+  font-weight: 750;
 }
 
 .qr-copyright {
-  margin-top: 18px;
-  padding-top: 12px;
-  border-top: 1px solid #f1f5f9;
-  color: #a1a1aa;
+  margin-top: 14px;
+  padding-top: 11px;
+  border-top: 1px solid #f3f4f6;
+  color: #b0b5bd;
   font-size: 8px;
   font-weight: 500;
-  letter-spacing: 0.02em;
   text-align: center;
+}
+
+@media (min-width: 1024px) {
+  .preview-column {
+    position: sticky;
+    top: 18px;
+    align-self: start;
+  }
 }
 
 @media (max-width: 480px) {
@@ -818,36 +755,23 @@ onMounted(() => {
   }
 
   .qr-preview-stage {
-    padding: 12px;
-    border-radius: 22px;
+    padding: 10px;
+    border-radius: 16px;
   }
 
   .qr-payment-card {
-    padding: 18px 14px 14px;
-    border-radius: 22px;
-  }
-
-  .qr-brand-mark {
-    width: 34px;
-    height: 34px;
-  }
-
-  .qr-bank-logo-wrap {
-    width: 88px;
-    height: 38px;
-  }
-
-  .qr-heading {
-    margin-top: 20px;
-  }
-
-  .qr-heading strong {
-    font-size: 18px;
+    padding: 20px 14px 12px;
+    border-radius: 17px;
   }
 
   .qr-code-shell {
-    width: min(100%, 286px);
-    padding: 10px;
+    width: min(100%, 280px);
+    padding: 6px;
+  }
+
+  .qr-bank-logo {
+    max-width: 124px;
+    max-height: 42px;
   }
 }
 </style>
