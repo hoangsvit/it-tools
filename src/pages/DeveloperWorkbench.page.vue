@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/* eslint-disable quote-props */
 import {
   IconClipboard,
   IconExternalLink,
