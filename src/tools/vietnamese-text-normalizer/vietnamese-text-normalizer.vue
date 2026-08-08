@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { normalizeVietnameseText } from './vietnamese-text-normalizer.service';
+import '@/modules/developer-workspace/developer-platform.i18n';
 import { useCopy } from '@/composable/copy';
 
+const { t } = useI18n();
 const input = ref('');
 const result = computed(() => normalizeVietnameseText(input.value));
 const copySource = ref('');
-const { copy } = useCopy({ source: copySource, text: 'Text copied to the clipboard', createToast: true });
+const { copy } = useCopy({ source: copySource, text: t('developerPlatform.vietnameseNormalizer.copiedToast'), createToast: true });
 
 async function copyValue(value: string) {
   copySource.value = value;
@@ -18,42 +20,42 @@ async function copyValue(value: string) {
   <div class="normalizer-stack">
     <c-input-text
       v-model:value="input"
-      label="Vietnamese text"
-      placeholder="Nhập văn bản tiếng Việt..."
+      :label="$t('developerPlatform.vietnameseNormalizer.label')"
+      :placeholder="$t('developerPlatform.vietnameseNormalizer.placeholder')"
       rows="5"
       multiline
       autofocus
     />
 
     <div class="result-grid">
-      <c-card title="Unicode NFC">
+      <c-card :title="$t('developerPlatform.vietnameseNormalizer.unicodeNfc')">
         <c-text-copyable :value="result.nfc" break-all />
       </c-card>
 
-      <c-card title="ASCII without diacritics">
+      <c-card :title="$t('developerPlatform.vietnameseNormalizer.asciiNoDiacritics')">
         <div class="result-value">
           {{ result.ascii || '—' }}
         </div>
         <c-button :disabled="!result.ascii" @click="copyValue(result.ascii)">
-          Copy ASCII
+          {{ $t('developerPlatform.vietnameseNormalizer.copyAscii') }}
         </c-button>
       </c-card>
 
-      <c-card title="Compact whitespace">
+      <c-card :title="$t('developerPlatform.vietnameseNormalizer.compactWhitespace')">
         <div class="result-value">
           {{ result.compactWhitespace || '—' }}
         </div>
         <c-button :disabled="!result.compactWhitespace" @click="copyValue(result.compactWhitespace)">
-          Copy compact text
+          {{ $t('developerPlatform.vietnameseNormalizer.copyCompact') }}
         </c-button>
       </c-card>
 
-      <c-card title="Lowercase ASCII">
+      <c-card :title="$t('developerPlatform.vietnameseNormalizer.lowercaseAscii')">
         <div class="result-value monospace">
           {{ result.lowercaseAscii || '—' }}
         </div>
         <c-button :disabled="!result.lowercaseAscii" @click="copyValue(result.lowercaseAscii)">
-          Copy normalized key
+          {{ $t('developerPlatform.vietnameseNormalizer.copyNormalized') }}
         </c-button>
       </c-card>
     </div>
