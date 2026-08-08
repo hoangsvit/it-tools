@@ -12,10 +12,6 @@ export function defineTool(tool: ToolDefinition): Tool {
     isNew,
     origin: 'core',
     capabilities: ['text-input', 'clipboard', 'offline'],
-    privacy: {
-      mode: 'local',
-      summary: 'Input is processed locally in your browser.',
-    },
     ...tool,
   };
 }
