@@ -50,6 +50,20 @@ describe('VietQR bank generator service', () => {
     expect(formatVietQrAmount('001234567')).toBe('1,234,567');
   });
 
+  it('never turns a negative raw amount into a positive QR payload', () => {
+    expect(validateVietQrInput({
+      bankId: '970436',
+      accountNo: '123456789',
+      amount: '-100',
+    }).valid).toBe(false);
+
+    expect(makeVietQrContent({
+      bankId: '970436',
+      accountNo: '123456789',
+      amount: '-100',
+    })).toBe('');
+  });
+
   it('accepts account identifiers up to 25 letters or digits', () => {
     expect(validateVietQrInput({
       bankId: '970436',
