@@ -17,14 +17,6 @@ const STORAGE_PREFIX = 'eplus-vietqr';
 const COPYRIGHT_YEAR = new Date().getFullYear();
 const SENSITIVE_STORAGE_KEYS = ['account', 'amount', 'content'] as const;
 
-const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
-  'Please choose a bank from the list.': 'validation.chooseBank',
-  'Account number or alias must contain 1-25 letters or digits.': 'validation.account',
-  'Amount must be a positive VND integer with at most 13 digits.': 'validation.amount',
-  'Transfer content must be 25 characters or fewer.': 'validation.contentLength',
-  'Transfer content must use unaccented letters, numbers and spaces only.': 'validation.contentCharset',
-};
-
 type CopyState = 'idle' | 'copied' | 'unsupported' | 'failed';
 
 const { t, locale } = useI18n({
@@ -77,10 +69,7 @@ const validation = computed(() => validateVietQrInput({
   description: description.value,
 }));
 
-const localizedValidationErrors = computed(() => validation.value.errors.map((error) => {
-  const key = VALIDATION_MESSAGE_KEYS[error];
-  return key ? t(key) : error;
-}));
+const localizedValidationErrors = computed(() => validation.value.errors.map(error => t(`validation.${error}`)));
 
 const qrPayload = computed(() => {
   if (selectedBank.value && !selectedBank.value.transferSupported) {
