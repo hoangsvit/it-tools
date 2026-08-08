@@ -29,7 +29,7 @@
     {"id":65,"name":"CTCP Dịch Vụ Di Động Trực Tuyến","code":"momo","bin":"971025","shortName":"MoMo","logo":"https://cdn.vietqr.io/img/momo.png","transferSupported":1,"lookupSupported":1,"swift_code":null},
     {"id":64,"name":"Ngân hàng TMCP Đại Chúng Việt Nam Ngân hàng số","code":"PVDB","bin":"971133","shortName":"PVcomBank Pay","logo":"https://cdn.vietqr.io/img/PVCB.png","transferSupported":1,"lookupSupported":1,"swift_code":"WBVNVNVX"},
     {"id":30,"name":"Ngân hàng TMCP Đại Chúng Việt Nam","code":"PVCB","bin":"970412","shortName":"PVcomBank","logo":"https://cdn.vietqr.io/img/PVCB.png","transferSupported":1,"lookupSupported":1,"swift_code":"WBVNVNVX"},
-    {"id":27,"name":"Ngân hàng TNHH MTV Việt Nam Hiện Đại","code":"MBV","bin":"970414","shortName":"MBV","logo":"https://cdn.vietqr.io/img/MBV.png","transferSupported":1,"lookupSupported":1,"swift_code":"OCBKUS3M"},
+    {"id":27,"name":"Ngân hàng TNHH MTV Việt Nam Hiện Đại","code":"MBV","bin":"970414","shortName":"MBV","logo":"https://cdn.vietqr.io/img/MBV.png","transferSupported":1,"lookupSupported":1,"swift_code":null},
     {"id":24,"name":"Ngân hàng TMCP Quốc Dân","code":"NCB","bin":"970419","shortName":"NCB","logo":"https://cdn.vietqr.io/img/NCB.png","transferSupported":1,"lookupSupported":1,"swift_code":"NVBAVNVX"},
     {"id":37,"name":"Ngân hàng TNHH MTV Shinhan Việt Nam","code":"SHBVN","bin":"970424","shortName":"ShinhanBank","logo":"https://cdn.vietqr.io/img/SHBVN.png","transferSupported":1,"lookupSupported":1,"swift_code":"SHBKVNVX"},
     {"id":1,"name":"Ngân hàng TMCP An Bình","code":"ABB","bin":"970425","shortName":"ABBANK","logo":"https://cdn.vietqr.io/img/ABB.png","transferSupported":1,"lookupSupported":1,"swift_code":"ABBKVNVX"},
