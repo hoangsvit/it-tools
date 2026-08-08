@@ -9,7 +9,7 @@ export interface BicDetails {
   bic11?: string
 }
 
-const BIC_PATTERN = /^[A-Z0-9]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?$/;
+const BIC_PATTERN = /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?$/;
 
 export function normalizeBic(value: string) {
   return value.toUpperCase().replace(/[\s-]+/g, '');
