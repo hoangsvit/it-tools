@@ -67,18 +67,18 @@ describe('seo helpers', () => {
     const application = findSchema(structuredData['@graph'], 'WebApplication');
 
     expect(page).toMatchObject({
-      '@id': 'https://tools.eplus.dev/url-parser#webpage',
+      ['@id']: 'https://tools.eplus.dev/url-parser#webpage',
       url: 'https://tools.eplus.dev/url-parser',
       name: 'URL Parser - IT Tools',
       mainEntity: { '@id': 'https://tools.eplus.dev/url-parser#application' },
     });
     expect(application).toMatchObject({
-      '@id': 'https://tools.eplus.dev/url-parser#application',
+      ['@id']: 'https://tools.eplus.dev/url-parser#application',
       name: 'URL Parser',
       applicationCategory: 'DeveloperApplication',
       operatingSystem: 'Any',
       isAccessibleForFree: true,
-      offers: { '@type': 'Offer', price: 0 },
+      offers: { ['@type']: 'Offer', price: 0 },
       keywords: 'url, parser',
     });
   });
@@ -88,11 +88,11 @@ describe('seo helpers', () => {
     const graph = structuredData['@graph'];
 
     expect(findSchema(graph, 'WebPage')).toMatchObject({
-      '@id': 'https://tools.eplus.dev/#webpage',
+      ['@id']: 'https://tools.eplus.dev/#webpage',
       url: 'https://tools.eplus.dev/',
     });
     expect(findSchema(graph, 'WebApplication')).toMatchObject({
-      '@id': 'https://tools.eplus.dev/#application',
+      ['@id']: 'https://tools.eplus.dev/#application',
       name: SEO_CONFIG.siteName,
       sameAs: SEO_CONFIG.repositoryUrl,
       license: SEO_CONFIG.licenseUrl,
@@ -108,7 +108,7 @@ describe('seo helpers', () => {
     const graph = structuredData['@graph'];
 
     expect(findSchema(graph, 'AboutPage')).toMatchObject({
-      '@id': 'https://tools.eplus.dev/about#webpage',
+      ['@id']: 'https://tools.eplus.dev/about#webpage',
       url: 'https://tools.eplus.dev/about',
     });
     expect(findSchema(graph, 'WebApplication')).toBeUndefined();
@@ -123,7 +123,7 @@ describe('seo helpers', () => {
     const graph = structuredData['@graph'];
 
     expect(findSchema(graph, 'WebApplication')).toMatchObject({
-      '@id': 'https://tools.eplus.dev/workspace#application',
+      ['@id']: 'https://tools.eplus.dev/workspace#application',
       name: 'Developer Workspace',
       applicationCategory: 'DeveloperApplication',
     });
