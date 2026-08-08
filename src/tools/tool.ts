@@ -3,11 +3,19 @@ import type { Tool } from './tools.types';
 
 type WithOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
-export function defineTool(tool: WithOptional<Tool, 'isNew'>) {
+type ToolDefinition = WithOptional<Tool, 'isNew' | 'origin' | 'capabilities' | 'privacy'>;
+
+export function defineTool(tool: ToolDefinition): Tool {
   const isNew = tool.createdAt ? isAfter(tool.createdAt, subWeeks(new Date(), 2)) : false;
 
   return {
     isNew,
+    origin: 'core',
+    capabilities: ['text-input', 'clipboard', 'offline'],
+    privacy: {
+      mode: 'local',
+      summary: 'Input is processed locally in your browser.',
+    },
     ...tool,
   };
 }
