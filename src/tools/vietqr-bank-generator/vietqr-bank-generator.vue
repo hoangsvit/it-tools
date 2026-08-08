@@ -220,7 +220,7 @@ onMounted(async () => {
 <template>
   <div flex flex-col gap-5>
     <n-alert type="info" :bordered="false">
-      Bank data comes from VietQR's public bank directory. The payment payload and QR image are generated locally in your browser using the NAPAS VietQR transfer format; no account number, amount or transfer content is sent to the QR image service.
+      Bank data comes from VietQR's public bank directory. The VietQR/NAPAS payload and QR image are generated locally in your browser, following the same payload approach used by the open-source vietqr.net reference implementation.
     </n-alert>
 
     <div grid grid-cols-1 gap-5 class="lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -258,7 +258,7 @@ onMounted(async () => {
               v-model:value="accountNo"
               label="Account number"
               placeholder="Recipient account number / alias"
-              maxlength="19"
+              maxlength="25"
             />
 
             <c-input-text
@@ -300,7 +300,7 @@ onMounted(async () => {
         <c-card v-if="qrPayload" title="VietQR payload">
           <c-text-copyable :value="qrPayload" font-mono break-all />
           <div mt-3 text-sm op-70>
-            {{ amount ? 'Dynamic QR (point of initiation 12)' : 'Static QR (point of initiation 11)' }} · Service QRIBFTTA · Currency VND (704)
+            Point of initiation 11 · Service QRIBFTTA · Currency VND (704) · CRC16-CCITT
           </div>
         </c-card>
       </div>
