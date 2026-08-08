@@ -67,9 +67,10 @@ describe('VietQR bank generator service', () => {
 
     expect(result.valid).toBe(false);
     expect(result.errors).toHaveLength(4);
+    expect(result.errors[0]).toBe('Please choose a bank from the list.');
   });
 
-  it('supports lookup by bank name, BIN, code and SWIFT/BIC', () => {
+  it('supports internal lookup by bank name, BIN, code and SWIFT/BIC', () => {
     expect(matchesBankQuery(bank, 'vietcom')).toBe(true);
     expect(matchesBankQuery(bank, '970436')).toBe(true);
     expect(matchesBankQuery(bank, 'vcb')).toBe(true);
@@ -77,9 +78,9 @@ describe('VietQR bank generator service', () => {
     expect(matchesBankQuery(bank, 'not-a-bank')).toBe(false);
   });
 
-  it('creates a useful bank search label', () => {
-    expect(bankSearchLabel(bank)).toContain('Vietcombank');
-    expect(bankSearchLabel(bank)).toContain('970436');
-    expect(bankSearchLabel(bank)).toContain('BFTVVNVX');
+  it('shows a human-friendly bank label without technical codes', () => {
+    expect(bankSearchLabel(bank)).toBe('Vietcombank — Ngân hàng TMCP Ngoại Thương Việt Nam');
+    expect(bankSearchLabel(bank)).not.toContain('970436');
+    expect(bankSearchLabel(bank)).not.toContain('BFTVVNVX');
   });
 });
