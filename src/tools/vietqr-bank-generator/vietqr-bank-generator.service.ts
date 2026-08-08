@@ -17,9 +17,16 @@ export interface VietQrInput {
   description?: string
 }
 
+export type VietQrValidationError =
+  | 'chooseBank'
+  | 'account'
+  | 'amount'
+  | 'contentLength'
+  | 'contentCharset';
+
 export interface VietQrValidationResult {
   valid: boolean
-  errors: string[]
+  errors: VietQrValidationError[]
 }
 
 const ACCOUNT_PATTERN = /^[A-Za-z0-9]{1,25}$/;
@@ -71,7 +78,7 @@ export function normalizeVietQrInput(input: VietQrInput): VietQrInput {
 }
 
 export function validateVietQrInput(input: VietQrInput): VietQrValidationResult {
-  const errors: string[] = [];
+  const errors: VietQrValidationError[] = [];
   const normalized = normalizeVietQrInput(input);
   const bankId = normalized.bankId;
   const accountNo = normalized.accountNo;
@@ -79,22 +86,22 @@ export function validateVietQrInput(input: VietQrInput): VietQrValidationResult 
   const description = normalized.description ?? '';
 
   if (!BANK_BIN_PATTERN.test(bankId)) {
-    errors.push('Please choose a bank from the list.');
+    errors.push('chooseBank');
   }
 
   if (!ACCOUNT_PATTERN.test(accountNo)) {
-    errors.push('Account number or alias must contain 1-25 letters or digits.');
+    errors.push('account');
   }
 
   if (amount && (!AMOUNT_PATTERN.test(amount) || Number(amount) <= 0)) {
-    errors.push('Amount must be a positive VND integer with at most 13 digits.');
+    errors.push('amount');
   }
 
   if (description.length > 25) {
-    errors.push('Transfer content must be 25 characters or fewer.');
+    errors.push('contentLength');
   }
   else if (description && !DESCRIPTION_PATTERN.test(description)) {
-    errors.push('Transfer content must use unaccented letters, numbers and spaces only.');
+    errors.push('contentCharset');
   }
 
   return {
