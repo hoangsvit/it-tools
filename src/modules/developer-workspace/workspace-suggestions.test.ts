@@ -147,6 +147,11 @@ describe('workspace smart suggestions', () => {
     });
   });
 
+  it('does not classify generic accented Latin text as Vietnamese', () => {
+    expect(detectWorkspaceInput('café')).not.toContainEqual(expect.objectContaining({ kind: 'vietnamese-text' }));
+    expect(suggestWorkspaceTools({ value: 'café', tools })).toEqual([]);
+  });
+
   it('rejects BIC-like values whose institution code contains digits', () => {
     expect(detectWorkspaceInput('1FTVVNVX')).not.toContainEqual(expect.objectContaining({ kind: 'bic' }));
     expect(suggestWorkspaceTools({ value: '1FTVVNVX', tools })).toEqual([]);
