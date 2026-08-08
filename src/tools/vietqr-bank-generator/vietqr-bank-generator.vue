@@ -488,14 +488,14 @@ onMounted(() => {
 
       <div class="preview-column">
         <c-card :title="t('previewTitle')">
-          <div v-if="qrDataUrl && selectedBank" class="preview-stage">
+          <div class="preview-stage">
             <div class="decor-blob decor-blob-left" />
             <div class="decor-blob decor-blob-right" />
             <div class="decor-rings" />
             <div class="decor-dots" />
             <div class="decor-star" />
 
-            <div class="payment-sheet">
+            <div v-if="qrDataUrl && selectedBank" class="payment-sheet">
               <div class="brand-kicker">
                 ePlus.DEV
               </div>
@@ -546,22 +546,54 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="qr-actions">
-              <c-button @click="copyQrImage">
-                {{ copyStatusLabel }}
-              </c-button>
-              <c-button @click="downloadQrImage">
-                {{ t('downloadPng') }}
-              </c-button>
+            <div v-else class="payment-sheet payment-sheet-empty">
+              <div class="brand-kicker">
+                ePlus.DEV
+              </div>
+
+              <div class="empty-brand-mark">
+                e+
+              </div>
+
+              <div class="empty-preview-title">
+                {{ t('previewTitle') }}
+              </div>
+              <div class="empty-preview-copy">
+                {{ t('emptyPreview') }}
+              </div>
+
+              <div class="empty-qr-frame">
+                <span class="qr-guide qr-guide-tl" />
+                <span class="qr-guide qr-guide-tr" />
+                <span class="qr-guide qr-guide-bl" />
+                <span class="qr-guide qr-guide-br" />
+                <div class="empty-qr-grid" />
+              </div>
+
+              <div class="empty-account-card">
+                <span>{{ t('accountLabel') }}</span>
+                <strong>•••• •••• ••••</strong>
+              </div>
+
+              <div class="sheet-copyright">
+                © {{ COPYRIGHT_YEAR }} ePlus.DEV · tools.eplus.dev
+              </div>
             </div>
 
-            <n-alert type="warning" :bordered="false">
-              {{ t('verifyWarning') }}
-            </n-alert>
-          </div>
+            <template v-if="qrDataUrl && selectedBank">
+              <div class="qr-actions">
+                <c-button @click="copyQrImage">
+                  {{ copyStatusLabel }}
+                </c-button>
+                <c-button @click="downloadQrImage">
+                  {{ t('downloadPng') }}
+                </c-button>
+              </div>
 
-          <div v-else class="empty-preview">
-            {{ t('emptyPreview') }}
+              <n-alert type="warning" :bordered="false">
+                {{ t('verifyWarning') }}
+              </n-alert>
+            </template>
           </div>
         </c-card>
       </div>
@@ -685,6 +717,7 @@ onMounted(() => {
 
 .preview-stage {
   position: relative;
+  min-height: 620px;
   overflow: hidden;
   padding: 22px;
   border: 1px solid rgba(129, 140, 248, 0.14);
@@ -780,6 +813,14 @@ onMounted(() => {
   color: #101828;
 }
 
+.payment-sheet-empty {
+  display: flex;
+  min-height: 540px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
 .brand-kicker {
   color: #7c3aed;
   font-size: 9px;
@@ -823,6 +864,87 @@ onMounted(() => {
   font-weight: 850;
   letter-spacing: -0.03em;
   text-align: center;
+}
+
+.empty-brand-mark {
+  display: flex;
+  width: 54px;
+  height: 54px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  box-shadow: 0 14px 30px rgba(99, 102, 241, 0.24);
+  color: #fff;
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.empty-preview-title {
+  margin-top: 18px;
+  color: #101828;
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.empty-preview-copy {
+  max-width: 280px;
+  margin-top: 7px;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.empty-qr-frame {
+  position: relative;
+  width: min(100%, 240px);
+  margin: 24px auto 0;
+  padding: 12px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 16px 34px rgba(99, 102, 241, 0.12);
+}
+
+.empty-qr-grid {
+  aspect-ratio: 1;
+  border-radius: 15px;
+  background:
+    linear-gradient(90deg, rgba(15, 23, 42, 0.08) 12px, transparent 12px) 0 0 / 28px 28px,
+    linear-gradient(rgba(15, 23, 42, 0.08) 12px, transparent 12px) 0 0 / 28px 28px,
+    #fff;
+  opacity: 0.65;
+}
+
+.empty-account-card {
+  display: flex;
+  width: min(100%, 280px);
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 22px;
+  padding: 13px 16px 14px;
+  border: 1px solid rgba(226, 232, 240, 0.72);
+  border-radius: 18px;
+  background: linear-gradient(110deg, rgba(250, 250, 255, 0.96), rgba(245, 248, 255, 0.96));
+}
+
+.empty-account-card span {
+  color: #98a2b3;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.empty-account-card strong {
+  margin-top: 5px;
+  color: #667085;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 19px;
+  letter-spacing: 0.08em;
 }
 
 .qr-frame {
@@ -980,12 +1102,6 @@ onMounted(() => {
   margin: 16px auto 14px;
 }
 
-.empty-preview {
-  padding: 48px 12px;
-  opacity: 0.6;
-  text-align: center;
-}
-
 @media (min-width: 768px) {
   .form-pair {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1014,6 +1130,7 @@ onMounted(() => {
   }
 
   .preview-stage {
+    min-height: 560px;
     padding: 12px;
     border-radius: 22px;
   }
@@ -1021,6 +1138,10 @@ onMounted(() => {
   .payment-sheet {
     padding: 18px 13px 13px;
     border-radius: 24px;
+  }
+
+  .payment-sheet-empty {
+    min-height: 500px;
   }
 
   .preview-bank-logo {
