@@ -290,47 +290,44 @@ async function createShareImage() {
   context.shadowOffsetY = 0;
 
   context.textAlign = 'center';
-  context.fillStyle = '#7c3aed';
-  context.font = '700 14px sans-serif';
-  context.fillText('ePlus.DEV', 450, 102);
 
   if (bankLogo) {
-    drawContainImage(context, bankLogo, 285, 120, 330, 76);
+    drawContainImage(context, bankLogo, 285, 88, 330, 76);
   }
   else {
     context.fillStyle = '#101828';
     context.font = '800 29px sans-serif';
-    context.fillText(selectedBank.value.shortName, 450, 167, 330);
+    context.fillText(selectedBank.value.shortName, 450, 138, 330);
   }
 
   context.fillStyle = '#667085';
   context.font = '500 13px sans-serif';
-  context.fillText(selectedBank.value.name, 450, 215, 610);
+  context.fillText(selectedBank.value.name, 450, 180, 610);
 
   context.fillStyle = '#101828';
   context.font = '800 34px sans-serif';
-  context.fillText(t('scanTitle'), 450, 270, 610);
+  context.fillText(t('scanTitle'), 450, 235, 610);
 
   context.shadowColor = 'rgba(99, 102, 241, 0.18)';
   context.shadowBlur = 30;
-  fillRoundedRect(context, 158, 310, 584, 584, 36, '#ffffff');
+  fillRoundedRect(context, 158, 275, 584, 584, 36, '#ffffff');
   context.shadowColor = 'transparent';
   context.shadowBlur = 0;
-  context.drawImage(qrImage, 178, 330, 544, 544);
+  context.drawImage(qrImage, 178, 295, 544, 544);
 
   const accountGradient = context.createLinearGradient(130, 0, 770, 0);
   accountGradient.addColorStop(0, '#fafaff');
   accountGradient.addColorStop(1, '#f5f8ff');
-  fillRoundedRect(context, 130, 926, 640, 104, 22, accountGradient);
+  fillRoundedRect(context, 130, 891, 640, 104, 22, accountGradient);
 
   context.fillStyle = '#98a2b3';
   context.font = '500 13px sans-serif';
-  context.fillText(t('accountLabel'), 450, 962);
+  context.fillText(t('accountLabel'), 450, 927);
   context.fillStyle = '#101828';
   context.font = '800 30px monospace';
-  context.fillText(accountNo.value, 450, 1005, 560);
+  context.fillText(accountNo.value, 450, 970, 560);
 
-  let rowY = 1068;
+  let rowY = 1033;
   if (amount.value) {
     drawShareRow(context, t('amount'), previewAmount.value, rowY, true);
     rowY += 46;
@@ -496,10 +493,6 @@ onMounted(() => {
             <div class="decor-star" />
 
             <div v-if="qrDataUrl && selectedBank" class="payment-sheet">
-              <div class="brand-kicker">
-                ePlus.DEV
-              </div>
-
               <div class="bank-brand">
                 <img
                   :src="selectedBank.logo"
@@ -547,14 +540,6 @@ onMounted(() => {
             </div>
 
             <div v-else class="payment-sheet payment-sheet-empty">
-              <div class="brand-kicker">
-                ePlus.DEV
-              </div>
-
-              <div class="empty-brand-mark">
-                e+
-              </div>
-
               <div class="empty-preview-title">
                 {{ t('previewTitle') }}
               </div>
@@ -821,22 +806,12 @@ onMounted(() => {
   justify-content: center;
 }
 
-.brand-kicker {
-  color: #7c3aed;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-align: center;
-  text-transform: uppercase;
-}
-
 .bank-brand {
   display: flex;
   min-height: 58px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-top: 9px;
   text-align: center;
 }
 
@@ -866,23 +841,7 @@ onMounted(() => {
   text-align: center;
 }
 
-.empty-brand-mark {
-  display: flex;
-  width: 54px;
-  height: 54px;
-  align-items: center;
-  justify-content: center;
-  margin-top: 16px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #2563eb, #7c3aed);
-  box-shadow: 0 14px 30px rgba(99, 102, 241, 0.24);
-  color: #fff;
-  font-size: 19px;
-  font-weight: 900;
-}
-
 .empty-preview-title {
-  margin-top: 18px;
   color: #101828;
   font-size: 20px;
   font-weight: 800;
