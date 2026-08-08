@@ -102,6 +102,9 @@ const description = ref('');
 const qrDataUrl = ref('');
 const copyState = ref<CopyState>('idle');
 const selectedTheme = ref<ThemeName>('purple');
+const shareImageBlob = shallowRef<Blob | null>(null);
+const shareImageObjectUrl = ref('');
+let shareImageRenderId = 0;
 
 const themeOptions = Object.entries(THEME_PRESETS).map(([value, theme]) => ({
   value: value as ThemeName,
@@ -215,6 +218,7 @@ const previewAmount = computed(() => {
 
 const previewDescription = computed(() => description.value || t('notSpecified'));
 const copyStatusLabel = computed(() => t(`copy.${copyState.value}`));
+const shareFileName = computed(() => `vietqr-${selectedBank.value?.shortName || selectedBankBin.value}-${accountNo.value}.png`);
 
 function firstQueryValue(value: unknown) {
   if (Array.isArray(value)) {
@@ -544,20 +548,92 @@ async function createShareImage() {
   return canvas.toDataURL('image/png');
 }
 
+function revokeShareImageUrl() {
+  if (shareImageObjectUrl.value) {
+    URL.revokeObjectURL(shareImageObjectUrl.value);
+    shareImageObjectUrl.value = '';
+  }
+}
+
+async function refreshShareImage() {
+  const renderId = ++shareImageRenderId;
+  shareImageBlob.value = null;
+  revokeShareImageUrl();
+
+  if (!qrDataUrl.value || !selectedBank.value) {
+    return;
+  }
+
+  try {
+    const image = await createShareImage();
+    if (!image || renderId !== shareImageRenderId) {
+      return;
+    }
+
+    const blob = await (await fetch(image)).blob();
+    if (renderId !== shareImageRenderId) {
+      return;
+    }
+
+    shareImageBlob.value = blob;
+    shareImageObjectUrl.value = URL.createObjectURL(blob);
+  }
+  catch {
+    if (renderId === shareImageRenderId) {
+      shareImageBlob.value = null;
+      revokeShareImageUrl();
+    }
+  }
+}
+
+function isIosFamily() {
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
+
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+async function shareImageOnIos(blob: Blob, fileName: string) {
+  if (!isIosFamily() || typeof navigator.share !== 'function') {
+    return false;
+  }
+
+  const file = new File([blob], fileName, { type: 'image/png' });
+
+  try {
+    if (typeof navigator.canShare === 'function' && !navigator.canShare({ files: [file] })) {
+      return false;
+    }
+
+    await navigator.share({
+      files: [file],
+      title: fileName,
+    });
+    return true;
+  }
+  catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return true;
+    }
+    return false;
+  }
+}
+
 async function copyQrImage() {
   if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
     copyState.value = 'unsupported';
     return;
   }
 
-  try {
-    const image = await createShareImage();
-    if (!image) {
-      copyState.value = 'failed';
-      return;
-    }
+  const blob = shareImageBlob.value;
+  if (!blob) {
+    copyState.value = 'failed';
+    return;
+  }
 
-    const blob = await (await fetch(image)).blob();
+  try {
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
     copyState.value = 'copied';
   }
@@ -571,20 +647,50 @@ async function copyQrImage() {
 }
 
 async function downloadQrImage() {
-  const image = await createShareImage();
-  if (!image) {
+  const blob = shareImageBlob.value;
+  const objectUrl = shareImageObjectUrl.value;
+  if (!blob || !objectUrl) {
+    return;
+  }
+
+  // iOS/WKWebView may ignore synthetic downloads after asynchronous canvas
+  // rendering. The image is pre-rendered above, so the native share sheet can
+  // be opened directly from the user's tap and offers Save Image / Save to Files.
+  if (await shareImageOnIos(blob, shareFileName.value)) {
     return;
   }
 
   const link = document.createElement('a');
-  link.href = image;
-  link.download = `vietqr-${selectedBank.value?.shortName || selectedBankBin.value}-${accountNo.value}.png`;
+  link.href = objectUrl;
+  link.download = shareFileName.value;
+  link.rel = 'noopener';
+  link.style.display = 'none';
+
+  // If an iOS webview does not expose Web Share, opening the blob in a new tab
+  // is a usable fallback instead of silently ignoring the click.
+  if (isIosFamily()) {
+    link.target = '_blank';
+  }
+
+  document.body.appendChild(link);
   link.click();
+  link.remove();
 }
+
+watch(
+  [qrDataUrl, selectedTheme, selectedBankBin, accountNo, amount, description, locale],
+  refreshShareImage,
+  { immediate: true },
+);
 
 onMounted(() => {
   restoreForm();
   applyUrlParameters();
+});
+
+onBeforeUnmount(() => {
+  shareImageRenderId += 1;
+  revokeShareImageUrl();
 });
 </script>
 
@@ -790,10 +896,10 @@ onMounted(() => {
 
             <template v-if="qrDataUrl && selectedBank">
               <div class="qr-actions">
-                <c-button @click="copyQrImage">
+                <c-button :disabled="!shareImageBlob" @click="copyQrImage">
                   {{ copyStatusLabel }}
                 </c-button>
-                <c-button @click="downloadQrImage">
+                <c-button :disabled="!shareImageBlob" @click="downloadQrImage">
                   {{ t('downloadPng') }}
                 </c-button>
               </div>
