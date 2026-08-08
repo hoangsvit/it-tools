@@ -71,7 +71,7 @@ describe('VietQR bank generator service', () => {
     }).valid).toBe(true);
   });
 
-  it('rejects invalid bank, account, amount and accented transfer content', () => {
+  it('rejects invalid input with stable validation keys', () => {
     const result = validateVietQrInput({
       bankId: 'VCB',
       accountNo: 'bad account!',
@@ -80,8 +80,7 @@ describe('VietQR bank generator service', () => {
     });
 
     expect(result.valid).toBe(false);
-    expect(result.errors).toHaveLength(4);
-    expect(result.errors[0]).toBe('Please choose a bank from the list.');
+    expect(result.errors).toEqual(['chooseBank', 'account', 'amount', 'contentCharset']);
   });
 
   it('supports internal lookup by bank name, BIN, code and SWIFT/BIC', () => {
