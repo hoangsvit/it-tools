@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useCopy } from '@/composable/copy';
 import { auditSchema } from './schema-checker.service';
+import { useCopy } from '@/composable/copy';
 
 const input = ref('');
 const result = computed(() => auditSchema(input.value));
@@ -11,9 +11,15 @@ const report = computed(() => JSON.stringify({
 const { copy } = useCopy({ source: report, text: 'Schema audit report copied to the clipboard' });
 
 function levelType(level: string) {
-  if (level === 'error') return 'error';
-  if (level === 'warning') return 'warning';
-  if (level === 'passed') return 'success';
+  if (level === 'error') {
+    return 'error';
+  }
+  if (level === 'warning') {
+    return 'warning';
+  }
+  if (level === 'passed') {
+    return 'success';
+  }
   return 'info';
 }
 </script>
@@ -48,7 +54,9 @@ function levelType(level: string) {
       </c-card>
 
       <div flex justify-center>
-        <c-button @click="copy()">Copy JSON report</c-button>
+        <c-button @click="copy()">
+          Copy JSON report
+        </c-button>
       </div>
     </div>
   </c-card>
