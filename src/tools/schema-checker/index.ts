@@ -1,4 +1,4 @@
-import { Schema } from '@vicons/tabler';
+import { FileCode } from '@vicons/tabler';
 import { defineTool } from '../tool';
 
 export const tool = defineTool({
@@ -7,7 +7,7 @@ export const tool = defineTool({
   description: 'Extract and validate JSON-LD structured data from HTML, with Schema.org-focused checks and Google-oriented guidance.',
   keywords: ['schema', 'schema.org', 'json-ld', 'structured data', 'seo', 'rich results', 'google', 'validator'],
   component: () => import('./schema-checker.vue'),
-  icon: Schema,
+  icon: FileCode,
   createdAt: new Date('2026-08-09'),
   privacy: {
     mode: 'local',
