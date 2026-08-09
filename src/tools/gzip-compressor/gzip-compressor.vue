@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { useCopy } from '@/composable/copy';
 import {
   gunzipBase64ToText,
   gzipTextToBase64,
   isLikelyGzipBase64,
   supportsGzipStreams,
 } from './gzip-compressor.service';
+import { useCopy } from '@/composable/copy';
 
 const textInput = ref('');
 const gzipOutput = ref('');
