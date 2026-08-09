@@ -13,5 +13,5 @@ export const tool = defineTool({
     mode: 'local',
     summary: 'Compression and decompression run locally in your browser using the Compression Streams API.',
   },
-  capabilities: ['text-input', 'clipboard', 'offline', 'file-export'],
+  capabilities: ['text-input', 'clipboard', 'offline'],
 });
