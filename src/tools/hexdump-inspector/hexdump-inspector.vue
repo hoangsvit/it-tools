@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useCopy } from '@/composable/copy';
 import { hexToText, isValidHexInput, textToHexdump } from './hexdump-inspector.service';
+import { useCopy } from '@/composable/copy';
 
 const textInput = ref('Hello, ePlus.DEV!');
 const hexInput = ref('48 65 6c 6c 6f');
