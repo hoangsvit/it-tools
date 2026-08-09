@@ -3,7 +3,7 @@ import { auditSeo } from './seo-checker.service';
 
 describe('seo checker', () => {
   it('passes core metadata for a healthy page', () => {
-    const items = auditSeo(`<!doctype html><html><head><title>Useful developer tools for everyday debugging</title><meta name="description" content="A practical collection of developer utilities for debugging, conversion, validation and browser-local workflows."><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="index,follow"><link rel="canonical" href="https://tools.eplus.dev/test"><meta property="og:title" content="Tools"><meta property="og:description" content="Developer tools"><meta property="og:image" content="https://tools.eplus.dev/og.png"><meta name="twitter:card" content="summary_large_image"></head><body><h1>Tools</h1><img src="x.png" alt="Example"></body></html>`);
+    const items = auditSeo('<!doctype html><html><head><title>Useful developer tools for everyday debugging</title><meta name="description" content="A practical collection of developer utilities for debugging, conversion, validation and browser-local workflows."><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="index,follow"><link rel="canonical" href="https://tools.eplus.dev/test"><meta property="og:title" content="Tools"><meta property="og:description" content="Developer tools"><meta property="og:image" content="https://tools.eplus.dev/og.png"><meta name="twitter:card" content="summary_large_image"></head><body><h1>Tools</h1><img src="x.png" alt="Example"></body></html>');
     expect(items.some(item => item.level === 'error')).toBe(false);
     expect(items.some(item => item.message === 'One H1 heading found.')).toBe(true);
   });
