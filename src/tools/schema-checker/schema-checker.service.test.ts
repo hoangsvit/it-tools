@@ -17,7 +17,7 @@ describe('schema checker', () => {
   it('parses graph entities and warns about missing names', () => {
     const result = auditSchema(JSON.stringify({
       '@context': 'https://schema.org',
-      '@graph': [{ '@type': 'WebSite', name: 'Tools' }, { '@type': 'Organization' }],
+      '@graph': [{ '@type': 'WebSite', 'name': 'Tools' }, { '@type': 'Organization' }],
     }));
     expect(result.entities).toHaveLength(2);
     expect(result.items.some(item => item.message.includes('no name or headline'))).toBe(true);
