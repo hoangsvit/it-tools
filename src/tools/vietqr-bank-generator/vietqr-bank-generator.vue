@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import bankDirectory from './banks.json';
 import { vietQrMessages } from './vietqr-bank-generator.i18n';
 import {
+  VIETQR_MAX_AMOUNT,
   type VietQrBank,
   bankSearchLabel,
   formatVietQrAmount,
@@ -12,9 +13,10 @@ import {
   isValidVietQrAmount,
   makeVietQrContent,
   parseVietQrAmountInput,
+  parseVietQrAmountTyping,
+  sanitizeVietQrDescriptionInput,
   validateVietQrInput,
 } from './vietqr-bank-generator.service';
-import { stripVietnameseDiacritics } from '@/tools/vietnamese-text-normalizer/vietnamese-text-normalizer.service';
 import type { CKeyValueListItems } from '@/ui/c-key-value-list/c-key-value-list.types';
 
 const STORAGE_PREFIX = 'eplus-vietqr';
@@ -106,7 +108,7 @@ const descriptionValue = ref('');
 const description = computed({
   get: () => descriptionValue.value,
   set: (value: string) => {
-    descriptionValue.value = stripVietnameseDiacritics(value);
+    descriptionValue.value = sanitizeVietQrDescriptionInput(value);
   },
 });
 const qrDataUrl = ref('');
@@ -114,6 +116,7 @@ const copyState = ref<CopyState>('idle');
 const selectedTheme = ref<ThemeName>('purple');
 const shareImageBlob = shallowRef<Blob | null>(null);
 const shareImageObjectUrl = ref('');
+const shareImageRendering = ref(false);
 let shareImageRenderId = 0;
 let urlSyncReady = false;
 let urlSyncTimer: number | undefined;
@@ -160,11 +163,20 @@ const selectedBankInfo = computed<CKeyValueListItems>(() => {
 });
 
 const formattedAmount = computed({
-  get: () => formatVietQrAmount(amount.value),
+  get: () => formatVietQrAmount(amount.value, locale.value),
   set: (value: string) => {
-    amount.value = parseVietQrAmountInput(value);
+    amount.value = parseVietQrAmountTyping(value);
   },
 });
+
+const formattedMaximumAmount = computed(() => `${formatVietQrAmount(VIETQR_MAX_AMOUNT, locale.value)} ₫`);
+const isVietnameseLocale = computed(() => locale.value.toLowerCase().startsWith('vi'));
+const amountPlaceholder = computed(() => isVietnameseLocale.value
+  ? `Không bắt buộc · tối đa ${formattedMaximumAmount.value}`
+  : t('amountPlaceholder'));
+const amountValidationMessage = computed(() => isVietnameseLocale.value
+  ? `Số tiền phải là số nguyên VND dương, tối đa ${formattedMaximumAmount.value}.`
+  : t('validation.amount'));
 
 const validation = computed(() => {
   const result = validateVietQrInput({
@@ -184,7 +196,13 @@ const validation = computed(() => {
   return result;
 });
 
-const localizedValidationErrors = computed(() => validation.value.errors.map(error => t(`validation.${error}`)));
+const localizedValidationErrors = computed(() => validation.value.errors.map((error) => {
+  if (error === 'amount') {
+    return amountValidationMessage.value;
+  }
+
+  return t(`validation.${error}`);
+}));
 
 const accountValidationRules = computed(() => [{
   message: t('validation.account'),
@@ -192,7 +210,7 @@ const accountValidationRules = computed(() => [{
 }]);
 
 const amountValidationRules = computed(() => [{
-  message: t('validation.amount'),
+  message: amountValidationMessage.value,
   validator: (value: string) => !value.trim() || isValidVietQrAmount(value),
 }]);
 
@@ -282,7 +300,7 @@ function applyUrlParameters() {
   }
 
   if (amountParam) {
-    // Valid thousands separators are normalized. Invalid values are preserved.
+    // Shared URL values stay strict so malformed amounts are never silently repaired.
     amount.value = parseVietQrAmountInput(amountParam);
   }
 
@@ -709,12 +727,15 @@ function revokeShareImageUrl() {
 
 async function refreshShareImage() {
   const renderId = ++shareImageRenderId;
-  shareImageBlob.value = null;
-  revokeShareImageUrl();
 
   if (!qrDataUrl.value || !selectedBank.value) {
+    shareImageRendering.value = false;
+    shareImageBlob.value = null;
+    revokeShareImageUrl();
     return;
   }
+
+  shareImageRendering.value = true;
 
   try {
     const image = await createShareImage();
@@ -727,13 +748,29 @@ async function refreshShareImage() {
       return;
     }
 
+    const nextObjectUrl = URL.createObjectURL(blob);
+    if (renderId !== shareImageRenderId) {
+      URL.revokeObjectURL(nextObjectUrl);
+      return;
+    }
+
+    const previousObjectUrl = shareImageObjectUrl.value;
     shareImageBlob.value = blob;
-    shareImageObjectUrl.value = URL.createObjectURL(blob);
+    shareImageObjectUrl.value = nextObjectUrl;
+
+    if (previousObjectUrl) {
+      URL.revokeObjectURL(previousObjectUrl);
+    }
   }
   catch {
     if (renderId === shareImageRenderId) {
       shareImageBlob.value = null;
       revokeShareImageUrl();
+    }
+  }
+  finally {
+    if (renderId === shareImageRenderId) {
+      shareImageRendering.value = false;
     }
   }
 }
@@ -906,7 +943,7 @@ onBeforeUnmount(() => {
               <c-input-text
                 v-model:value="formattedAmount"
                 :label="t('amountLabel')"
-                :placeholder="t('amountPlaceholder')"
+                :placeholder="amountPlaceholder"
                 :validation-rules="amountValidationRules"
                 raw-text
               />
@@ -1067,10 +1104,10 @@ onBeforeUnmount(() => {
 
             <template v-if="qrDataUrl && selectedBank">
               <div class="qr-actions">
-                <c-button :disabled="!shareImageBlob" @click="copyQrImage">
+                <c-button :disabled="!shareImageBlob || shareImageRendering" @click="copyQrImage">
                   {{ copyStatusLabel }}
                 </c-button>
-                <c-button :disabled="!shareImageBlob" @click="downloadQrImage">
+                <c-button :disabled="!shareImageBlob || shareImageRendering" @click="downloadQrImage">
                   {{ t('downloadPng') }}
                 </c-button>
               </div>
@@ -1271,9 +1308,11 @@ onBeforeUnmount(() => {
   width: 100%;
   max-width: 390px;
   height: auto;
+  aspect-ratio: 3 / 4;
   margin: 0 auto;
   border-radius: 30px;
   box-shadow: 0 18px 44px var(--theme-shadow);
+  object-fit: contain;
 }
 
 .preview-stage-exported .qr-actions {
