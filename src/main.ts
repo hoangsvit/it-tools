@@ -13,62 +13,21 @@ import App from './App.vue';
 import router from './router';
 import { installGoogleAnalytics } from './plugins/google-analytics.plugin';
 import { i18nPlugin } from './plugins/i18n.plugin';
-
-const CURRENT_DEPLOY_VERSION = import.meta.env.VITE_DEPLOY_VERSION;
-const VERSION_MANIFEST_URL = `${import.meta.env.BASE_URL}version.json`;
+import { createDeployVersionChecker } from './modules/app-version/deploy-version';
 
 registerSW({ immediate: true });
 
-let versionCheckRunning = false;
-
-async function checkDeployVersion() {
-  if (versionCheckRunning || !navigator.onLine) {
-    return;
-  }
-
-  versionCheckRunning = true;
-
-  try {
-    const versionUrl = new URL(VERSION_MANIFEST_URL, window.location.origin);
-    versionUrl.searchParams.set('_', Date.now().toString());
-
-    const response = await fetch(versionUrl, {
-      cache: 'no-store',
-      headers: {
-        'cache-control': 'no-cache',
-        'pragma': 'no-cache',
-      },
-    });
-
-    if (!response.ok) {
-      return;
-    }
-
-    const manifest = await response.json() as { version?: string };
-    if (!manifest.version || manifest.version === CURRENT_DEPLOY_VERSION) {
-      return;
-    }
-
-    if (!('serviceWorker' in navigator)) {
-      window.location.reload();
-      return;
-    }
-
-    const registration = await navigator.serviceWorker.getRegistration(import.meta.env.BASE_URL);
-    if (!registration) {
-      window.location.reload();
-      return;
-    }
-
-    await registration.update();
-  }
-  catch {
-    // Keep the current app usable if the version endpoint is temporarily unavailable.
-  }
-  finally {
-    versionCheckRunning = false;
-  }
-}
+const checkDeployVersion = createDeployVersionChecker({
+  currentVersion: import.meta.env.VITE_DEPLOY_VERSION,
+  versionManifestUrl: `${import.meta.env.BASE_URL}version.json`,
+  origin: window.location.origin,
+  baseUrl: import.meta.env.BASE_URL,
+  isOnline: () => navigator.onLine,
+  fetchVersion: (url, init) => fetch(url, init),
+  hasServiceWorker: () => 'serviceWorker' in navigator,
+  getRegistration: scope => navigator.serviceWorker.getRegistration(scope),
+  reload: () => window.location.reload(),
+});
 
 void checkDeployVersion();
 window.addEventListener('pageshow', () => {
