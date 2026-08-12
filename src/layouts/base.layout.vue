@@ -19,7 +19,8 @@ import CollapsibleToolMenu from '@/components/CollapsibleToolMenu.vue';
 const themeVars = useThemeVars();
 const styleStore = useStyleStore();
 const deployVersion = import.meta.env.VITE_DEPLOY_VERSION;
-const deployCommit = import.meta.env.VITE_DEPLOY_COMMIT.slice(0, 7);
+const deployCommitFull = import.meta.env.VITE_DEPLOY_COMMIT;
+const deployCommit = deployCommitFull.slice(0, 7);
 const deployLabel = deployVersion.startsWith('local-') ? 'local' : deployVersion.slice(0, 8);
 
 const { tracker } = useTracker();
@@ -75,8 +76,8 @@ const tools = computed<ToolCategory[]>(() => [
                 target="_blank"
                 rel="noopener"
                 type="primary"
-                :href="`https://github.com/hoangsvit/it-tools/commit/${deployCommit}`"
-                :title="`Git commit ${deployCommit}`"
+                :href="`https://github.com/hoangsvit/it-tools/commit/${deployCommitFull}`"
+                :title="`Git commit ${deployCommitFull}`"
               >
                 {{ deployCommit }}
               </c-link>
