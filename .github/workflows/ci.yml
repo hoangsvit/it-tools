@@ -41,3 +41,6 @@ jobs:
 
       - name: Build the app
         run: pnpm build
+
+      - name: Verify deploy freshness artifacts
+        run: node scripts/verify-production-artifacts.mjs
