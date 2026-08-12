@@ -24,5 +24,6 @@ export const tool = defineTool({
     mode: 'local',
     summary: 'Transfer payloads and generated QR images are processed locally in your browser.',
   },
+  wideContent: true,
   createdAt: new Date('2026-08-08'),
 });
