@@ -17,12 +17,12 @@ function createChecker({
   registrationExists = true,
   responseOk = true,
 }: {
-  currentVersion?: string,
-  serverVersion?: string,
-  online?: boolean,
-  serviceWorkerSupported?: boolean,
-  registrationExists?: boolean,
-  responseOk?: boolean,
+  currentVersion?: string
+  serverVersion?: string
+  online?: boolean
+  serviceWorkerSupported?: boolean
+  registrationExists?: boolean
+  responseOk?: boolean
 } = {}) {
   const update = vi.fn().mockResolvedValue(undefined);
   const reload = vi.fn();
