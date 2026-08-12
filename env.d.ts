@@ -4,6 +4,8 @@
 interface ImportMetaEnv {
   VITE_GOOGLE_ANALYTICS_ENABLED?: string;
   VITE_GOOGLE_ANALYTICS_ID?: string;
+  VITE_DEPLOY_VERSION: string;
+  VITE_DEPLOY_COMMIT: string;
   PACKAGE_VERSION: string;
   GIT_SHORT_SHA: string;
   PROD: boolean;
