@@ -15,7 +15,7 @@ import { installGoogleAnalytics } from './plugins/google-analytics.plugin';
 import { i18nPlugin } from './plugins/i18n.plugin';
 import { createDeployVersionChecker } from './modules/app-version/deploy-version';
 
-registerSW({ immediate: true });
+const updateSW = registerSW({ immediate: true });
 
 const checkDeployVersion = createDeployVersionChecker({
   currentVersion: import.meta.env.VITE_DEPLOY_VERSION,
@@ -26,6 +26,7 @@ const checkDeployVersion = createDeployVersionChecker({
   fetchVersion: (url, init) => fetch(url, init),
   hasServiceWorker: () => 'serviceWorker' in navigator,
   getRegistration: scope => navigator.serviceWorker.getRegistration(scope),
+  updateServiceWorker: () => updateSW(true),
   reload: () => window.location.reload(),
 });
 
