@@ -133,8 +133,7 @@ jobs:
 
           replace_once(
               r"v-model:value=\"description\"\n\s+:label=\"t\('contentLabel'\)\"",
-              """v-model:value="descriptionInput"
-                :label="t('contentLabel')"""",
+              "v-model:value=\"descriptionInput\"\n                :label=\"t('contentLabel')\"",
               'template model',
           )
 
