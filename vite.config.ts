@@ -17,6 +17,11 @@ import svgLoader from 'vite-svg-loader';
 import { configDefaults } from 'vitest/config';
 
 const baseUrl = process.env.BASE_URL ?? '/';
+const deployVersion = process.env.DEPLOY_ID
+  ?? process.env.BUILD_ID
+  ?? process.env.COMMIT_REF
+  ?? `local-${Date.now()}`;
+const deployBuiltAt = new Date().toISOString();
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -53,9 +58,27 @@ export default defineConfig({
     vueJsx(),
     markdown(),
     svgLoader(),
+    {
+      name: 'eplus-deploy-version',
+      generateBundle() {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'version.json',
+          source: `${JSON.stringify({
+            version: deployVersion,
+            commit: process.env.COMMIT_REF ?? null,
+            context: process.env.CONTEXT ?? null,
+            builtAt: deployBuiltAt,
+          }, null, 2)}\n`,
+        });
+      },
+    },
     VitePWA({
       registerType: 'autoUpdate',
       strategies: 'generateSW',
+      workbox: {
+        globIgnores: ['**/version.json'],
+      },
       manifest: {
         name: 'ePlus.DEV IT Tools',
         short_name: 'ePlus Tools',
@@ -134,6 +157,7 @@ export default defineConfig({
   },
   define: {
     'import.meta.env.PACKAGE_VERSION': JSON.stringify(process.env.npm_package_version),
+    'import.meta.env.VITE_DEPLOY_VERSION': JSON.stringify(deployVersion),
   },
   test: {
     exclude: [...configDefaults.exclude, '**/*.e2e.spec.ts'],
