@@ -24,20 +24,20 @@ jobs:
         run: |
           python <<'PY'
           from pathlib import Path
+          import re
 
           path = Path('src/tools/vietqr-bank-generator/vietqr-bank-generator.vue')
           text = path.read_text(encoding='utf-8')
 
-          replacements = [
-              (
-                  """const descriptionValue = ref('');
-          const description = computed({
-            get: () => descriptionValue.value,
-            set: (value: string) => {
-              descriptionValue.value = sanitizeVietQrDescriptionInput(value);
-            },
-          });""",
-                  """const descriptionValue = ref('');
+          def replace_once(pattern: str, replacement: str, label: str, flags: int = 0):
+              global text
+              text, count = re.subn(pattern, replacement, text, count=1, flags=flags)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected 1 replacement, got {count}')
+
+          replace_once(
+              r"const descriptionValue = ref\(''\);\nconst description = computed\(\{\n  get: \(\) => descriptionValue\.value,\n  set: \(value: string\) => \{\n    descriptionValue\.value = sanitizeVietQrDescriptionInput\(value\);\n  \},\n\}\);",
+              """const descriptionValue = ref('');
           const description = ref('');
           const descriptionInput = computed({
             get: () => descriptionValue.value,
@@ -46,27 +46,21 @@ jobs:
               scheduleDescriptionNormalization();
             },
           });""",
-              ),
-              (
-                  """let urlSyncReady = false;
-          let urlSyncTimer: number | undefined;""",
-                  """let urlSyncReady = false;
+              'description model',
+          )
+
+          replace_once(
+              r"let urlSyncReady = false;\nlet urlSyncTimer: number \| undefined;",
+              """let urlSyncReady = false;
           let urlSyncTimer: number | undefined;
           let descriptionNormalizeTimer: number | undefined;
           const DESCRIPTION_NORMALIZE_DELAY_MS = 600;""",
-              ),
-              (
-                  """const descriptionValidationRules = computed(() => [
-            {
-              message: t('validation.contentCharset'),
-              validator: (value: string) => getVietQrDescriptionValidationError(value) !== 'contentCharset',
-            },
-            {
-              message: t('validation.contentLength'),
-              validator: (value: string) => getVietQrDescriptionValidationError(value) !== 'contentLength',
-            },
-          ]);""",
-                  """const descriptionValidationRules = computed(() => [
+              'debounce state',
+          )
+
+          replace_once(
+              r"const descriptionValidationRules = computed\(\(\) => \[\n  \{\n    message: t\('validation\.contentCharset'\),\n    validator: \(value: string\) => getVietQrDescriptionValidationError\(value\) !== 'contentCharset',\n  \},\n  \{\n    message: t\('validation\.contentLength'\),\n    validator: \(value: string\) => getVietQrDescriptionValidationError\(value\) !== 'contentLength',\n  \},\n\]\);",
+              """const descriptionValidationRules = computed(() => [
             {
               message: t('validation.contentCharset'),
               validator: (value: string) => getVietQrDescriptionValidationError(sanitizeVietQrDescriptionInput(value)) !== 'contentCharset',
@@ -76,42 +70,21 @@ jobs:
               validator: (value: string) => getVietQrDescriptionValidationError(sanitizeVietQrDescriptionInput(value)) !== 'contentLength',
             },
           ]);""",
-              ),
-              (
-                  """  if (contentParam) {
-            description.value = contentParam.trim();
-          }""",
-                  """  if (contentParam) {
+              'description validation',
+          )
+
+          replace_once(
+              r"  if \(contentParam\) \{\n    description\.value = contentParam\.trim\(\);\n  \}",
+              """  if (contentParam) {
             setDescriptionFromExternal(contentParam.trim());
           }""",
-              ),
-              (
-                  """function scheduleUrlSync() {
-            if (!urlSyncReady || typeof window === 'undefined') {
-              return;
-            }
+              'URL restore',
+          )
 
-            if (urlSyncTimer !== undefined) {
-              window.clearTimeout(urlSyncTimer);
-            }
-            urlSyncTimer = window.setTimeout(() => {
-              syncFormToUrl();
-            }, 120);
-          }
-
-          watch(qrPayload, async (payload) => {""",
-                  """function scheduleUrlSync() {
-            if (!urlSyncReady || typeof window === 'undefined') {
-              return;
-            }
-
-            if (urlSyncTimer !== undefined) {
-              window.clearTimeout(urlSyncTimer);
-            }
-            urlSyncTimer = window.setTimeout(() => {
-              syncFormToUrl();
-            }, 120);
-          }
+          marker = "\nwatch(qrPayload, async (payload) => {"
+          if marker not in text:
+              raise SystemExit('QR watcher marker not found')
+          debounce_helpers = """
 
           function clearDescriptionNormalizeTimer() {
             if (descriptionNormalizeTimer !== undefined && typeof window !== 'undefined') {
@@ -147,44 +120,34 @@ jobs:
             descriptionValue.value = sanitized;
             description.value = sanitized;
           }
+          """
+          text = text.replace(marker, debounce_helpers + marker, 1)
 
-          watch(qrPayload, async (payload) => {""",
-              ),
-              (
-                  """  description.value = '';
-
-            window.localStorage.removeItem(`${STORAGE_PREFIX}:bank`);""",
-                  """  setDescriptionFromExternal('');
+          replace_once(
+              r"  description\.value = '';\n\n  window\.localStorage\.removeItem\(`\$\{STORAGE_PREFIX\}:bank`\);",
+              """  setDescriptionFromExternal('');
 
             window.localStorage.removeItem(`${STORAGE_PREFIX}:bank`);""",
-              ),
-              (
-                  """              <c-input-text
-                        v-model:value=\"description\"
-                        :label=\"t('contentLabel')\"""",
-                  """              <c-input-text
-                        v-model:value=\"descriptionInput\"
-                        :label=\"t('contentLabel')\"""",
-              ),
-              (
-                  """onBeforeUnmount(() => {
-            if (urlSyncTimer !== undefined) {
-              window.clearTimeout(urlSyncTimer);
-            }
-            shareImageRenderId += 1;""",
-                  """onBeforeUnmount(() => {
+              'reset form',
+          )
+
+          replace_once(
+              r"v-model:value=\"description\"\n\s+:label=\"t\('contentLabel'\)\"",
+              """v-model:value="descriptionInput"
+                :label="t('contentLabel')"""",
+              'template model',
+          )
+
+          replace_once(
+              r"onBeforeUnmount\(\(\) => \{\n  if \(urlSyncTimer !== undefined\) \{\n    window\.clearTimeout\(urlSyncTimer\);\n  \}\n  shareImageRenderId \+= 1;",
+              """onBeforeUnmount(() => {
             if (urlSyncTimer !== undefined) {
               window.clearTimeout(urlSyncTimer);
             }
             clearDescriptionNormalizeTimer();
             shareImageRenderId += 1;""",
-              ),
-          ]
-
-          for old, new in replacements:
-              if old not in text:
-                  raise SystemExit(f'Expected block not found:\n{old[:160]}')
-              text = text.replace(old, new, 1)
+              'unmount cleanup',
+          )
 
           path.write_text(text, encoding='utf-8')
           PY
