@@ -9,14 +9,7 @@ function createResponse(version?: string, ok = true) {
   };
 }
 
-function createChecker({
-  currentVersion = 'deploy-v2',
-  serverVersion = 'deploy-v2',
-  online = true,
-  serviceWorkerSupported = true,
-  registrationExists = true,
-  responseOk = true,
-}: {
+function createChecker(options: {
   currentVersion?: string
   serverVersion?: string
   online?: boolean
@@ -24,6 +17,13 @@ function createChecker({
   registrationExists?: boolean
   responseOk?: boolean
 } = {}) {
+  const currentVersion = 'currentVersion' in options ? options.currentVersion : 'deploy-v2';
+  const serverVersion = 'serverVersion' in options ? options.serverVersion : 'deploy-v2';
+  const online = options.online ?? true;
+  const serviceWorkerSupported = options.serviceWorkerSupported ?? true;
+  const registrationExists = options.registrationExists ?? true;
+  const responseOk = options.responseOk ?? true;
+
   const update = vi.fn().mockResolvedValue(undefined);
   const reload = vi.fn();
   const fetchVersion = vi.fn().mockResolvedValue(createResponse(serverVersion, responseOk));
