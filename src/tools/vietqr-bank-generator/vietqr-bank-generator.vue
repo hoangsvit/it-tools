@@ -348,7 +348,7 @@ function scheduleUrlSync() {
     window.clearTimeout(urlSyncTimer);
   }
   urlSyncTimer = window.setTimeout(() => {
-    void syncFormToUrl();
+    syncFormToUrl();
   }, 120);
 }
 
