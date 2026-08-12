@@ -105,10 +105,12 @@ const selectedBankBin = ref('');
 const accountNo = ref('');
 const amount = ref('');
 const descriptionValue = ref('');
-const description = computed({
+const description = ref('');
+const descriptionInput = computed({
   get: () => descriptionValue.value,
   set: (value: string) => {
-    descriptionValue.value = sanitizeVietQrDescriptionInput(value);
+    descriptionValue.value = value;
+    scheduleDescriptionNormalization();
   },
 });
 const qrDataUrl = ref('');
@@ -120,6 +122,8 @@ const shareImageRendering = ref(false);
 let shareImageRenderId = 0;
 let urlSyncReady = false;
 let urlSyncTimer: number | undefined;
+let descriptionNormalizeTimer: number | undefined;
+const DESCRIPTION_NORMALIZE_DELAY_MS = 600;
 
 const themeOptions = Object.entries(THEME_PRESETS).map(([value, theme]) => ({
   value: value as ThemeName,
@@ -217,11 +221,11 @@ const amountValidationRules = computed(() => [{
 const descriptionValidationRules = computed(() => [
   {
     message: t('validation.contentCharset'),
-    validator: (value: string) => getVietQrDescriptionValidationError(value) !== 'contentCharset',
+    validator: (value: string) => getVietQrDescriptionValidationError(sanitizeVietQrDescriptionInput(value)) !== 'contentCharset',
   },
   {
     message: t('validation.contentLength'),
-    validator: (value: string) => getVietQrDescriptionValidationError(value) !== 'contentLength',
+    validator: (value: string) => getVietQrDescriptionValidationError(sanitizeVietQrDescriptionInput(value)) !== 'contentLength',
   },
 ]);
 
@@ -305,8 +309,8 @@ function applyUrlParameters() {
   }
 
   if (contentParam) {
-    description.value = contentParam.trim();
-  }
+  setDescriptionFromExternal(contentParam.trim());
+}
 
   if (themeParam) {
     selectedTheme.value = themeParam in THEME_PRESETS
@@ -368,6 +372,42 @@ function scheduleUrlSync() {
   urlSyncTimer = window.setTimeout(() => {
     syncFormToUrl();
   }, 120);
+}
+
+
+function clearDescriptionNormalizeTimer() {
+  if (descriptionNormalizeTimer !== undefined && typeof window !== 'undefined') {
+    window.clearTimeout(descriptionNormalizeTimer);
+    descriptionNormalizeTimer = undefined;
+  }
+}
+
+function commitDescriptionInput() {
+  clearDescriptionNormalizeTimer();
+  const sanitized = sanitizeVietQrDescriptionInput(descriptionValue.value);
+  descriptionValue.value = sanitized;
+  description.value = sanitized;
+}
+
+function scheduleDescriptionNormalization() {
+  if (typeof window === 'undefined') {
+    const sanitized = sanitizeVietQrDescriptionInput(descriptionValue.value);
+    descriptionValue.value = sanitized;
+    description.value = sanitized;
+    return;
+  }
+
+  clearDescriptionNormalizeTimer();
+  descriptionNormalizeTimer = window.setTimeout(() => {
+    commitDescriptionInput();
+  }, DESCRIPTION_NORMALIZE_DELAY_MS);
+}
+
+function setDescriptionFromExternal(value: string) {
+  clearDescriptionNormalizeTimer();
+  const sanitized = sanitizeVietQrDescriptionInput(value);
+  descriptionValue.value = sanitized;
+  description.value = sanitized;
 }
 
 watch(qrPayload, async (payload) => {
@@ -445,7 +485,7 @@ function resetForm() {
   selectedBankBin.value = '';
   accountNo.value = '';
   amount.value = '';
-  description.value = '';
+  setDescriptionFromExternal('');
 
   window.localStorage.removeItem(`${STORAGE_PREFIX}:bank`);
   clearSensitiveStorage();
@@ -883,6 +923,7 @@ onBeforeUnmount(() => {
   if (urlSyncTimer !== undefined) {
     window.clearTimeout(urlSyncTimer);
   }
+  clearDescriptionNormalizeTimer();
   shareImageRenderId += 1;
   revokeShareImageUrl();
 });
@@ -949,7 +990,7 @@ onBeforeUnmount(() => {
               />
 
               <c-input-text
-                v-model:value="description"
+                v-model:value="descriptionInput"
                 :label="t('contentLabel')"
                 :placeholder="t('contentPlaceholder')"
                 :validation-rules="descriptionValidationRules"
