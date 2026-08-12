@@ -18,8 +18,9 @@ import CollapsibleToolMenu from '@/components/CollapsibleToolMenu.vue';
 
 const themeVars = useThemeVars();
 const styleStore = useStyleStore();
-const version = config.app.version;
-const commitSha = config.app.lastCommitSha.slice(0, 7);
+const deployVersion = import.meta.env.VITE_DEPLOY_VERSION;
+const deployCommit = import.meta.env.VITE_DEPLOY_COMMIT.slice(0, 7);
+const deployLabel = deployVersion.startsWith('local-') ? 'local' : deployVersion.slice(0, 8);
 
 const { tracker } = useTracker();
 const { t } = useI18n();
@@ -64,22 +65,20 @@ const tools = computed<ToolCategory[]>(() => [
         <CollapsibleToolMenu :tools-by-category="tools" />
 
         <div class="footer">
-          <div>
-            IT-Tools
+          <div class="build-meta">
+            <span>ePlus.DEV Tools</span>
+            <span class="build-chip" :title="deployVersion">Build {{ deployLabel }}</span>
 
-            <c-link target="_blank" rel="noopener" :href="`https://github.com/hoangsvit/it-tools/tree/v${version}`">
-              v{{ version }}
-            </c-link>
-
-            <template v-if="commitSha && commitSha.length > 0">
-              -
+            <template v-if="deployCommit">
+              <span aria-hidden="true">·</span>
               <c-link
                 target="_blank"
                 rel="noopener"
                 type="primary"
-                :href="`https://github.com/hoangsvit/it-tools/tree/${commitSha}`"
+                :href="`https://github.com/hoangsvit/it-tools/commit/${deployCommit}`"
+                :title="`Git commit ${deployCommit}`"
               >
-                {{ commitSha }}
+                {{ deployCommit }}
               </c-link>
             </template>
           </div>
@@ -169,6 +168,28 @@ const tools = computed<ToolCategory[]>(() => [
   color: #838587;
   margin-top: 20px;
   padding: 20px 0;
+}
+
+.build-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 3px;
+}
+
+.build-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 1px 7px;
+  border: 1px solid rgba(24, 160, 88, 0.25);
+  border-radius: 999px;
+  color: #18a058;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .upstream-credit {
