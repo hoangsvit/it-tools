@@ -3,20 +3,12 @@ export interface VersionManifestResponse {
   json: () => Promise<unknown>
 }
 
-export interface ServiceWorkerRegistrationLike {
-  update: () => Promise<unknown>
-}
-
 export interface DeployVersionCheckerOptions {
   currentVersion?: string
   versionManifestUrl: string
   origin: string
-  baseUrl: string
   isOnline: () => boolean
   fetchVersion: (url: URL, init: RequestInit) => Promise<VersionManifestResponse>
-  hasServiceWorker: () => boolean
-  getRegistration: (scope: string) => Promise<ServiceWorkerRegistrationLike | undefined>
-  updateServiceWorker: () => Promise<void>
   reload: () => void
   now?: () => number
 }
@@ -34,12 +26,8 @@ export function createDeployVersionChecker({
   currentVersion,
   versionManifestUrl,
   origin,
-  baseUrl,
   isOnline,
   fetchVersion,
-  hasServiceWorker,
-  getRegistration,
-  updateServiceWorker,
   reload,
   now = Date.now,
 }: DeployVersionCheckerOptions) {
@@ -73,20 +61,10 @@ export function createDeployVersionChecker({
         return;
       }
 
-      // A legacy visitor may have no deploy version embedded in the running bundle.
-      // Any valid server version is therefore considered newer and triggers recovery.
-      if (!hasServiceWorker()) {
-        reload();
-        return;
-      }
-
-      const registration = await getRegistration(baseUrl);
-      if (!registration) {
-        reload();
-        return;
-      }
-
-      await updateServiceWorker();
+      // HTML is served with no-store and application assets are content-hashed.
+      // Reloading directly is therefore enough to move the browser to the new
+      // deploy without depending on Service Worker lifecycle timing.
+      reload();
     }
     catch {
       // Keep the current app usable if the version endpoint is temporarily unavailable.
