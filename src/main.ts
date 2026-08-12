@@ -14,49 +14,57 @@ import router from './router';
 import { installGoogleAnalytics } from './plugins/google-analytics.plugin';
 import { i18nPlugin } from './plugins/i18n.plugin';
 
-const SERVICE_WORKER_UPDATE_INTERVAL_MS = 15 * 60 * 1000;
+const CURRENT_DEPLOY_VERSION = import.meta.env.VITE_DEPLOY_VERSION;
+const VERSION_MANIFEST_URL = `${import.meta.env.BASE_URL}version.json`;
 
-registerSW({
-  immediate: true,
-  onRegisteredSW(swUrl, registration) {
-    if (!registration) {
+registerSW({ immediate: true });
+
+let versionCheckRunning = false;
+
+async function checkDeployVersion() {
+  if (versionCheckRunning || !navigator.onLine) {
+    return;
+  }
+
+  versionCheckRunning = true;
+
+  try {
+    const versionUrl = new URL(VERSION_MANIFEST_URL, window.location.origin);
+    versionUrl.searchParams.set('_', Date.now().toString());
+
+    const response = await fetch(versionUrl, {
+      cache: 'no-store',
+      headers: {
+        'cache-control': 'no-cache',
+        pragma: 'no-cache',
+      },
+    });
+
+    if (!response.ok) {
       return;
     }
 
-    const checkForUpdate = async () => {
-      if (!navigator.onLine || registration.installing) {
-        return;
-      }
+    const manifest = await response.json() as { version?: string };
+    if (!manifest.version || manifest.version === CURRENT_DEPLOY_VERSION) {
+      return;
+    }
 
-      try {
-        const response = await fetch(swUrl, {
-          cache: 'no-store',
-          headers: {
-            'cache-control': 'no-cache',
-          },
-        });
+    const registration = await navigator.serviceWorker.getRegistration(import.meta.env.BASE_URL);
+    await registration?.update();
+  }
+  catch {
+    // Keep the current app usable if the version endpoint is temporarily unavailable.
+  }
+  finally {
+    versionCheckRunning = false;
+  }
+}
 
-        if (response.ok) {
-          await registration.update();
-        }
-      }
-      catch {
-        // Keep the current app available if the update check is temporarily offline.
-      }
-    };
-
-    void checkForUpdate();
-    window.setInterval(() => {
-      void checkForUpdate();
-    }, SERVICE_WORKER_UPDATE_INTERVAL_MS);
-
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        void checkForUpdate();
-      }
-    });
-  },
+void checkDeployVersion();
+window.addEventListener('pageshow', () => {
+  void checkDeployVersion();
 });
+
 installGoogleAnalytics({ router });
 
 const app = createApp(App);
