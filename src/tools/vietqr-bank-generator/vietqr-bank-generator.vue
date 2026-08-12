@@ -5,6 +5,7 @@ import bankDirectory from './banks.json';
 import { vietQrMessages } from './vietqr-bank-generator.i18n';
 import {
   VIETQR_MAX_AMOUNT,
+  VIETQR_MAX_DESCRIPTION_LENGTH,
   type VietQrBank,
   bankSearchLabel,
   formatVietQrAmount,
@@ -24,6 +25,12 @@ const COPYRIGHT_YEAR = new Date().getFullYear();
 const SENSITIVE_STORAGE_KEYS = ['account', 'amount', 'content'] as const;
 const CANVAS_FONT_FAMILY = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Arial, sans-serif';
 const CANVAS_MONO_FONT_FAMILY = 'ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace';
+const DEFAULT_QR_FOREGROUND = '#111827';
+const DEFAULT_QR_BACKGROUND = '#ffffff';
+const DEFAULT_QR_MODULE_STYLE: QrModuleStyle = 'square';
+const DEFAULT_QR_EYE_STYLE: QrEyeStyle = 'square';
+const DEFAULT_QR_ERROR_CORRECTION: QrErrorCorrection = 'M';
+const DEFAULT_QR_SIZE = 512;
 
 const THEME_PRESETS = {
   purple: {
@@ -90,6 +97,9 @@ const THEME_PRESETS = {
 
 type ThemeName = keyof typeof THEME_PRESETS;
 type CopyState = 'idle' | 'copied' | 'unsupported' | 'failed';
+type QrModuleStyle = 'square' | 'rounded' | 'dots';
+type QrEyeStyle = 'square' | 'rounded' | 'circle';
+type QrErrorCorrection = 'L' | 'M' | 'Q' | 'H';
 
 const { t, locale } = useI18n({
   useScope: 'local',
@@ -109,17 +119,25 @@ const description = ref('');
 const descriptionInput = computed({
   get: () => descriptionValue.value,
   set: (value: string) => {
-    descriptionValue.value = value;
+    descriptionValue.value = value.slice(0, VIETQR_MAX_DESCRIPTION_LENGTH);
     scheduleDescriptionNormalization();
   },
 });
 const qrDataUrl = ref('');
 const copyState = ref<CopyState>('idle');
 const selectedTheme = ref<ThemeName>('purple');
+const qrForeground = ref(DEFAULT_QR_FOREGROUND);
+const qrBackground = ref(DEFAULT_QR_BACKGROUND);
+const qrModuleStyle = ref<QrModuleStyle>(DEFAULT_QR_MODULE_STYLE);
+const qrEyeStyle = ref<QrEyeStyle>(DEFAULT_QR_EYE_STYLE);
+const qrErrorCorrection = ref<QrErrorCorrection>(DEFAULT_QR_ERROR_CORRECTION);
+const qrSize = ref(DEFAULT_QR_SIZE);
+const qrCenterLogo = ref(false);
 const shareImageBlob = shallowRef<Blob | null>(null);
 const shareImageObjectUrl = ref('');
 const shareImageRendering = ref(false);
 let shareImageRenderId = 0;
+let qrRenderId = 0;
 let urlSyncReady = false;
 let urlSyncTimer: number | undefined;
 let descriptionNormalizeTimer: number | undefined;
@@ -181,6 +199,7 @@ const amountPlaceholder = computed(() => isVietnameseLocale.value
 const amountValidationMessage = computed(() => isVietnameseLocale.value
   ? `Số tiền phải là số nguyên VND dương, tối đa ${formattedMaximumAmount.value}.`
   : t('validation.amount'));
+const descriptionCharacterCount = computed(() => descriptionValue.value.length);
 
 const validation = computed(() => {
   const result = validateVietQrInput({
@@ -293,6 +312,13 @@ function applyUrlParameters() {
   const amountParam = queryValue('amount');
   const contentParam = queryValue('content', 'description');
   const themeParam = queryValue('theme').toLowerCase();
+  const qrColorParam = queryValue('qrColor');
+  const qrBgParam = queryValue('qrBg');
+  const qrStyleParam = queryValue('qrStyle');
+  const eyeStyleParam = queryValue('eyeStyle');
+  const eccParam = queryValue('ecc').toUpperCase();
+  const qrSizeParam = Number(queryValue('qrSize'));
+  const logoParam = queryValue('logo');
 
   if (bankParam) {
     selectedBankBin.value = resolveBankParameter(bankParam);
@@ -317,11 +343,32 @@ function applyUrlParameters() {
       ? themeParam as ThemeName
       : 'purple';
   }
+  if (/^#[0-9a-f]{6}$/i.test(qrColorParam)) {
+    qrForeground.value = qrColorParam.toLowerCase();
+  }
+  if (/^#[0-9a-f]{6}$/i.test(qrBgParam)) {
+    qrBackground.value = qrBgParam.toLowerCase();
+  }
+  if (['square', 'rounded', 'dots'].includes(qrStyleParam)) {
+    qrModuleStyle.value = qrStyleParam as QrModuleStyle;
+  }
+  if (['square', 'rounded', 'circle'].includes(eyeStyleParam)) {
+    qrEyeStyle.value = eyeStyleParam as QrEyeStyle;
+  }
+  if (['L', 'M', 'Q', 'H'].includes(eccParam)) {
+    qrErrorCorrection.value = eccParam as QrErrorCorrection;
+  }
+  if (Number.isFinite(qrSizeParam) && qrSizeParam >= 256 && qrSizeParam <= 1024) {
+    qrSize.value = Math.round(qrSizeParam / 64) * 64;
+  }
+  if (logoParam) {
+    qrCenterLogo.value = logoParam === '1';
+  }
 }
 
 function makeFormQuery() {
   const query = { ...route.query };
-  for (const key of ['bank', 'bin', 'bankId', 'account', 'accountNo', 'amount', 'content', 'description', 'theme']) {
+  for (const key of ['bank', 'bin', 'bankId', 'account', 'accountNo', 'amount', 'content', 'description', 'theme', 'qrColor', 'qrBg', 'qrStyle', 'eyeStyle', 'ecc', 'qrSize', 'logo']) {
     delete query[key];
   }
 
@@ -339,6 +386,27 @@ function makeFormQuery() {
   }
   if (selectedTheme.value !== 'purple') {
     query.theme = selectedTheme.value;
+  }
+  if (qrForeground.value !== DEFAULT_QR_FOREGROUND) {
+    query.qrColor = qrForeground.value;
+  }
+  if (qrBackground.value !== DEFAULT_QR_BACKGROUND) {
+    query.qrBg = qrBackground.value;
+  }
+  if (qrModuleStyle.value !== DEFAULT_QR_MODULE_STYLE) {
+    query.qrStyle = qrModuleStyle.value;
+  }
+  if (qrEyeStyle.value !== DEFAULT_QR_EYE_STYLE) {
+    query.eyeStyle = qrEyeStyle.value;
+  }
+  if (qrErrorCorrection.value !== DEFAULT_QR_ERROR_CORRECTION) {
+    query.ecc = qrErrorCorrection.value;
+  }
+  if (qrSize.value !== DEFAULT_QR_SIZE) {
+    query.qrSize = String(qrSize.value);
+  }
+  if (qrCenterLogo.value) {
+    query.logo = '1';
   }
 
   return query;
@@ -409,33 +477,163 @@ function setDescriptionFromExternal(value: string) {
   description.value = sanitized;
 }
 
-watch(qrPayload, async (payload) => {
-  if (!payload) {
-    qrDataUrl.value = '';
+function isFinderModule(row: number, column: number, moduleCount: number) {
+  return (row < 7 && column < 7)
+    || (row < 7 && column >= moduleCount - 7)
+    || (row >= moduleCount - 7 && column < 7);
+}
+
+function drawQrModule(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  moduleSize: number,
+  style: QrModuleStyle,
+) {
+  context.fillStyle = qrForeground.value;
+  if (style === 'square') {
+    context.fillRect(x, y, moduleSize + 0.05, moduleSize + 0.05);
     return;
   }
 
-  try {
-    const rendered = await QRCode.toDataURL(payload, {
-      width: 720,
-      margin: 4,
-      errorCorrectionLevel: 'M',
-      color: {
-        dark: '#111827',
-        light: '#ffffff',
-      },
-    });
+  const inset = style === 'dots' ? moduleSize * 0.12 : moduleSize * 0.06;
+  const size = moduleSize - inset * 2;
+  if (style === 'dots') {
+    context.beginPath();
+    context.arc(x + moduleSize / 2, y + moduleSize / 2, size / 2, 0, Math.PI * 2);
+    context.fill();
+    return;
+  }
 
-    if (qrPayload.value === payload) {
-      qrDataUrl.value = rendered;
+  fillRoundedRect(context, x + inset, y + inset, size, size, moduleSize * 0.28, qrForeground.value);
+}
+
+function drawQrEye(
+  context: CanvasRenderingContext2D,
+  startRow: number,
+  startColumn: number,
+  moduleSize: number,
+  margin: number,
+) {
+  const x = (margin + startColumn) * moduleSize;
+  const y = (margin + startRow) * moduleSize;
+  const outer = moduleSize * 7;
+  const middle = moduleSize * 5;
+  const center = moduleSize * 3;
+  let outerRadius = 0;
+  if (qrEyeStyle.value === 'rounded') {
+    outerRadius = moduleSize * 1.6;
+  }
+  else if (qrEyeStyle.value === 'circle') {
+    outerRadius = outer / 2;
+  }
+
+  if (outerRadius === 0) {
+    context.fillStyle = qrForeground.value;
+    context.fillRect(x, y, outer, outer);
+    context.fillStyle = qrBackground.value;
+    context.fillRect(x + moduleSize, y + moduleSize, middle, middle);
+    context.fillStyle = qrForeground.value;
+    context.fillRect(x + moduleSize * 2, y + moduleSize * 2, center, center);
+    return;
+  }
+
+  fillRoundedRect(context, x, y, outer, outer, outerRadius, qrForeground.value);
+  fillRoundedRect(context, x + moduleSize, y + moduleSize, middle, middle, Math.max(moduleSize, outerRadius - moduleSize), qrBackground.value);
+  const centerRadius = qrEyeStyle.value === 'circle' ? center / 2 : moduleSize * 0.8;
+  fillRoundedRect(context, x + moduleSize * 2, y + moduleSize * 2, center, center, centerRadius, qrForeground.value);
+}
+
+async function renderStyledQr(payload: string) {
+  const generated = QRCode.create(payload, { errorCorrectionLevel: qrErrorCorrection.value });
+  const moduleCount = generated.modules.size;
+  const margin = 4;
+  const canvas = document.createElement('canvas');
+  canvas.width = qrSize.value;
+  canvas.height = qrSize.value;
+  const context = canvas.getContext('2d');
+  if (!context) {
+    return '';
+  }
+
+  context.imageSmoothingEnabled = false;
+  context.fillStyle = qrBackground.value;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  const moduleSize = canvas.width / (moduleCount + margin * 2);
+
+  for (let row = 0; row < moduleCount; row += 1) {
+    for (let column = 0; column < moduleCount; column += 1) {
+      if (isFinderModule(row, column, moduleCount)) {
+        continue;
+      }
+      if (!generated.modules.data[row * moduleCount + column]) {
+        continue;
+      }
+      drawQrModule(
+        context,
+        (margin + column) * moduleSize,
+        (margin + row) * moduleSize,
+        moduleSize,
+        qrModuleStyle.value,
+      );
     }
   }
-  catch {
-    if (qrPayload.value === payload) {
+
+  drawQrEye(context, 0, 0, moduleSize, margin);
+  drawQrEye(context, 0, moduleCount - 7, moduleSize, margin);
+  drawQrEye(context, moduleCount - 7, 0, moduleSize, margin);
+
+  if (qrCenterLogo.value && selectedBank.value?.logo) {
+    const logo = await loadImage(selectedBank.value.logo).catch(() => null);
+    if (logo) {
+      const logoBoxSize = canvas.width * 0.18;
+      const logoSize = logoBoxSize * 0.74;
+      fillRoundedRect(
+        context,
+        (canvas.width - logoBoxSize) / 2,
+        (canvas.height - logoBoxSize) / 2,
+        logoBoxSize,
+        logoBoxSize,
+        logoBoxSize * 0.22,
+        qrBackground.value,
+      );
+      drawContainImage(
+        context,
+        logo,
+        (canvas.width - logoSize) / 2,
+        (canvas.height - logoSize) / 2,
+        logoSize,
+        logoSize,
+      );
+    }
+  }
+
+  return canvas.toDataURL('image/png');
+}
+
+watch(
+  [qrPayload, qrForeground, qrBackground, qrModuleStyle, qrEyeStyle, qrErrorCorrection, qrSize, qrCenterLogo],
+  async ([payload]) => {
+    const renderId = ++qrRenderId;
+    if (!payload) {
       qrDataUrl.value = '';
+      return;
     }
-  }
-}, { immediate: true });
+
+    try {
+      const rendered = await renderStyledQr(payload);
+      if (renderId === qrRenderId) {
+        qrDataUrl.value = rendered;
+      }
+    }
+    catch {
+      if (renderId === qrRenderId) {
+        qrDataUrl.value = '';
+      }
+    }
+  },
+  { immediate: true },
+);
 
 watch(selectedBankBin, (value) => {
   if (typeof window === 'undefined') {
@@ -461,7 +659,20 @@ watch(() => route.query, () => {
 }, { deep: true });
 
 watch(
-  [selectedBankBin, accountNo, amount, description, selectedTheme],
+  [
+    selectedBankBin,
+    accountNo,
+    amount,
+    description,
+    selectedTheme,
+    qrForeground,
+    qrBackground,
+    qrModuleStyle,
+    qrEyeStyle,
+    qrErrorCorrection,
+    qrSize,
+    qrCenterLogo,
+  ],
   scheduleUrlSync,
 );
 
@@ -488,6 +699,15 @@ function resetForm() {
 
   window.localStorage.removeItem(`${STORAGE_PREFIX}:bank`);
   clearSensitiveStorage();
+}
+function resetDesign() {
+  qrForeground.value = DEFAULT_QR_FOREGROUND;
+  qrBackground.value = DEFAULT_QR_BACKGROUND;
+  qrModuleStyle.value = DEFAULT_QR_MODULE_STYLE;
+  qrEyeStyle.value = DEFAULT_QR_EYE_STYLE;
+  qrErrorCorrection.value = DEFAULT_QR_ERROR_CORRECTION;
+  qrSize.value = DEFAULT_QR_SIZE;
+  qrCenterLogo.value = false;
 }
 
 function loadImage(source: string, crossOrigin = false) {
@@ -988,13 +1208,18 @@ onBeforeUnmount(() => {
                 raw-text
               />
 
-              <c-input-text
-                v-model:value="descriptionInput"
-                :label="t('contentLabel')"
-                :placeholder="t('contentPlaceholder')"
-                :validation-rules="descriptionValidationRules"
-                raw-text
-              />
+              <div class="content-field">
+                <c-input-text
+                  v-model:value="descriptionInput"
+                  :label="t('contentLabel')"
+                  :placeholder="t('contentPlaceholder')"
+                  :validation-rules="descriptionValidationRules"
+                  raw-text
+                />
+                <div class="content-counter">
+                  {{ descriptionCharacterCount }}/{{ VIETQR_MAX_DESCRIPTION_LENGTH }}
+                </div>
+              </div>
             </div>
 
             <n-alert v-if="!validation.valid && (selectedBankBin || accountNo || amount || description)" type="error" :bordered="false">
@@ -1013,6 +1238,75 @@ onBeforeUnmount(() => {
           </div>
         </c-card>
 
+        <c-card :title="t('designTitle')">
+          <div class="design-stack">
+            <div class="design-hint">{{ t('designHint') }}</div>
+
+            <div class="design-color-grid">
+              <label class="design-control">
+                <span>{{ t('qrColor') }}</span>
+                <div class="color-control">
+                  <input v-model="qrForeground" type="color" aria-label="QR color">
+                  <code>{{ qrForeground.toUpperCase() }}</code>
+                </div>
+              </label>
+              <label class="design-control">
+                <span>{{ t('backgroundColor') }}</span>
+                <div class="color-control">
+                  <input v-model="qrBackground" type="color" aria-label="QR background color">
+                  <code>{{ qrBackground.toUpperCase() }}</code>
+                </div>
+              </label>
+            </div>
+
+            <div class="design-section">
+              <div class="design-label">{{ t('moduleStyle') }}</div>
+              <div class="design-options">
+                <button type="button" class="design-option" :class="{ active: qrModuleStyle === 'square' }" @click="qrModuleStyle = 'square'">{{ t('square') }}</button>
+                <button type="button" class="design-option" :class="{ active: qrModuleStyle === 'rounded' }" @click="qrModuleStyle = 'rounded'">{{ t('rounded') }}</button>
+                <button type="button" class="design-option" :class="{ active: qrModuleStyle === 'dots' }" @click="qrModuleStyle = 'dots'">{{ t('dots') }}</button>
+              </div>
+            </div>
+
+            <div class="design-section">
+              <div class="design-label">{{ t('eyeStyle') }}</div>
+              <div class="design-options">
+                <button type="button" class="design-option" :class="{ active: qrEyeStyle === 'square' }" @click="qrEyeStyle = 'square'">{{ t('square') }}</button>
+                <button type="button" class="design-option" :class="{ active: qrEyeStyle === 'rounded' }" @click="qrEyeStyle = 'rounded'">{{ t('rounded') }}</button>
+                <button type="button" class="design-option" :class="{ active: qrEyeStyle === 'circle' }" @click="qrEyeStyle = 'circle'">{{ t('circle') }}</button>
+              </div>
+            </div>
+
+            <div class="design-settings-grid">
+              <label class="design-control">
+                <span>{{ t('errorCorrection') }}</span>
+                <select v-model="qrErrorCorrection" class="design-select">
+                  <option value="L">L (~7%)</option>
+                  <option value="M">M (~15%)</option>
+                  <option value="Q">Q (~25%)</option>
+                  <option value="H">H (~30%)</option>
+                </select>
+                <small>{{ t('errorCorrectionHint') }}</small>
+              </label>
+              <label class="design-control">
+                <span>{{ t('qrSizeLabel') }}: {{ qrSize }}px</span>
+                <input v-model.number="qrSize" class="design-range" type="range" min="256" max="1024" step="64">
+              </label>
+            </div>
+
+            <label class="logo-toggle">
+              <input v-model="qrCenterLogo" type="checkbox">
+              <span>
+                <strong>{{ t('centerLogo') }}</strong>
+                <small>{{ t('centerLogoHint') }}</small>
+              </span>
+            </label>
+
+            <div class="form-actions">
+              <c-button @click="resetDesign">{{ t('resetDesign') }}</c-button>
+            </div>
+          </div>
+        </c-card>
         <c-card v-if="selectedBankInfo.length" :title="t('technicalTitle')">
           <div class="technical-hint">
             {{ t('technicalHint') }}
@@ -1273,6 +1567,144 @@ onBeforeUnmount(() => {
   margin-bottom: 0;
 }
 
+.content-field {
+  min-width: 0;
+}
+
+.content-counter {
+  margin-top: 5px;
+  opacity: 0.55;
+  font-size: 11px;
+  text-align: right;
+}
+
+.design-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.design-hint {
+  opacity: 0.65;
+  font-size: 13px;
+}
+
+.design-color-grid,
+.design-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.design-control {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.design-control small,
+.logo-toggle small {
+  opacity: 0.58;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.color-control {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 12px;
+}
+
+.color-control input[type='color'] {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.color-control code {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+.design-label {
+  margin-bottom: 9px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.design-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.design-option {
+  min-height: 36px;
+  padding: 7px 13px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.design-option.active {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+  font-weight: 700;
+}
+
+.design-select {
+  width: 100%;
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+}
+
+.design-range {
+  width: 100%;
+}
+
+.logo-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.logo-toggle input {
+  margin-top: 3px;
+}
+
+.logo-toggle span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
 .preview-column {
   min-width: 0;
 }
@@ -1725,6 +2157,11 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 480px) {
+  .design-color-grid,
+  .design-settings-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .bank-summary {
     align-items: flex-start;
   }
