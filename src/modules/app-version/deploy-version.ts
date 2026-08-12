@@ -1,23 +1,23 @@
 export interface VersionManifestResponse {
-  ok: boolean;
-  json: () => Promise<unknown>;
+  ok: boolean,
+  json: () => Promise<unknown>,
 }
 
 export interface ServiceWorkerRegistrationLike {
-  update: () => Promise<unknown>;
+  update: () => Promise<unknown>,
 }
 
 export interface DeployVersionCheckerOptions {
-  currentVersion?: string;
-  versionManifestUrl: string;
-  origin: string;
-  baseUrl: string;
-  isOnline: () => boolean;
-  fetchVersion: (url: URL, init: RequestInit) => Promise<VersionManifestResponse>;
-  hasServiceWorker: () => boolean;
-  getRegistration: (scope: string) => Promise<ServiceWorkerRegistrationLike | undefined>;
-  reload: () => void;
-  now?: () => number;
+  currentVersion?: string,
+  versionManifestUrl: string,
+  origin: string,
+  baseUrl: string,
+  isOnline: () => boolean,
+  fetchVersion: (url: URL, init: RequestInit) => Promise<VersionManifestResponse>,
+  hasServiceWorker: () => boolean,
+  getRegistration: (scope: string) => Promise<ServiceWorkerRegistrationLike | undefined>,
+  reload: () => void,
+  now?: () => number,
 }
 
 function getManifestVersion(manifest: unknown) {
