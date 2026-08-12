@@ -57,6 +57,20 @@ describe('VietQR bank generator service', () => {
     expect(parseVietQrAmountInput('1 234 567')).toBe('1234567');
   });
 
+  it('accepts a comma-formatted amount shown in the input field', () => {
+    expect(isValidVietQrAmount('371,891')).toBe(true);
+    expect(parseVietQrAmountInput('371,891')).toBe('371891');
+
+    const input = {
+      bankId: '970436',
+      accountNo: '123456789',
+      amount: '371,891',
+    };
+
+    expect(validateVietQrInput(input).valid).toBe(true);
+    expect(makeVietQrContent(input)).toContain('5406371891');
+  });
+
   it('preserves invalid amount input so validation can reject it', () => {
     expect(parseVietQrAmountInput('-100')).toBe('-100');
     expect(parseVietQrAmountInput('1.5')).toBe('1.5');
