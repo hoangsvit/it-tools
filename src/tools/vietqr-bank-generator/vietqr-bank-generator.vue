@@ -309,8 +309,8 @@ function applyUrlParameters() {
   }
 
   if (contentParam) {
-  setDescriptionFromExternal(contentParam.trim());
-}
+    setDescriptionFromExternal(contentParam.trim());
+  }
 
   if (themeParam) {
     selectedTheme.value = themeParam in THEME_PRESETS
@@ -373,7 +373,6 @@ function scheduleUrlSync() {
     syncFormToUrl();
   }, 120);
 }
-
 
 function clearDescriptionNormalizeTimer() {
   if (descriptionNormalizeTimer !== undefined && typeof window !== 'undefined') {
