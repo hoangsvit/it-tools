@@ -30,6 +30,7 @@ export interface Tool {
   origin?: ToolOrigin
   capabilities?: ToolCapability[]
   privacy?: ToolPrivacy
+  wideContent?: boolean
 }
 
 export interface ToolCategory {
