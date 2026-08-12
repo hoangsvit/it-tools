@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  VIETQR_MAX_AMOUNT,
   bankSearchLabel,
   formatVietQrAmount,
   getVietQrDescriptionValidationError,
@@ -10,6 +11,8 @@ import {
   matchesBankQuery,
   normalizeVietQrAmount,
   parseVietQrAmountInput,
+  parseVietQrAmountTyping,
+  sanitizeVietQrDescriptionInput,
   validateVietQrInput,
 } from './vietqr-bank-generator.service';
 
@@ -50,15 +53,26 @@ describe('VietQR bank generator service', () => {
     })).toBe('00020101021138540010A00000072701240006963388011034567891430208QRIBFTTA5303704540723451235802VN62220818thanh toan hoa don630445F2');
   });
 
-  it('normalizes and formats VND amounts', () => {
+  it('normalizes and formats VND amounts using locale grouping', () => {
     expect(normalizeVietQrAmount('001,234,567 VND')).toBe('1234567');
-    expect(formatVietQrAmount('001234567')).toBe('001,234,567');
+    expect(formatVietQrAmount('1234567', 'en-US')).toBe('1,234,567');
+    expect(formatVietQrAmount('1234567', 'vi-VN')).toBe('1.234.567');
     expect(parseVietQrAmountInput('1,234,567')).toBe('1234567');
+    expect(parseVietQrAmountInput('1.234.567')).toBe('1234567');
     expect(parseVietQrAmountInput('1 234 567')).toBe('1234567');
   });
 
-  it('accepts a comma-formatted amount shown in the input field', () => {
+  it('keeps live VND input stable while grouping separators move during typing', () => {
+    expect(parseVietQrAmountTyping('4,324')).toBe('4324');
+    expect(parseVietQrAmountTyping('4,3245')).toBe('43245');
+    expect(parseVietQrAmountTyping('43.2456')).toBe('432456');
+    expect(formatVietQrAmount(parseVietQrAmountTyping('4,3245'), 'vi-VN')).toBe('43.245');
+  });
+
+  it('accepts comma, dot and space formatted amounts', () => {
     expect(isValidVietQrAmount('371,891')).toBe(true);
+    expect(isValidVietQrAmount('371.891')).toBe(true);
+    expect(isValidVietQrAmount('371 891')).toBe(true);
     expect(parseVietQrAmountInput('371,891')).toBe('371891');
 
     const input = {
@@ -71,7 +85,7 @@ describe('VietQR bank generator service', () => {
     expect(makeVietQrContent(input)).toContain('5406371891');
   });
 
-  it('preserves invalid amount input so validation can reject it', () => {
+  it('preserves malformed persisted amounts so validation can reject them', () => {
     expect(parseVietQrAmountInput('-100')).toBe('-100');
     expect(parseVietQrAmountInput('1.5')).toBe('1.5');
     expect(parseVietQrAmountInput('1,,000')).toBe('1,,000');
@@ -97,7 +111,7 @@ describe('VietQR bank generator service', () => {
     })).toBe('');
   });
 
-  it('validates bank BIN, account identifiers and amount boundaries', () => {
+  it('validates bank BIN, account identifiers and the VietQR amount boundary', () => {
     expect(isValidVietQrBankId('970436')).toBe(true);
     expect(isValidVietQrBankId('97043')).toBe(false);
     expect(isValidVietQrBankId('VCB')).toBe(false);
@@ -106,10 +120,17 @@ describe('VietQR bank generator service', () => {
     expect(isValidVietQrAccount('12345678901234567890123456')).toBe(false);
     expect(isValidVietQrAccount('bad account!')).toBe(false);
 
-    expect(isValidVietQrAmount('9999999999999')).toBe(true);
+    expect(VIETQR_MAX_AMOUNT).toBe('9999999999999');
+    expect(isValidVietQrAmount(VIETQR_MAX_AMOUNT)).toBe(true);
     expect(isValidVietQrAmount('10000000000000')).toBe(false);
     expect(isValidVietQrAmount('0')).toBe(false);
     expect(isValidVietQrAmount('')).toBe(true);
+  });
+
+  it('normalizes Vietnamese transfer content to unaccented text and keeps spaces', () => {
+    expect(sanitizeVietQrDescriptionInput('trả tiền bảo hiểm')).toBe('tra tien bao hiem');
+    expect(sanitizeVietQrDescriptionInput('Thanh toán  BH-123!')).toBe('Thanh toan BH123');
+    expect(sanitizeVietQrDescriptionInput('noi\tdung\nchuyen khoan')).toBe('noi dung chuyen khoan');
   });
 
   it('validates transfer content length and charset separately', () => {
@@ -137,7 +158,7 @@ describe('VietQR bank generator service', () => {
     expect(result.errors).toEqual(['chooseBank', 'account', 'amount', 'contentCharset']);
   });
 
-  it('rejects malformed thousands separators instead of silently repairing them', () => {
+  it('rejects malformed thousands separators instead of silently repairing persisted values', () => {
     const result = validateVietQrInput({
       bankId: '970436',
       accountNo: '123456789',
