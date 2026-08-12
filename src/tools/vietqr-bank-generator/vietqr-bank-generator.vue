@@ -14,11 +14,14 @@ import {
   parseVietQrAmountInput,
   validateVietQrInput,
 } from './vietqr-bank-generator.service';
+import { stripVietnameseDiacritics } from '@/tools/vietnamese-text-normalizer/vietnamese-text-normalizer.service';
 import type { CKeyValueListItems } from '@/ui/c-key-value-list/c-key-value-list.types';
 
 const STORAGE_PREFIX = 'eplus-vietqr';
 const COPYRIGHT_YEAR = new Date().getFullYear();
 const SENSITIVE_STORAGE_KEYS = ['account', 'amount', 'content'] as const;
+const CANVAS_FONT_FAMILY = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Arial, sans-serif';
+const CANVAS_MONO_FONT_FAMILY = 'ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace';
 
 const THEME_PRESETS = {
   purple: {
@@ -91,6 +94,7 @@ const { t, locale } = useI18n({
   messages: vietQrMessages,
 });
 const route = useRoute();
+const router = useRouter();
 
 const banks = [...bankDirectory.data]
   .sort((a, b) => a.shortName.localeCompare(b.shortName)) as VietQrBank[];
@@ -98,13 +102,21 @@ const banks = [...bankDirectory.data]
 const selectedBankBin = ref('');
 const accountNo = ref('');
 const amount = ref('');
-const description = ref('');
+const descriptionValue = ref('');
+const description = computed({
+  get: () => descriptionValue.value,
+  set: (value: string) => {
+    descriptionValue.value = stripVietnameseDiacritics(value);
+  },
+});
 const qrDataUrl = ref('');
 const copyState = ref<CopyState>('idle');
 const selectedTheme = ref<ThemeName>('purple');
 const shareImageBlob = shallowRef<Blob | null>(null);
 const shareImageObjectUrl = ref('');
 let shareImageRenderId = 0;
+let urlSyncReady = false;
+let urlSyncTimer: number | undefined;
 
 const themeOptions = Object.entries(THEME_PRESETS).map(([value, theme]) => ({
   value: value as ThemeName,
@@ -275,7 +287,6 @@ function applyUrlParameters() {
   }
 
   if (contentParam) {
-    // Do not truncate URL input into a different, accidentally valid value.
     description.value = contentParam.trim();
   }
 
@@ -284,6 +295,61 @@ function applyUrlParameters() {
       ? themeParam as ThemeName
       : 'purple';
   }
+}
+
+function makeFormQuery() {
+  const query = { ...route.query };
+  for (const key of ['bank', 'bin', 'bankId', 'account', 'accountNo', 'amount', 'content', 'description', 'theme']) {
+    delete query[key];
+  }
+
+  if (selectedBankBin.value) {
+    query.bank = selectedBankBin.value;
+  }
+  if (accountNo.value) {
+    query.account = accountNo.value;
+  }
+  if (amount.value) {
+    query.amount = amount.value;
+  }
+  if (description.value) {
+    query.content = description.value;
+  }
+  if (selectedTheme.value !== 'purple') {
+    query.theme = selectedTheme.value;
+  }
+
+  return query;
+}
+
+async function syncFormToUrl() {
+  if (!urlSyncReady) {
+    return;
+  }
+
+  const location = {
+    path: route.path,
+    query: makeFormQuery(),
+    hash: route.hash,
+  };
+  if (router.resolve(location).fullPath === route.fullPath) {
+    return;
+  }
+
+  await router.replace(location);
+}
+
+function scheduleUrlSync() {
+  if (!urlSyncReady || typeof window === 'undefined') {
+    return;
+  }
+
+  if (urlSyncTimer !== undefined) {
+    window.clearTimeout(urlSyncTimer);
+  }
+  urlSyncTimer = window.setTimeout(() => {
+    void syncFormToUrl();
+  }, 120);
 }
 
 watch(qrPayload, async (payload) => {
@@ -336,6 +402,11 @@ watch(selectedTheme, (value) => {
 watch(() => route.query, () => {
   applyUrlParameters();
 }, { deep: true });
+
+watch(
+  [selectedBankBin, accountNo, amount, description, selectedTheme],
+  scheduleUrlSync,
+);
 
 function clearSensitiveStorage() {
   for (const key of SENSITIVE_STORAGE_KEYS) {
@@ -435,12 +506,12 @@ function drawShareRow(
 ) {
   context.textAlign = 'left';
   context.fillStyle = '#667085';
-  context.font = '500 14px sans-serif';
+  context.font = `500 14px ${CANVAS_FONT_FAMILY}`;
   context.fillText(label, 150, y);
 
   context.textAlign = 'right';
   context.fillStyle = '#101828';
-  context.font = `${emphasize ? '700 20px' : '600 16px'} sans-serif`;
+  context.font = `${emphasize ? '700 20px' : '600 16px'} ${CANVAS_FONT_FAMILY}`;
   context.fillText(value, 750, y, 410);
 }
 
@@ -523,6 +594,10 @@ async function createShareImage() {
     return '';
   }
 
+  if ('fonts' in document) {
+    await document.fonts.ready;
+  }
+
   const theme = activeTheme.value;
   const qrImage = await loadImage(qrDataUrl.value);
   const bankLogo = selectedBank.value.logo
@@ -576,16 +651,16 @@ async function createShareImage() {
   }
   else {
     context.fillStyle = '#101828';
-    context.font = '800 29px sans-serif';
+    context.font = `800 29px ${CANVAS_FONT_FAMILY}`;
     context.fillText(selectedBank.value.shortName, 450, 138, 330);
   }
 
   context.fillStyle = '#98a2b3';
-  context.font = '500 13px sans-serif';
+  context.font = `500 13px ${CANVAS_FONT_FAMILY}`;
   context.fillText(selectedBank.value.name, 450, 180, 610);
 
   context.fillStyle = '#101828';
-  context.font = '800 34px sans-serif';
+  context.font = `800 34px ${CANVAS_FONT_FAMILY}`;
   context.fillText(t('scanTitle'), 450, 235, 610);
 
   context.shadowColor = theme.shadow;
@@ -602,10 +677,10 @@ async function createShareImage() {
   fillRoundedRect(context, 130, 891, 640, 104, 22, accountGradient);
 
   context.fillStyle = '#98a2b3';
-  context.font = '500 13px sans-serif';
+  context.font = `500 13px ${CANVAS_FONT_FAMILY}`;
   context.fillText(t('accountLabel'), 450, 927);
   context.fillStyle = '#101828';
-  context.font = '800 30px monospace';
+  context.font = `800 30px ${CANVAS_MONO_FONT_FAMILY}`;
   context.fillText(accountNo.value, 450, 970, 560);
 
   let rowY = 1033;
@@ -619,7 +694,7 @@ async function createShareImage() {
 
   context.textAlign = 'center';
   context.fillStyle = '#98a2b3';
-  context.font = '500 12px sans-serif';
+  context.font = `500 12px ${CANVAS_FONT_FAMILY}`;
   context.fillText(`© ${COPYRIGHT_YEAR} ePlus.DEV · tools.eplus.dev`, 450, 1128);
 
   return canvas.toDataURL('image/png');
@@ -763,9 +838,14 @@ watch(
 onMounted(() => {
   restoreForm();
   applyUrlParameters();
+  urlSyncReady = true;
+  scheduleUrlSync();
 });
 
 onBeforeUnmount(() => {
+  if (urlSyncTimer !== undefined) {
+    window.clearTimeout(urlSyncTimer);
+  }
   shareImageRenderId += 1;
   revokeShareImageUrl();
 });
