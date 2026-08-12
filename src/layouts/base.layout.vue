@@ -66,7 +66,7 @@ const tools = computed<ToolCategory[]>(() => [
         <CollapsibleToolMenu :tools-by-category="tools" />
 
         <div class="footer">
-          <div class="build-meta">
+          <div class="build-meta" data-testid="deploy-build-meta">
             <span>ePlus.DEV Tools</span>
             <span class="build-chip" :title="deployVersion">Build {{ deployLabel }}</span>
 
