@@ -36,7 +36,7 @@ async function checkDeployVersion() {
       cache: 'no-store',
       headers: {
         'cache-control': 'no-cache',
-        pragma: 'no-cache',
+        'pragma': 'no-cache',
       },
     });
 
