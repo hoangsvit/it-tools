@@ -1,3 +1,7 @@
+[build]
+  command = "pnpm build && node scripts/verify-production-artifacts.mjs"
+  publish = "dist"
+
 [[headers]]
   for = "/sw.js"
   [headers.values]
