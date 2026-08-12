@@ -16,6 +16,7 @@ export interface DeployVersionCheckerOptions {
   fetchVersion: (url: URL, init: RequestInit) => Promise<VersionManifestResponse>
   hasServiceWorker: () => boolean
   getRegistration: (scope: string) => Promise<ServiceWorkerRegistrationLike | undefined>
+  updateServiceWorker: () => Promise<void>
   reload: () => void
   now?: () => number
 }
@@ -38,6 +39,7 @@ export function createDeployVersionChecker({
   fetchVersion,
   hasServiceWorker,
   getRegistration,
+  updateServiceWorker,
   reload,
   now = Date.now,
 }: DeployVersionCheckerOptions) {
@@ -84,7 +86,7 @@ export function createDeployVersionChecker({
         return;
       }
 
-      await registration.update();
+      await updateServiceWorker();
     }
     catch {
       // Keep the current app usable if the version endpoint is temporarily unavailable.
