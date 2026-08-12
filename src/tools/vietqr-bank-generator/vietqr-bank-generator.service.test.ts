@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   VIETQR_MAX_AMOUNT,
+  VIETQR_MAX_DESCRIPTION_LENGTH,
   bankSearchLabel,
   formatVietQrAmount,
   getVietQrDescriptionValidationError,
@@ -136,7 +137,9 @@ describe('VietQR bank generator service', () => {
   it('validates transfer content length and charset separately', () => {
     expect(getVietQrDescriptionValidationError('thanh toan hoa don')).toBeNull();
     expect(getVietQrDescriptionValidationError('Thanh toán')).toBe('contentCharset');
-    expect(getVietQrDescriptionValidationError('12345678901234567890123456')).toBe('contentLength');
+    expect(VIETQR_MAX_DESCRIPTION_LENGTH).toBe(50);
+    expect(getVietQrDescriptionValidationError('a'.repeat(VIETQR_MAX_DESCRIPTION_LENGTH))).toBeNull();
+    expect(getVietQrDescriptionValidationError('a'.repeat(VIETQR_MAX_DESCRIPTION_LENGTH + 1))).toBe('contentLength');
   });
 
   it('accepts account identifiers up to 25 letters or digits', () => {

@@ -32,6 +32,7 @@ export interface VietQrValidationResult {
 }
 
 export const VIETQR_MAX_AMOUNT = '9999999999999';
+export const VIETQR_MAX_DESCRIPTION_LENGTH = 50;
 
 const ACCOUNT_PATTERN = /^[A-Za-z0-9]{1,25}$/;
 const AMOUNT_PATTERN = /^\d{1,13}$/;
@@ -158,7 +159,7 @@ export function isValidVietQrAmount(value: string) {
 
 export function getVietQrDescriptionValidationError(value: string): VietQrValidationError | null {
   const normalized = value.trim();
-  if (normalized.length > 25) {
+  if (normalized.length > VIETQR_MAX_DESCRIPTION_LENGTH) {
     return 'contentLength';
   }
 
