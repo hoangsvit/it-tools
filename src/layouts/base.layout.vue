@@ -18,10 +18,12 @@ import CollapsibleToolMenu from '@/components/CollapsibleToolMenu.vue';
 
 const themeVars = useThemeVars();
 const styleStore = useStyleStore();
-const deployVersion = import.meta.env.VITE_DEPLOY_VERSION;
-const deployCommitFull = import.meta.env.VITE_DEPLOY_COMMIT;
+const deployVersion = config.app.deployVersion;
+const deployCommitFull = config.app.lastCommitSha;
 const deployCommit = deployCommitFull.slice(0, 7);
-const deployLabel = deployVersion.startsWith('local-') ? 'local' : deployVersion.slice(0, 8);
+const deployLabel = deployVersion.startsWith('local-') || deployVersion === 'local'
+  ? 'local'
+  : deployVersion.slice(0, 8);
 
 const { tracker } = useTracker();
 const { t } = useI18n();
