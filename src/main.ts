@@ -49,8 +49,18 @@ async function checkDeployVersion() {
       return;
     }
 
+    if (!('serviceWorker' in navigator)) {
+      window.location.reload();
+      return;
+    }
+
     const registration = await navigator.serviceWorker.getRegistration(import.meta.env.BASE_URL);
-    await registration?.update();
+    if (!registration) {
+      window.location.reload();
+      return;
+    }
+
+    await registration.update();
   }
   catch {
     // Keep the current app usable if the version endpoint is temporarily unavailable.
