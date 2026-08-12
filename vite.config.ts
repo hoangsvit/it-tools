@@ -75,7 +75,11 @@ export default defineConfig({
       },
     },
     VitePWA({
-      registerType: 'autoUpdate',
+      // Keep /sw.js free for the legacy cleanup worker in public/sw.js. The
+      // generated Workbox worker must use a different filename and must not be
+      // registered for new visitors while we retire the old app-shell cache.
+      filename: 'service-worker.js',
+      injectRegister: null,
       strategies: 'generateSW',
       workbox: {
         globIgnores: ['**/version.json'],
