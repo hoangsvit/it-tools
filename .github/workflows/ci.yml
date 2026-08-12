@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - netlify
 
 jobs:
   ci:
@@ -40,7 +41,15 @@ jobs:
         run: pnpm typecheck
 
       - name: Build the app
+        env:
+          DEPLOY_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
+          COMMIT_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+          CONTEXT: ci
         run: pnpm build
 
-      - name: Verify deploy freshness artifacts
+      - name: Review production build artifacts
+        env:
+          DEPLOY_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
+          COMMIT_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+          CONTEXT: ci
         run: node scripts/verify-production-artifacts.mjs
