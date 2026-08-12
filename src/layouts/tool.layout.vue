@@ -18,6 +18,7 @@ const i18nKey = computed<string>(() => route.path.trim().replace('/', ''));
 const toolTitle = computed<string>(() => t(`tools.${i18nKey.value}.title`, String(route.meta.name)));
 const toolDescription = computed<string>(() => t(`tools.${i18nKey.value}.description`, String(route.meta.description)));
 const relatedTools = computed(() => toolStore.getRelatedTools({ toolPath: route.path, limit: 4 }));
+const wideContent = computed(() => route.meta.wideContent === true);
 
 watch(
   () => route.path,
@@ -36,7 +37,7 @@ useHead(head);
 
 <template>
   <BaseLayout>
-    <div class="tool-layout">
+    <div class="tool-layout" :class="{ 'tool-layout-wide': wideContent }">
       <div class="tool-header">
         <div flex flex-nowrap items-center justify-between gap-2>
           <n-h1>
@@ -57,7 +58,7 @@ useHead(head);
       </div>
     </div>
 
-    <div class="tool-content">
+    <div class="tool-content" :class="{ 'tool-content-wide': wideContent }">
       <slot />
     </div>
 
@@ -84,6 +85,13 @@ useHead(head);
 
   ::v-deep(& > *) {
     flex: 0 1 600px;
+  }
+}
+
+.tool-content-wide {
+  ::v-deep(& > *) {
+    flex-basis: 1220px;
+    max-width: 100%;
   }
 }
 
@@ -117,6 +125,10 @@ useHead(head);
       opacity: 0.7;
     }
   }
+}
+
+.tool-layout-wide {
+  max-width: 1220px;
 }
 
 .related-tools {
