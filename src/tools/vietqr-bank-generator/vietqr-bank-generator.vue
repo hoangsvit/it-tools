@@ -1156,7 +1156,8 @@ onBeforeUnmount(() => {
 
     <div class="vietqr-layout">
       <div class="form-column">
-        <c-card :title="t('createTitle')">
+        <div class="create-card-slot">
+          <c-card :title="t('createTitle')">
           <div class="form-stack">
             <c-select
               v-model:value="selectedBankBin"
@@ -1236,9 +1237,11 @@ onBeforeUnmount(() => {
               </c-button>
             </div>
           </div>
-        </c-card>
+          </c-card>
+        </div>
 
-        <c-card :title="t('designTitle')">
+        <div class="design-card-slot">
+          <c-card :title="t('designTitle')">
           <div class="design-stack">
             <div class="design-hint">{{ t('designHint') }}</div>
 
@@ -1306,20 +1309,26 @@ onBeforeUnmount(() => {
               <c-button @click="resetDesign">{{ t('resetDesign') }}</c-button>
             </div>
           </div>
-        </c-card>
-        <c-card v-if="selectedBankInfo.length" :title="t('technicalTitle')">
+          </c-card>
+        </div>
+
+        <div v-if="selectedBankInfo.length" class="secondary-card-slot">
+          <c-card :title="t('technicalTitle')">
           <div class="technical-hint">
             {{ t('technicalHint') }}
           </div>
           <c-key-value-list :items="selectedBankInfo" />
-        </c-card>
+          </c-card>
+        </div>
 
-        <c-card v-if="qrPayload" :title="t('payloadTitle')">
+        <div v-if="qrPayload" class="secondary-card-slot">
+          <c-card :title="t('payloadTitle')">
           <c-text-copyable :value="qrPayload" font-mono break-all />
           <div class="payload-meta">
             {{ t('payloadMeta') }}
           </div>
-        </c-card>
+          </c-card>
+        </div>
       </div>
 
       <div class="preview-column">
@@ -2156,14 +2165,110 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (max-width: 480px) {
-  .design-color-grid,
+@media (max-width: 767px) {
+  .vietqr-tool,
+  .vietqr-layout {
+    gap: 14px;
+  }
+
+  .form-column {
+    display: contents;
+  }
+
+  .create-card-slot {
+    order: 1;
+  }
+
+  .preview-column {
+    order: 2;
+  }
+
+  .design-card-slot {
+    order: 3;
+  }
+
+  .secondary-card-slot {
+    order: 4;
+  }
+
+  .create-card-slot,
+  .design-card-slot,
+  .secondary-card-slot,
+  .preview-column {
+    min-width: 0;
+  }
+
+  .form-stack {
+    gap: 14px;
+  }
+
+  .design-stack {
+    gap: 15px;
+  }
+
+  .design-color-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
   .design-settings-grid {
     grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .design-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .design-option {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 6px;
+    text-align: center;
+    touch-action: manipulation;
+  }
+
+  .color-control {
+    min-height: 46px;
+    padding: 6px 8px;
+  }
+
+  .color-control input[type='color'] {
+    width: 34px;
+    height: 34px;
+  }
+
+  .color-control code {
+    min-width: 0;
+    font-size: 11px;
+  }
+
+  .logo-toggle {
+    min-height: 48px;
+    box-sizing: border-box;
+    padding: 12px;
+  }
+
+  .form-actions > * {
+    min-height: 42px;
   }
 
   .bank-summary {
     align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .bank-logo-box {
+    width: 64px;
+    height: 42px;
+  }
+
+  .bank-logo {
+    max-width: 54px;
+    max-height: 30px;
   }
 
   .bank-bin {
@@ -2172,64 +2277,123 @@ onBeforeUnmount(() => {
 
   .theme-picker {
     justify-content: center;
-    margin-bottom: 10px;
+    overflow-x: auto;
+    margin: -2px 0 10px;
+    padding: 2px 2px 4px;
+    scrollbar-width: none;
+  }
+
+  .theme-picker::-webkit-scrollbar {
+    display: none;
   }
 
   .theme-swatch {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
+    flex: none;
   }
 
   .preview-stage {
-    min-height: 560px;
-    padding: 12px;
+    min-height: 0;
+    padding: 10px;
     border-radius: 22px;
   }
 
   .preview-stage-exported {
-    min-height: 0;
     padding: 0;
     border-radius: 0;
   }
 
   .share-preview-image {
+    width: 100%;
+    max-width: none;
     border-radius: 22px;
   }
 
   .payment-sheet {
-    padding: 18px 13px 13px;
-    border-radius: 24px;
+    width: 100%;
+    max-width: none;
+    padding: 17px 12px 12px;
+    border-radius: 23px;
   }
 
   .payment-sheet-empty {
-    min-height: 500px;
+    min-height: 470px;
   }
 
   .preview-bank-logo {
-    max-width: 132px;
-    max-height: 42px;
+    max-width: 126px;
+    max-height: 40px;
   }
 
   .scan-title {
-    font-size: 20px;
+    margin-top: 10px;
+    font-size: 19px;
   }
 
   .qr-frame {
-    width: min(100%, 282px);
-    margin-top: 18px;
+    width: min(100%, 278px);
+    margin-top: 16px;
   }
 
   .qr-surface {
-    padding: 9px;
-    border-radius: 22px;
+    padding: 8px;
+    border-radius: 20px;
+  }
+
+  .account-card {
+    margin-top: 18px;
+    padding: 11px 12px 12px;
+  }
+
+  .account-card strong {
+    font-size: clamp(17px, 5.5vw, 22px);
+  }
+
+  .payment-details {
+    padding-inline: 11px;
+  }
+
+  .detail-row {
+    gap: 10px;
+  }
+
+  .detail-row strong {
+    overflow: visible;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .qr-actions {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    max-width: none;
+    margin: 12px auto 10px;
+  }
+
+  .qr-actions > * {
+    min-width: 0;
+    min-height: 44px;
   }
 
   .decor-dots {
     display: none;
+  }
+}
+
+@media (max-width: 359px) {
+  .design-color-grid,
+  .design-options,
+  .qr-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .payment-sheet {
+    padding-inline: 9px;
+  }
+
+  .qr-frame {
+    width: min(100%, 250px);
   }
 }
 </style>
