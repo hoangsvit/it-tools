@@ -1,0 +1,50 @@
+name: Clean up VietQR debounce formatting
+
+on:
+  push:
+    branches:
+      - fix/vietqr-desktop-layout
+    paths:
+      - .github/workflows/vietqr-debounce-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/vietqr-desktop-layout
+          fetch-depth: 0
+
+      - name: Fix formatting
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path('src/tools/vietqr-bank-generator/vietqr-bank-generator.vue')
+          text = path.read_text(encoding='utf-8')
+
+          old = "  if (contentParam) {\n  setDescriptionFromExternal(contentParam.trim());\n}\n"
+          new = "  if (contentParam) {\n    setDescriptionFromExternal(contentParam.trim());\n  }\n"
+          if old not in text:
+              raise SystemExit('Malformed contentParam block not found')
+          text = text.replace(old, new, 1)
+          text = text.replace("\n}\n\n\nfunction clearDescriptionNormalizeTimer()", "\n}\n\nfunction clearDescriptionNormalizeTimer()", 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Remove temporary workflow
+        run: rm .github/workflows/vietqr-debounce-cleanup.yml
+
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          git config user.name "eplus-bot"
+          git config user.email "157664013+eplus-bot@users.noreply.github.com"
+          git add src/tools/vietqr-bank-generator/vietqr-bank-generator.vue .github/workflows/vietqr-debounce-cleanup.yml
+          git commit -m "fix: clean up VietQR debounce formatting"
+          git push origin HEAD:fix/vietqr-desktop-layout
