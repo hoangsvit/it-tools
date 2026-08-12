@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - netlify
 jobs:
   test:
     timeout-minutes: 10
