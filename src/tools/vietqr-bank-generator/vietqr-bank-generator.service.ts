@@ -108,16 +108,15 @@ export function isValidVietQrAccount(value: string) {
 }
 
 export function isValidVietQrAmount(value: string) {
-  const raw = value.trim();
-  if (!raw) {
+  const parsed = parseVietQrAmountInput(value);
+  const normalized = parsed.trim();
+
+  if (!normalized) {
     return true;
   }
 
-  if (!isAcceptedAmountInput(raw)) {
-    return false;
-  }
-
-  const normalized = normalizeVietQrAmount(raw);
+  // Only accepted display formats are normalized by parseVietQrAmountInput.
+  // Anything left containing separators or other non-digits is invalid.
   return AMOUNT_PATTERN.test(normalized) && Number(normalized) > 0;
 }
 
