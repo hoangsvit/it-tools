@@ -1,4 +1,16 @@
 [[redirects]]
+  from = "/vietqr-bank-logo/cdn/*"
+  to = "https://cdn.vietqr.io/img/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/vietqr-bank-logo/portal/*"
+  to = "https://vietqr.net/portal-service/resources/icons/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
