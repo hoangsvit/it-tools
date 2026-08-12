@@ -74,11 +74,12 @@ export default defineConfig({
       },
     },
     VitePWA({
-      registerType: 'autoUpdate',
-      strategies: 'generateSW',
-      workbox: {
-        globIgnores: ['**/version.json'],
-      },
+      // Keep generating the web-app manifest, but do not register a new caching
+      // service worker. public/sw.js is deliberately reserved as a legacy
+      // cleanup worker for visitors still controlled by an older Workbox build.
+      injectRegister: false,
+      filename: 'service-worker.js',
+      selfDestroying: true,
       manifest: {
         name: 'ePlus.DEV IT Tools',
         short_name: 'ePlus Tools',
