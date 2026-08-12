@@ -1,3 +1,5 @@
+import { stripVietnameseDiacritics } from '../vietnamese-text-normalizer/vietnamese-text-normalizer.service';
+
 export interface VietQrBank {
   id: number
   name: string
@@ -29,13 +31,17 @@ export interface VietQrValidationResult {
   errors: VietQrValidationError[]
 }
 
+export const VIETQR_MAX_AMOUNT = '9999999999999';
+
 const ACCOUNT_PATTERN = /^[A-Za-z0-9]{1,25}$/;
 const AMOUNT_PATTERN = /^\d{1,13}$/;
 const BANK_BIN_PATTERN = /^\d{6}$/;
 const DESCRIPTION_PATTERN = /^[A-Za-z0-9 ]*$/;
 const PLAIN_AMOUNT_PATTERN = /^\d+$/;
 const COMMA_FORMATTED_AMOUNT_PATTERN = /^\d{1,3}(?:,\d{3})+$/;
+const DOT_FORMATTED_AMOUNT_PATTERN = /^\d{1,3}(?:\.\d{3})+$/;
 const SPACE_FORMATTED_AMOUNT_PATTERN = /^\d{1,3}(?: \d{3})+$/;
+const TYPING_AMOUNT_PATTERN = /^[\d.,\s]+$/;
 
 function tlv(id: string, value: string) {
   return `${id}${value.length.toString().padStart(2, '0')}${value}`;
@@ -44,6 +50,7 @@ function tlv(id: string, value: string) {
 function isAcceptedAmountInput(value: string) {
   return PLAIN_AMOUNT_PATTERN.test(value)
     || COMMA_FORMATTED_AMOUNT_PATTERN.test(value)
+    || DOT_FORMATTED_AMOUNT_PATTERN.test(value)
     || SPACE_FORMATTED_AMOUNT_PATTERN.test(value);
 }
 
@@ -68,9 +75,9 @@ export function normalizeVietQrAmount(value: string) {
 }
 
 /**
- * Parse a user-entered amount without turning invalid input into a different
- * valid amount. Valid thousands separators are normalized; invalid input is
- * preserved so the field validator can report it to the user.
+ * Parse a persisted/shared amount conservatively. Only plain digits or valid
+ * thousands-grouped values are normalized. Malformed input is preserved so
+ * validation can reject it instead of silently changing the transfer amount.
  */
 export function parseVietQrAmountInput(value: string) {
   const trimmed = value.trim();
@@ -85,7 +92,26 @@ export function parseVietQrAmountInput(value: string) {
   return normalizeVietQrAmount(trimmed);
 }
 
-export function formatVietQrAmount(value: string) {
+/**
+ * Parse the live amount field while the user is typing. The field itself
+ * inserts locale grouping separators, so a value such as "4,324" naturally
+ * becomes the intermediate string "4,3245" before the next render. Strip only
+ * digit-grouping characters here and keep all other input invalid/visible.
+ */
+export function parseVietQrAmountTyping(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  if (!TYPING_AMOUNT_PATTERN.test(trimmed)) {
+    return value;
+  }
+
+  return normalizeVietQrAmount(trimmed);
+}
+
+export function formatVietQrAmount(value: string, locale = 'en-US') {
   const trimmed = value.trim();
   if (!trimmed) {
     return '';
@@ -96,7 +122,17 @@ export function formatVietQrAmount(value: string) {
     return value;
   }
 
-  return trimmed.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 0,
+    useGrouping: true,
+  }).format(Number(trimmed));
+}
+
+export function sanitizeVietQrDescriptionInput(value: string) {
+  return stripVietnameseDiacritics(value)
+    .replace(/\s+/g, ' ')
+    .replace(/[^A-Za-z0-9 ]/g, '')
+    .replace(/ +/g, ' ');
 }
 
 export function isValidVietQrBankId(value: string) {
