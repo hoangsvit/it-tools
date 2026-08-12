@@ -25,6 +25,7 @@ function createChecker(options: {
   const responseOk = options.responseOk ?? true;
 
   const update = vi.fn().mockResolvedValue(undefined);
+  const updateServiceWorker = vi.fn().mockResolvedValue(undefined);
   const reload = vi.fn();
   const fetchVersion = vi.fn().mockResolvedValue(createResponse(serverVersion, responseOk));
   const getRegistration = vi.fn().mockResolvedValue(registrationExists ? { update } : undefined);
@@ -38,6 +39,7 @@ function createChecker(options: {
     fetchVersion,
     hasServiceWorker: () => serviceWorkerSupported,
     getRegistration,
+    updateServiceWorker,
     reload,
     now: () => 1234567890,
   });
@@ -47,25 +49,26 @@ function createChecker(options: {
     fetchVersion,
     getRegistration,
     update,
+    updateServiceWorker,
     reload,
   };
 }
 
 describe('deploy version checker', () => {
-  it('updates a legacy visitor that has no embedded deploy version', async () => {
-    const { checkDeployVersion, update, reload } = createChecker({
+  it('refreshes a legacy visitor that has no embedded deploy version', async () => {
+    const { checkDeployVersion, updateServiceWorker, reload } = createChecker({
       currentVersion: undefined,
       serverVersion: 'deploy-v2',
     });
 
     await checkDeployVersion();
 
-    expect(update).toHaveBeenCalledOnce();
+    expect(updateServiceWorker).toHaveBeenCalledOnce();
     expect(reload).not.toHaveBeenCalled();
   });
 
   it('reloads a legacy visitor without a service worker registration', async () => {
-    const { checkDeployVersion, update, reload } = createChecker({
+    const { checkDeployVersion, updateServiceWorker, reload } = createChecker({
       currentVersion: undefined,
       serverVersion: 'deploy-v2',
       registrationExists: false,
@@ -73,12 +76,12 @@ describe('deploy version checker', () => {
 
     await checkDeployVersion();
 
-    expect(update).not.toHaveBeenCalled();
+    expect(updateServiceWorker).not.toHaveBeenCalled();
     expect(reload).toHaveBeenCalledOnce();
   });
 
   it('does nothing for a new visitor already running the latest deploy', async () => {
-    const { checkDeployVersion, getRegistration, update, reload } = createChecker({
+    const { checkDeployVersion, getRegistration, updateServiceWorker, reload } = createChecker({
       currentVersion: 'deploy-v2',
       serverVersion: 'deploy-v2',
     });
@@ -86,24 +89,24 @@ describe('deploy version checker', () => {
     await checkDeployVersion();
 
     expect(getRegistration).not.toHaveBeenCalled();
-    expect(update).not.toHaveBeenCalled();
+    expect(updateServiceWorker).not.toHaveBeenCalled();
     expect(reload).not.toHaveBeenCalled();
   });
 
-  it('updates a returning visitor when the server has a newer deploy', async () => {
-    const { checkDeployVersion, update, reload } = createChecker({
+  it('refreshes a returning visitor when the server has a newer deploy', async () => {
+    const { checkDeployVersion, updateServiceWorker, reload } = createChecker({
       currentVersion: 'deploy-v1',
       serverVersion: 'deploy-v2',
     });
 
     await checkDeployVersion();
 
-    expect(update).toHaveBeenCalledOnce();
+    expect(updateServiceWorker).toHaveBeenCalledOnce();
     expect(reload).not.toHaveBeenCalled();
   });
 
   it('reloads on a version mismatch when service workers are unsupported', async () => {
-    const { checkDeployVersion, getRegistration, update, reload } = createChecker({
+    const { checkDeployVersion, getRegistration, updateServiceWorker, reload } = createChecker({
       currentVersion: 'deploy-v1',
       serverVersion: 'deploy-v2',
       serviceWorkerSupported: false,
@@ -112,12 +115,12 @@ describe('deploy version checker', () => {
     await checkDeployVersion();
 
     expect(getRegistration).not.toHaveBeenCalled();
-    expect(update).not.toHaveBeenCalled();
+    expect(updateServiceWorker).not.toHaveBeenCalled();
     expect(reload).toHaveBeenCalledOnce();
   });
 
   it('ignores a manifest that does not contain a valid version', async () => {
-    const { checkDeployVersion, getRegistration, update, reload } = createChecker({
+    const { checkDeployVersion, getRegistration, updateServiceWorker, reload } = createChecker({
       currentVersion: 'deploy-v1',
       serverVersion: undefined,
     });
@@ -125,24 +128,24 @@ describe('deploy version checker', () => {
     await checkDeployVersion();
 
     expect(getRegistration).not.toHaveBeenCalled();
-    expect(update).not.toHaveBeenCalled();
+    expect(updateServiceWorker).not.toHaveBeenCalled();
     expect(reload).not.toHaveBeenCalled();
   });
 
   it('does not fetch the version manifest while offline', async () => {
-    const { checkDeployVersion, fetchVersion, update, reload } = createChecker({
+    const { checkDeployVersion, fetchVersion, updateServiceWorker, reload } = createChecker({
       online: false,
     });
 
     await checkDeployVersion();
 
     expect(fetchVersion).not.toHaveBeenCalled();
-    expect(update).not.toHaveBeenCalled();
+    expect(updateServiceWorker).not.toHaveBeenCalled();
     expect(reload).not.toHaveBeenCalled();
   });
 
   it('ignores a failed version manifest response', async () => {
-    const { checkDeployVersion, getRegistration, update, reload } = createChecker({
+    const { checkDeployVersion, getRegistration, updateServiceWorker, reload } = createChecker({
       currentVersion: 'deploy-v1',
       serverVersion: 'deploy-v2',
       responseOk: false,
@@ -151,7 +154,7 @@ describe('deploy version checker', () => {
     await checkDeployVersion();
 
     expect(getRegistration).not.toHaveBeenCalled();
-    expect(update).not.toHaveBeenCalled();
+    expect(updateServiceWorker).not.toHaveBeenCalled();
     expect(reload).not.toHaveBeenCalled();
   });
 
@@ -178,7 +181,7 @@ describe('deploy version checker', () => {
       resolveResponse = resolve;
     });
     const fetchVersion = vi.fn().mockReturnValue(pendingResponse);
-    const update = vi.fn().mockResolvedValue(undefined);
+    const updateServiceWorker = vi.fn().mockResolvedValue(undefined);
 
     const checkDeployVersion = createDeployVersionChecker({
       currentVersion: 'deploy-v1',
@@ -188,7 +191,8 @@ describe('deploy version checker', () => {
       isOnline: () => true,
       fetchVersion,
       hasServiceWorker: () => true,
-      getRegistration: vi.fn().mockResolvedValue({ update }),
+      getRegistration: vi.fn().mockResolvedValue({ update: vi.fn().mockResolvedValue(undefined) }),
+      updateServiceWorker,
       reload: vi.fn(),
       now: () => 1234567890,
     });
@@ -199,6 +203,6 @@ describe('deploy version checker', () => {
     await Promise.all([firstCheck, secondCheck]);
 
     expect(fetchVersion).toHaveBeenCalledOnce();
-    expect(update).toHaveBeenCalledOnce();
+    expect(updateServiceWorker).toHaveBeenCalledOnce();
   });
 });
