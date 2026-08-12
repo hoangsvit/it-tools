@@ -21,6 +21,7 @@ const deployVersion = process.env.DEPLOY_ID
   ?? process.env.BUILD_ID
   ?? process.env.COMMIT_REF
   ?? `local-${Date.now()}`;
+const deployCommit = process.env.COMMIT_REF ?? '';
 const deployBuiltAt = new Date().toISOString();
 
 // https://vitejs.dev/config/
@@ -66,7 +67,7 @@ export default defineConfig({
           fileName: 'version.json',
           source: `${JSON.stringify({
             version: deployVersion,
-            commit: process.env.COMMIT_REF ?? null,
+            commit: deployCommit || null,
             context: process.env.CONTEXT ?? null,
             builtAt: deployBuiltAt,
           }, null, 2)}\n`,
@@ -74,12 +75,11 @@ export default defineConfig({
       },
     },
     VitePWA({
-      // Keep generating the web-app manifest, but do not register a new caching
-      // service worker. public/sw.js is deliberately reserved as a legacy
-      // cleanup worker for visitors still controlled by an older Workbox build.
-      injectRegister: false,
-      filename: 'service-worker.js',
-      selfDestroying: true,
+      registerType: 'autoUpdate',
+      strategies: 'generateSW',
+      workbox: {
+        globIgnores: ['**/version.json'],
+      },
       manifest: {
         name: 'ePlus.DEV IT Tools',
         short_name: 'ePlus Tools',
@@ -159,6 +159,7 @@ export default defineConfig({
   define: {
     'import.meta.env.PACKAGE_VERSION': JSON.stringify(process.env.npm_package_version),
     'import.meta.env.VITE_DEPLOY_VERSION': JSON.stringify(deployVersion),
+    'import.meta.env.VITE_DEPLOY_COMMIT': JSON.stringify(deployCommit),
   },
   test: {
     exclude: [...configDefaults.exclude, '**/*.e2e.spec.ts'],
