@@ -20,7 +20,7 @@ function createChecker(options: {
   const online = options.online ?? true;
   const responseOk = options.responseOk ?? true;
 
-  const reload = vi.fn();
+  const onVersionMismatch = vi.fn();
   const fetchVersion = vi.fn().mockResolvedValue(createResponse(serverVersion, responseOk));
 
   const checkDeployVersion = createDeployVersionChecker({
@@ -29,75 +29,83 @@ function createChecker(options: {
     origin: 'https://tools.eplus.dev',
     isOnline: () => online,
     fetchVersion,
-    reload,
+    onVersionMismatch,
     now: () => 1234567890,
   });
 
   return {
     checkDeployVersion,
     fetchVersion,
-    reload,
+    onVersionMismatch,
   };
 }
 
 describe('deploy version checker', () => {
-  it('reloads a legacy visitor that has no embedded deploy version', async () => {
-    const { checkDeployVersion, reload } = createChecker({
+  it('notifies a legacy visitor that has no embedded deploy version', async () => {
+    const { checkDeployVersion, onVersionMismatch } = createChecker({
       currentVersion: undefined,
       serverVersion: 'deploy-v2',
     });
 
     await checkDeployVersion();
 
-    expect(reload).toHaveBeenCalledOnce();
+    expect(onVersionMismatch).toHaveBeenCalledOnce();
+    expect(onVersionMismatch).toHaveBeenCalledWith({
+      currentVersion: undefined,
+      serverVersion: 'deploy-v2',
+    });
   });
 
   it('does nothing for a new visitor already running the latest deploy', async () => {
-    const { checkDeployVersion, reload } = createChecker({
+    const { checkDeployVersion, onVersionMismatch } = createChecker({
       currentVersion: 'deploy-v2',
       serverVersion: 'deploy-v2',
     });
 
     await checkDeployVersion();
 
-    expect(reload).not.toHaveBeenCalled();
+    expect(onVersionMismatch).not.toHaveBeenCalled();
   });
 
-  it('reloads a returning visitor when the server has a newer deploy', async () => {
-    const { checkDeployVersion, reload } = createChecker({
+  it('notifies a returning visitor when the server has a newer deploy', async () => {
+    const { checkDeployVersion, onVersionMismatch } = createChecker({
       currentVersion: 'deploy-v1',
       serverVersion: 'deploy-v2',
     });
 
     await checkDeployVersion();
 
-    expect(reload).toHaveBeenCalledOnce();
+    expect(onVersionMismatch).toHaveBeenCalledOnce();
+    expect(onVersionMismatch).toHaveBeenCalledWith({
+      currentVersion: 'deploy-v1',
+      serverVersion: 'deploy-v2',
+    });
   });
 
   it('ignores a manifest that does not contain a valid version', async () => {
-    const { checkDeployVersion, reload } = createChecker({
+    const { checkDeployVersion, onVersionMismatch } = createChecker({
       currentVersion: 'deploy-v1',
       serverVersion: undefined,
     });
 
     await checkDeployVersion();
 
-    expect(reload).not.toHaveBeenCalled();
+    expect(onVersionMismatch).not.toHaveBeenCalled();
   });
 
   it('does not fetch the version manifest while offline', async () => {
-    const { checkDeployVersion, fetchVersion, reload } = createChecker({
+    const { checkDeployVersion, fetchVersion, onVersionMismatch } = createChecker({
       online: false,
     });
 
     await checkDeployVersion();
 
     expect(fetchVersion).not.toHaveBeenCalled();
-    expect(reload).not.toHaveBeenCalled();
+    expect(onVersionMismatch).not.toHaveBeenCalled();
   });
 
   it('ignores a failed version manifest response', async () => {
-    const { checkDeployVersion, reload } = createChecker({
+    const { checkDeployVersion, onVersionMismatch } = createChecker({
       currentVersion: 'deploy-v1',
       serverVersion: 'deploy-v2',
       responseOk: false,
@@ -105,7 +113,7 @@ describe('deploy version checker', () => {
 
     await checkDeployVersion();
 
-    expect(reload).not.toHaveBeenCalled();
+    expect(onVersionMismatch).not.toHaveBeenCalled();
   });
 
   it('uses a cache-busting version request', async () => {
@@ -125,13 +133,13 @@ describe('deploy version checker', () => {
     });
   });
 
-  it('deduplicates overlapping version checks and reloads once', async () => {
+  it('deduplicates overlapping version checks and notifies once', async () => {
     let resolveResponse!: (value: ReturnType<typeof createResponse>) => void;
     const pendingResponse = new Promise<ReturnType<typeof createResponse>>((resolve) => {
       resolveResponse = resolve;
     });
     const fetchVersion = vi.fn().mockReturnValue(pendingResponse);
-    const reload = vi.fn();
+    const onVersionMismatch = vi.fn();
 
     const checkDeployVersion = createDeployVersionChecker({
       currentVersion: 'deploy-v1',
@@ -139,7 +147,7 @@ describe('deploy version checker', () => {
       origin: 'https://tools.eplus.dev',
       isOnline: () => true,
       fetchVersion,
-      reload,
+      onVersionMismatch,
       now: () => 1234567890,
     });
 
@@ -149,6 +157,19 @@ describe('deploy version checker', () => {
     await Promise.all([firstCheck, secondCheck]);
 
     expect(fetchVersion).toHaveBeenCalledOnce();
-    expect(reload).toHaveBeenCalledOnce();
+    expect(onVersionMismatch).toHaveBeenCalledOnce();
+  });
+
+  it('does not notify again on pageshow after a mismatch was already announced', async () => {
+    const { checkDeployVersion, fetchVersion, onVersionMismatch } = createChecker({
+      currentVersion: 'deploy-v1',
+      serverVersion: 'deploy-v2',
+    });
+
+    await checkDeployVersion();
+    await checkDeployVersion();
+
+    expect(fetchVersion).toHaveBeenCalledOnce();
+    expect(onVersionMismatch).toHaveBeenCalledOnce();
   });
 });
