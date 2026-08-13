@@ -1451,10 +1451,10 @@ onBeforeUnmount(() => {
 
           <div
             class="preview-stage"
-            :class="{ 'preview-stage-exported': qrDataUrl && selectedBank && shareImageObjectUrl && !shareImageRendering }"
+            :class="{ 'preview-stage-exported': qrDataUrl && selectedBank && shareImageObjectUrl && !shareImageRendering && !qrRendering }"
             :style="themeStyle"
           >
-            <template v-if="qrDataUrl && selectedBank && shareImageObjectUrl && !shareImageRendering">
+            <template v-if="qrDataUrl && selectedBank && shareImageObjectUrl && !shareImageRendering && !qrRendering">
               <img
                 :src="shareImageObjectUrl"
                 :alt="t('previewTitle')"
@@ -1491,7 +1491,12 @@ onBeforeUnmount(() => {
                   <span class="qr-guide qr-guide-bl" />
                   <span class="qr-guide qr-guide-br" />
                   <div class="qr-surface">
-                    <img :src="qrDataUrl" alt="VietQR bank transfer code" class="qr-code-image">
+                    <img
+        :src="qrDataUrl"
+        alt="VietQR bank transfer code"
+        class="qr-code-image"
+        :style="{ visibility: qrRendering ? 'hidden' : 'visible' }"
+      >
                   </div>
                 </div>
 
@@ -1549,10 +1554,10 @@ onBeforeUnmount(() => {
 
             <template v-if="qrDataUrl && selectedBank">
               <div class="qr-actions">
-                <c-button :disabled="!shareImageBlob || shareImageRendering" @click="copyQrImage">
+                <c-button :disabled="!shareImageBlob || shareImageRendering || qrRendering" @click="copyQrImage">
                   {{ copyStatusLabel }}
                 </c-button>
-                <c-button :disabled="!shareImageBlob || shareImageRendering" @click="downloadQrImage">
+                <c-button :disabled="!shareImageBlob || shareImageRendering || qrRendering" @click="downloadQrImage">
                   {{ t('downloadPng') }}
                 </c-button>
               </div>
