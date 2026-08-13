@@ -12,14 +12,21 @@ export default defineConfig({
   testMatch: /\.e2e\.(spec\.)?ts$/,
   /* Run tests in files in parallel */
   fullyParallel: true,
+  /* Stop inside Playwright with useful output instead of waiting for the GitHub job hard timeout. */
+  globalTimeout: isCI ? 9 * 60 * 1000 : 0,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: isCI,
-  /* Retry on CI only */
-  retries: isCI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: isCI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  /* Keep one retry on CI without tripling a slow shard. */
+  retries: isCI ? 1 : 0,
+  /* Two workers per shard keeps the cross-browser suite below the job timeout. */
+  workers: isCI ? 2 : undefined,
+  /* Stream progress in Actions while preserving an HTML report for diagnostics. */
+  reporter: isCI
+    ? [
+        ['line'],
+        ['html', { open: 'never' }],
+      ]
+    : 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -51,14 +58,14 @@ export default defineConfig({
     },
   ],
 
-  /* Run your local dev server before starting the tests */
-
+  /* Run your local preview server before starting the tests. */
   ...(useWebServer
     && {
       webServer: {
         command: 'npm run preview',
         url: 'http://localhost:5050',
         reuseExistingServer: !isCI,
+        timeout: 60 * 1000,
       },
     }
   ),
