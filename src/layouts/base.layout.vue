@@ -21,10 +21,6 @@ const styleStore = useStyleStore();
 const deployVersion = config.app.deployVersion;
 const deployBuiltAt = config.app.deployBuiltAt;
 const deployCommitFull = config.app.lastCommitSha;
-const deployCommit = deployCommitFull.slice(0, 7);
-const deployLabel = deployVersion.startsWith('local-') || deployVersion === 'local'
-  ? 'local'
-  : deployVersion.slice(0, 8);
 
 const { tracker } = useTracker();
 const { t, locale } = useI18n();
@@ -39,26 +35,52 @@ const deployBuiltAtLabel = computed(() => {
     return deployBuiltAt;
   }
 
-  return new Intl.DateTimeFormat(locale.value === 'vi' ? 'vi-VN' : undefined, {
+  return new Intl.DateTimeFormat(locale.value === 'vi' ? 'vi-VN' : 'en-GB', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(date).replace(',', '');
+});
+
+const deployBuiltAtDetail = computed(() => {
+  if (!deployBuiltAt) {
+    return '';
+  }
+
+  const date = new Date(deployBuiltAt);
+  if (Number.isNaN(date.getTime())) {
+    return deployBuiltAt;
+  }
+
+  return new Intl.DateTimeFormat(locale.value === 'vi' ? 'vi-VN' : 'en-GB', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
+    hourCycle: 'h23',
     timeZoneName: 'short',
   }).format(date);
 });
 
 const deployTooltip = computed(() => {
-  const builtAt = deployBuiltAtLabel.value;
-  if (!builtAt) {
-    return `Deploy ${deployVersion}`;
+  const details = [`Deploy ${deployVersion}`];
+
+  if (deployCommitFull) {
+    details.push(`Commit ${deployCommitFull}`);
   }
 
-  return locale.value === 'vi'
-    ? `Deploy ${deployVersion} · Build lúc ${builtAt}`
-    : `Deploy ${deployVersion} · Built ${builtAt}`;
+  if (deployBuiltAtDetail.value) {
+    details.push(locale.value === 'vi'
+      ? `Build lúc ${deployBuiltAtDetail.value}`
+      : `Built ${deployBuiltAtDetail.value}`);
+  }
+
+  return details.join(' · ');
 });
 
 const toolStore = useToolStore();
@@ -102,23 +124,13 @@ const tools = computed<ToolCategory[]>(() => [
 
         <div class="footer">
           <div class="build-meta" data-testid="deploy-build-meta">
-            <span>ePlus.DEV Tools</span>
+            <span class="build-product">ePlus.DEV Tools</span>
             <c-tooltip :tooltip="deployTooltip" position="top">
-              <span class="build-chip">Build {{ deployLabel }}</span>
+              <span class="build-chip">
+                <span class="build-chip-label">{{ locale === 'vi' ? 'Build' : 'Built' }}</span>
+                {{ deployBuiltAtLabel || '—' }}
+              </span>
             </c-tooltip>
-
-            <template v-if="deployCommit">
-              <span aria-hidden="true">·</span>
-              <c-link
-                target="_blank"
-                rel="noopener"
-                type="primary"
-                :href="`https://github.com/hoangsvit/it-tools/commit/${deployCommitFull}`"
-                :title="`Git commit ${deployCommitFull}`"
-              >
-                {{ deployCommit }}
-              </c-link>
-            </template>
           </div>
           <div>
             © {{ new Date().getFullYear() }}
@@ -212,23 +224,35 @@ const tools = computed<ToolCategory[]>(() => [
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 3px;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.build-product {
+  font-size: 12px;
 }
 
 .build-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  padding: 1px 7px;
+  justify-content: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 2px 9px;
   border: 1px solid rgba(24, 160, 88, 0.25);
   border-radius: 999px;
   color: #18a058;
   font-size: 11px;
   font-weight: 600;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   cursor: help;
+}
+
+.build-chip-label {
+  opacity: 0.72;
+  font-family: inherit;
 }
 
 .upstream-credit {
