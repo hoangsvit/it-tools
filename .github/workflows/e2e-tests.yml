@@ -7,7 +7,10 @@ on:
       - netlify
 jobs:
   test:
-    timeout-minutes: 10
+    # The build + Playwright dependency setup can take ~2 minutes before the
+    # shard starts. Give the E2E suite enough headroom to finish instead of
+    # being cancelled by the job timeout while tests are still running.
+    timeout-minutes: 20
     # Playwright 1.32 predates Ubuntu 24.04 support. Pin Jammy until
     # Playwright is upgraded to a release that officially supports Noble.
     runs-on: ubuntu-22.04
