@@ -1,8 +1,8 @@
 export type CssRelativeUnit = 'rem' | 'em' | '%';
 
 export const CSS_UNIT_DEFAULT_REFERENCES: Record<CssRelativeUnit, number> = {
-  rem: 16,
-  em: 16,
+  'rem': 16,
+  'em': 16,
   '%': 100,
 };
 
