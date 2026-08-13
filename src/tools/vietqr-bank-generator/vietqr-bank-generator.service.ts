@@ -33,6 +33,7 @@ export interface VietQrValidationResult {
 
 export const VIETQR_MAX_AMOUNT = '9999999999999';
 export const VIETQR_MAX_DESCRIPTION_LENGTH = 50;
+export const VIETQR_MAX_PAYER_NAME_LENGTH = 60;
 
 const ACCOUNT_PATTERN = /^[A-Za-z0-9]{1,25}$/;
 const AMOUNT_PATTERN = /^\d{1,13}$/;
@@ -43,6 +44,7 @@ const COMMA_FORMATTED_AMOUNT_PATTERN = /^\d{1,3}(?:,\d{3})+$/;
 const DOT_FORMATTED_AMOUNT_PATTERN = /^\d{1,3}(?:\.\d{3})+$/;
 const SPACE_FORMATTED_AMOUNT_PATTERN = /^\d{1,3}(?: \d{3})+$/;
 const TYPING_AMOUNT_PATTERN = /^[\d.,\s]+$/;
+const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/g;
 
 function tlv(id: string, value: string) {
   return `${id}${value.length.toString().padStart(2, '0')}${value}`;
@@ -134,6 +136,18 @@ export function sanitizeVietQrDescriptionInput(value: string) {
     .replace(/\s+/g, ' ')
     .replace(/[^A-Za-z0-9 ]/g, '')
     .replace(/ +/g, ' ');
+}
+
+/**
+ * Payer name is display-only metadata for the generated share image. Preserve
+ * Unicode/Vietnamese names, but strip control characters, collapse whitespace
+ * and cap the value so canvas/share layouts remain predictable.
+ */
+export function sanitizeVietQrPayerNameInput(value: string) {
+  return value
+    .replace(CONTROL_CHARACTER_PATTERN, ' ')
+    .replace(/\s+/g, ' ')
+    .slice(0, VIETQR_MAX_PAYER_NAME_LENGTH);
 }
 
 export function isValidVietQrBankId(value: string) {
