@@ -7,11 +7,15 @@ on:
       - netlify
 jobs:
   test:
-    timeout-minutes: 10
+    # Playwright has its own 9-minute global timeout. Keep a small buffer here
+    # for dependency installation/build so failures are reported by Playwright
+    # instead of appearing as an unexplained GitHub cancellation.
+    timeout-minutes: 15
     # Playwright 1.32 predates Ubuntu 24.04 support. Pin Jammy until
     # Playwright is upgraded to a release that officially supports Noble.
     runs-on: ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
         shard: [1/3, 2/3, 3/3]
     steps:
@@ -37,6 +41,7 @@ jobs:
         run: pnpm build
 
       - name: Restore Playwright browsers from cache
+        id: playwright-cache
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.cache/ms-playwright
@@ -45,8 +50,12 @@ jobs:
             ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}-
             ${{ runner.os }}-playwright-
 
-      - name: Install Playwright Browsers
-        run: pnpm exec playwright install --with-deps
+      - name: Install Playwright system dependencies
+        run: pnpm exec playwright install-deps
+
+      - name: Install Playwright browsers on cache miss
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install
 
       - name: Run Playwright tests
         run: pnpm run test:e2e --shard=${{ matrix.shard }}
