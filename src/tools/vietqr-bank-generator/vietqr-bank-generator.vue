@@ -150,7 +150,9 @@ let qrRenderId = 0;
 let urlSyncReady = false;
 let urlSyncTimer: number | undefined;
 let descriptionNormalizeTimer: number | undefined;
+let shareImageRefreshTimer: number | undefined;
 const DESCRIPTION_NORMALIZE_DELAY_MS = 600;
+const SHARE_IMAGE_REFRESH_DELAY_MS = 180;
 
 const themeOptions = Object.entries(THEME_PRESETS).map(([value, theme]) => ({
   value: value as ThemeName,
@@ -1059,6 +1061,33 @@ async function refreshShareImage() {
   }
 }
 
+function scheduleShareImageRefresh() {
+  if (shareImageRefreshTimer !== undefined && typeof window !== 'undefined') {
+    window.clearTimeout(shareImageRefreshTimer);
+    shareImageRefreshTimer = undefined;
+  }
+
+  // Keep the lightweight live preview responsive while the user is typing.
+  // The export-sized 900x1200 canvas is regenerated only after input settles,
+  // preventing stale QR snapshots and unnecessary canvas work on every key.
+  if (!qrDataUrl.value || !selectedBank.value) {
+    void refreshShareImage();
+    return;
+  }
+
+  shareImageRendering.value = true;
+
+  if (typeof window === 'undefined') {
+    void refreshShareImage();
+    return;
+  }
+
+  shareImageRefreshTimer = window.setTimeout(() => {
+    shareImageRefreshTimer = undefined;
+    void refreshShareImage();
+  }, SHARE_IMAGE_REFRESH_DELAY_MS);
+}
+
 function isIosFamily() {
   if (typeof navigator === 'undefined') {
     return false;
@@ -1152,7 +1181,7 @@ async function downloadQrImage() {
 
 watch(
   [qrDataUrl, selectedTheme, selectedBankBin, accountNo, payerName, amount, description, locale],
-  refreshShareImage,
+  scheduleShareImageRefresh,
   { immediate: true },
 );
 
@@ -1166,6 +1195,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (urlSyncTimer !== undefined) {
     window.clearTimeout(urlSyncTimer);
+  }
+  if (shareImageRefreshTimer !== undefined) {
+    window.clearTimeout(shareImageRefreshTimer);
   }
   clearDescriptionNormalizeTimer();
   shareImageRenderId += 1;
@@ -1391,10 +1423,10 @@ onBeforeUnmount(() => {
 
           <div
             class="preview-stage"
-            :class="{ 'preview-stage-exported': qrDataUrl && selectedBank && shareImageObjectUrl }"
+            :class="{ 'preview-stage-exported': qrDataUrl && selectedBank && shareImageObjectUrl && !shareImageRendering }"
             :style="themeStyle"
           >
-            <template v-if="qrDataUrl && selectedBank && shareImageObjectUrl">
+            <template v-if="qrDataUrl && selectedBank && shareImageObjectUrl && !shareImageRendering">
               <img
                 :src="shareImageObjectUrl"
                 :alt="t('previewTitle')"
