@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createDeployVersionChecker } from './deploy-version';
+import {
+  clearCompletedDeployUpdateMarker,
+  createDeployUpdateUrl,
+  createDeployVersionChecker,
+  hasAttemptedDeployUpdate,
+  shouldCheckDeployVersion,
+} from './deploy-version';
 
 function createResponse(version?: string, ok = true) {
   return {
@@ -171,5 +177,36 @@ describe('deploy version checker', () => {
 
     expect(fetchVersion).toHaveBeenCalledOnce();
     expect(onVersionMismatch).toHaveBeenCalledOnce();
+  });
+});
+
+describe('deploy update navigation guards', () => {
+  it('skips deploy polling on local preview hosts used by Playwright', () => {
+    expect(shouldCheckDeployVersion('localhost')).toBe(false);
+    expect(shouldCheckDeployVersion('127.0.0.1')).toBe(false);
+    expect(shouldCheckDeployVersion('[::1]')).toBe(false);
+    expect(shouldCheckDeployVersion('tools.eplus.dev')).toBe(true);
+  });
+
+  it('adds the target deploy as a cache-busting reload marker', () => {
+    expect(createDeployUpdateUrl('https://tools.eplus.dev/vietqr-bank-generator?bank=970436#qr', 'deploy-v2'))
+      .toBe('https://tools.eplus.dev/vietqr-bank-generator?bank=970436&__eplus_update=deploy-v2#qr');
+  });
+
+  it('detects when the browser already reloaded for the same deploy', () => {
+    expect(hasAttemptedDeployUpdate('https://tools.eplus.dev/?__eplus_update=deploy-v2', 'deploy-v2')).toBe(true);
+    expect(hasAttemptedDeployUpdate('https://tools.eplus.dev/?__eplus_update=deploy-v1', 'deploy-v2')).toBe(false);
+  });
+
+  it('cleans a successful deploy marker without losing the route or query', () => {
+    expect(clearCompletedDeployUpdateMarker(
+      'https://tools.eplus.dev/vietqr-bank-generator?bank=970436&__eplus_update=deploy-v2#qr',
+      'deploy-v2',
+    )).toBe('/vietqr-bank-generator?bank=970436#qr');
+
+    expect(clearCompletedDeployUpdateMarker(
+      'https://tools.eplus.dev/?__eplus_update=deploy-v1',
+      'deploy-v2',
+    )).toBeUndefined();
   });
 });
