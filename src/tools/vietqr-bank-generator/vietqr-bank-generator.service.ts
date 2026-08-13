@@ -44,7 +44,6 @@ const COMMA_FORMATTED_AMOUNT_PATTERN = /^\d{1,3}(?:,\d{3})+$/;
 const DOT_FORMATTED_AMOUNT_PATTERN = /^\d{1,3}(?:\.\d{3})+$/;
 const SPACE_FORMATTED_AMOUNT_PATTERN = /^\d{1,3}(?: \d{3})+$/;
 const TYPING_AMOUNT_PATTERN = /^[\d.,\s]+$/;
-const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/g;
 
 function tlv(id: string, value: string) {
   return `${id}${value.length.toString().padStart(2, '0')}${value}`;
@@ -140,12 +139,16 @@ export function sanitizeVietQrDescriptionInput(value: string) {
 
 /**
  * Payer name is display-only metadata for the generated share image. Preserve
- * Unicode/Vietnamese names, but strip control characters, collapse whitespace
- * and cap the value so canvas/share layouts remain predictable.
+ * Unicode/Vietnamese names, but replace ASCII control characters, collapse
+ * whitespace and cap the value so canvas/share layouts remain predictable.
  */
 export function sanitizeVietQrPayerNameInput(value: string) {
-  return value
-    .replace(CONTROL_CHARACTER_PATTERN, ' ')
+  const withoutControlCharacters = Array.from(value, (character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 || codePoint === 127 ? ' ' : character;
+  }).join('');
+
+  return withoutControlCharacters
     .replace(/\s+/g, ' ')
     .slice(0, VIETQR_MAX_PAYER_NAME_LENGTH);
 }
