@@ -188,24 +188,27 @@ describe('deploy update navigation guards', () => {
     expect(shouldCheckDeployVersion('tools.eplus.dev')).toBe(true);
   });
 
-  it('adds the target deploy as a cache-busting reload marker', () => {
-    expect(createDeployUpdateUrl('https://tools.eplus.dev/vietqr-bank-generator?bank=970436#qr', 'deploy-v2'))
-      .toBe('https://tools.eplus.dev/vietqr-bank-generator?bank=970436&__eplus_update=deploy-v2#qr');
+  it('adds the target deploy and a fresh reload nonce to the navigation URL', () => {
+    expect(createDeployUpdateUrl(
+      'https://tools.eplus.dev/vietqr-bank-generator?bank=970436#qr',
+      'deploy-v2',
+      1234567890,
+    )).toBe('https://tools.eplus.dev/vietqr-bank-generator?bank=970436&__eplus_update=deploy-v2&__eplus_reload=1234567890#qr');
   });
 
   it('detects when the browser already reloaded for the same deploy', () => {
-    expect(hasAttemptedDeployUpdate('https://tools.eplus.dev/?__eplus_update=deploy-v2', 'deploy-v2')).toBe(true);
-    expect(hasAttemptedDeployUpdate('https://tools.eplus.dev/?__eplus_update=deploy-v1', 'deploy-v2')).toBe(false);
+    expect(hasAttemptedDeployUpdate('https://tools.eplus.dev/?__eplus_update=deploy-v2&__eplus_reload=1', 'deploy-v2')).toBe(true);
+    expect(hasAttemptedDeployUpdate('https://tools.eplus.dev/?__eplus_update=deploy-v1&__eplus_reload=1', 'deploy-v2')).toBe(false);
   });
 
-  it('cleans a successful deploy marker without losing the route or query', () => {
+  it('cleans successful deploy markers without losing the route or user query', () => {
     expect(clearCompletedDeployUpdateMarker(
-      'https://tools.eplus.dev/vietqr-bank-generator?bank=970436&__eplus_update=deploy-v2#qr',
+      'https://tools.eplus.dev/vietqr-bank-generator?bank=970436&__eplus_update=deploy-v2&__eplus_reload=1234567890#qr',
       'deploy-v2',
     )).toBe('/vietqr-bank-generator?bank=970436#qr');
 
     expect(clearCompletedDeployUpdateMarker(
-      'https://tools.eplus.dev/?__eplus_update=deploy-v1',
+      'https://tools.eplus.dev/?__eplus_update=deploy-v1&__eplus_reload=1234567890',
       'deploy-v2',
     )).toBeUndefined();
   });
