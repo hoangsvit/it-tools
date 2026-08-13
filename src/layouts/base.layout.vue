@@ -19,6 +19,7 @@ import CollapsibleToolMenu from '@/components/CollapsibleToolMenu.vue';
 const themeVars = useThemeVars();
 const styleStore = useStyleStore();
 const deployVersion = config.app.deployVersion;
+const deployBuiltAt = config.app.deployBuiltAt;
 const deployCommitFull = config.app.lastCommitSha;
 const deployCommit = deployCommitFull.slice(0, 7);
 const deployLabel = deployVersion.startsWith('local-') || deployVersion === 'local'
@@ -26,7 +27,39 @@ const deployLabel = deployVersion.startsWith('local-') || deployVersion === 'loc
   : deployVersion.slice(0, 8);
 
 const { tracker } = useTracker();
-const { t } = useI18n();
+const { t, locale } = useI18n();
+
+const deployBuiltAtLabel = computed(() => {
+  if (!deployBuiltAt) {
+    return '';
+  }
+
+  const date = new Date(deployBuiltAt);
+  if (Number.isNaN(date.getTime())) {
+    return deployBuiltAt;
+  }
+
+  return new Intl.DateTimeFormat(locale.value === 'vi' ? 'vi-VN' : undefined, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    timeZoneName: 'short',
+  }).format(date);
+});
+
+const deployTooltip = computed(() => {
+  const builtAt = deployBuiltAtLabel.value;
+  if (!builtAt) {
+    return `Deploy ${deployVersion}`;
+  }
+
+  return locale.value === 'vi'
+    ? `Deploy ${deployVersion} · Build lúc ${builtAt}`
+    : `Deploy ${deployVersion} · Built ${builtAt}`;
+});
 
 const toolStore = useToolStore();
 const { favoriteTools, toolsByCategory } = storeToRefs(toolStore);
@@ -70,7 +103,9 @@ const tools = computed<ToolCategory[]>(() => [
         <div class="footer">
           <div class="build-meta" data-testid="deploy-build-meta">
             <span>ePlus.DEV Tools</span>
-            <span class="build-chip" :title="deployVersion">Build {{ deployLabel }}</span>
+            <c-tooltip :tooltip="deployTooltip" position="top">
+              <span class="build-chip">Build {{ deployLabel }}</span>
+            </c-tooltip>
 
             <template v-if="deployCommit">
               <span aria-hidden="true">·</span>
@@ -193,6 +228,7 @@ const tools = computed<ToolCategory[]>(() => [
   font-size: 11px;
   font-weight: 600;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  cursor: help;
 }
 
 .upstream-credit {
