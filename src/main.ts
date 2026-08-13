@@ -14,11 +14,19 @@ import { installGoogleAnalytics } from './plugins/google-analytics.plugin';
 import { i18nPlugin } from './plugins/i18n.plugin';
 import {
   DEPLOY_UPDATE_EVENT,
+  clearCompletedDeployUpdateMarker,
   createDeployVersionChecker,
+  shouldCheckDeployVersion,
 } from './modules/app-version/deploy-version';
 
+const deployVersion = import.meta.env.VITE_DEPLOY_VERSION;
+const completedUpdatePath = clearCompletedDeployUpdateMarker(window.location.href, deployVersion);
+if (completedUpdatePath) {
+  window.history.replaceState(window.history.state, '', completedUpdatePath);
+}
+
 const checkDeployVersion = createDeployVersionChecker({
-  currentVersion: import.meta.env.VITE_DEPLOY_VERSION,
+  currentVersion: deployVersion,
   versionManifestUrl: `${import.meta.env.BASE_URL}version.json`,
   origin: window.location.origin,
   isOnline: () => navigator.onLine,
@@ -39,9 +47,13 @@ app.use(shadow);
 
 app.mount('#app');
 
-// Start the check only after App is mounted so the update dialog is ready to
-// receive the mismatch event. pageshow covers returning to a cached tab.
-void checkDeployVersion();
-window.addEventListener('pageshow', () => {
+// Local Vite previews are used by Playwright. They are immutable build
+// snapshots, so deploy polling only adds noise and can interrupt navigation.
+// Production/custom domains still check version.json after App is mounted so
+// the update dialog is ready before a mismatch event can be emitted.
+if (shouldCheckDeployVersion(window.location.hostname)) {
   void checkDeployVersion();
-});
+  window.addEventListener('pageshow', () => {
+    void checkDeployVersion();
+  });
+}
