@@ -14,6 +14,12 @@ export const config = figue({
       default: 'local',
       env: 'VITE_DEPLOY_VERSION',
     },
+    deployBuiltAt: {
+      doc: 'ISO timestamp when the running deployment was built',
+      format: 'string',
+      default: '',
+      env: 'VITE_DEPLOY_BUILT_AT',
+    },
     lastCommitSha: {
       doc: 'Git commit SHA for the running deployment',
       format: 'string',
@@ -67,6 +73,7 @@ export const config = figue({
     PACKAGE_VERSION: import.meta.env.PACKAGE_VERSION,
     VITE_DEPLOY_VERSION: import.meta.env.VITE_DEPLOY_VERSION,
     VITE_DEPLOY_COMMIT: import.meta.env.VITE_DEPLOY_COMMIT,
+    VITE_DEPLOY_BUILT_AT: import.meta.env.VITE_DEPLOY_BUILT_AT,
   })
   .validate()
   .getConfig();
