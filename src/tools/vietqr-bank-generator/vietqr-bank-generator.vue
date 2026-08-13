@@ -6,6 +6,7 @@ import { vietQrMessages } from './vietqr-bank-generator.i18n';
 import {
   VIETQR_MAX_AMOUNT,
   VIETQR_MAX_DESCRIPTION_LENGTH,
+  VIETQR_MAX_PAYER_NAME_LENGTH,
   type VietQrBank,
   bankSearchLabel,
   formatVietQrAmount,
@@ -16,13 +17,14 @@ import {
   parseVietQrAmountInput,
   parseVietQrAmountTyping,
   sanitizeVietQrDescriptionInput,
+  sanitizeVietQrPayerNameInput,
   validateVietQrInput,
 } from './vietqr-bank-generator.service';
 import type { CKeyValueListItems } from '@/ui/c-key-value-list/c-key-value-list.types';
 
 const STORAGE_PREFIX = 'eplus-vietqr';
 const COPYRIGHT_YEAR = new Date().getFullYear();
-const SENSITIVE_STORAGE_KEYS = ['account', 'amount', 'content'] as const;
+const SENSITIVE_STORAGE_KEYS = ['account', 'amount', 'content', 'payer'] as const;
 const CANVAS_FONT_FAMILY = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Arial, sans-serif';
 const CANVAS_MONO_FONT_FAMILY = 'ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace';
 const DEFAULT_QR_FOREGROUND = '#111827';
@@ -113,6 +115,13 @@ const banks = [...bankDirectory.data]
 
 const selectedBankBin = ref('');
 const accountNo = ref('');
+const payerName = ref('');
+const payerNameInput = computed({
+  get: () => payerName.value,
+  set: (value: string) => {
+    payerName.value = sanitizeVietQrPayerNameInput(value);
+  },
+});
 const amount = ref('');
 const descriptionValue = ref('');
 const description = ref('');
@@ -199,6 +208,8 @@ const amountPlaceholder = computed(() => isVietnameseLocale.value
 const amountValidationMessage = computed(() => isVietnameseLocale.value
   ? `Số tiền phải là số nguyên VND dương, tối đa ${formattedMaximumAmount.value}.`
   : t('validation.amount'));
+const payerNameCharacterCount = computed(() => payerName.value.length);
+const previewPayerName = computed(() => payerName.value.trim());
 const descriptionCharacterCount = computed(() => descriptionValue.value.length);
 
 const validation = computed(() => {
@@ -309,6 +320,7 @@ function resolveBankParameter(value: string) {
 function applyUrlParameters() {
   const bankParam = queryValue('bank', 'bin', 'bankId');
   const accountParam = queryValue('account', 'accountNo');
+  const payerParam = queryValue('payer', 'payerName', 'sender');
   const amountParam = queryValue('amount');
   const contentParam = queryValue('content', 'description');
   const themeParam = queryValue('theme').toLowerCase();
@@ -327,6 +339,10 @@ function applyUrlParameters() {
   if (accountParam) {
     // Preserve invalid values so the field validator can show the actual error.
     accountNo.value = accountParam.trim();
+  }
+
+  if (payerParam) {
+    payerName.value = sanitizeVietQrPayerNameInput(payerParam.trim());
   }
 
   if (amountParam) {
@@ -368,7 +384,7 @@ function applyUrlParameters() {
 
 function makeFormQuery() {
   const query = { ...route.query };
-  for (const key of ['bank', 'bin', 'bankId', 'account', 'accountNo', 'amount', 'content', 'description', 'theme', 'qrColor', 'qrBg', 'qrStyle', 'eyeStyle', 'ecc', 'qrSize', 'logo']) {
+  for (const key of ['bank', 'bin', 'bankId', 'account', 'accountNo', 'payer', 'payerName', 'sender', 'amount', 'content', 'description', 'theme', 'qrColor', 'qrBg', 'qrStyle', 'eyeStyle', 'ecc', 'qrSize', 'logo']) {
     delete query[key];
   }
 
@@ -377,6 +393,9 @@ function makeFormQuery() {
   }
   if (accountNo.value) {
     query.account = accountNo.value;
+  }
+  if (previewPayerName.value) {
+    query.payer = previewPayerName.value;
   }
   if (amount.value) {
     query.amount = amount.value;
@@ -662,6 +681,7 @@ watch(
   [
     selectedBankBin,
     accountNo,
+    payerName,
     amount,
     description,
     selectedTheme,
@@ -694,6 +714,7 @@ function restoreForm() {
 function resetForm() {
   selectedBankBin.value = '';
   accountNo.value = '';
+  payerName.value = '';
   amount.value = '';
   setDescriptionFromExternal('');
 
@@ -960,10 +981,14 @@ async function createShareImage() {
   context.font = `800 30px ${CANVAS_MONO_FONT_FAMILY}`;
   context.fillText(accountNo.value, 450, 970, 560);
 
-  let rowY = 1033;
+  let rowY = 1024;
+  if (previewPayerName.value) {
+    drawShareRow(context, t('payer'), previewPayerName.value, rowY);
+    rowY += 38;
+  }
   if (amount.value) {
     drawShareRow(context, t('amount'), previewAmount.value, rowY, true);
-    rowY += 46;
+    rowY += 38;
   }
   if (description.value) {
     drawShareRow(context, t('content'), previewDescription.value, rowY);
@@ -972,7 +997,7 @@ async function createShareImage() {
   context.textAlign = 'center';
   context.fillStyle = '#98a2b3';
   context.font = `500 12px ${CANVAS_FONT_FAMILY}`;
-  context.fillText(`© ${COPYRIGHT_YEAR} ePlus.DEV · tools.eplus.dev`, 450, 1128);
+  context.fillText(`© ${COPYRIGHT_YEAR} ePlus.DEV · tools.eplus.dev`, 450, 1132);
 
   return canvas.toDataURL('image/png');
 }
@@ -1126,7 +1151,7 @@ async function downloadQrImage() {
 }
 
 watch(
-  [qrDataUrl, selectedTheme, selectedBankBin, accountNo, amount, description, locale],
+  [qrDataUrl, selectedTheme, selectedBankBin, accountNo, payerName, amount, description, locale],
   refreshShareImage,
   { immediate: true },
 );
@@ -1199,6 +1224,19 @@ onBeforeUnmount(() => {
               :validation-rules="accountValidationRules"
               raw-text
             />
+
+            <div class="payer-name-field">
+              <c-input-text
+                v-model:value="payerNameInput"
+                :label="t('payerNameLabel')"
+                :placeholder="t('payerNamePlaceholder')"
+                raw-text
+              />
+              <div class="payer-name-meta">
+                <span>{{ t('payerNameHint') }}</span>
+                <span class="payer-name-counter">{{ payerNameCharacterCount }}/{{ VIETQR_MAX_PAYER_NAME_LENGTH }}</span>
+              </div>
+            </div>
 
             <div class="form-pair">
               <c-input-text
@@ -1402,7 +1440,11 @@ onBeforeUnmount(() => {
                   <strong>{{ accountNo }}</strong>
                 </div>
 
-                <div v-if="amount || description" class="payment-details">
+                <div v-if="previewPayerName || amount || description" class="payment-details">
+                  <div v-if="previewPayerName" class="detail-row">
+                    <span>{{ t('payer') }}</span>
+                    <strong>{{ previewPayerName }}</strong>
+                  </div>
                   <div v-if="amount" class="detail-row">
                     <span>{{ t('amount') }}</span>
                     <strong class="amount-value">{{ previewAmount }}</strong>
@@ -1576,7 +1618,8 @@ onBeforeUnmount(() => {
   margin-bottom: 0;
 }
 
-.content-field {
+.content-field,
+.payer-name-field {
   min-width: 0;
 }
 
@@ -1585,6 +1628,22 @@ onBeforeUnmount(() => {
   opacity: 0.55;
   font-size: 11px;
   text-align: right;
+}
+
+.payer-name-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 5px;
+  opacity: 0.58;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.payer-name-counter {
+  flex: none;
+  white-space: nowrap;
 }
 
 .design-stack {
@@ -2273,6 +2332,11 @@ onBeforeUnmount(() => {
 
   .bank-bin {
     display: none;
+  }
+
+  .payer-name-meta {
+    flex-wrap: wrap;
+    gap: 4px 10px;
   }
 
   .theme-picker {
