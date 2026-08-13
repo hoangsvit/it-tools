@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   VIETQR_MAX_AMOUNT,
   VIETQR_MAX_DESCRIPTION_LENGTH,
+  VIETQR_MAX_PAYER_NAME_LENGTH,
   bankSearchLabel,
   formatVietQrAmount,
   getVietQrDescriptionValidationError,
@@ -14,6 +15,7 @@ import {
   parseVietQrAmountInput,
   parseVietQrAmountTyping,
   sanitizeVietQrDescriptionInput,
+  sanitizeVietQrPayerNameInput,
   validateVietQrInput,
 } from './vietqr-bank-generator.service';
 
@@ -132,6 +134,29 @@ describe('VietQR bank generator service', () => {
     expect(sanitizeVietQrDescriptionInput('trả tiền bảo hiểm')).toBe('tra tien bao hiem');
     expect(sanitizeVietQrDescriptionInput('Thanh toán  BH-123!')).toBe('Thanh toan BH123');
     expect(sanitizeVietQrDescriptionInput('noi\tdung\nchuyen khoan')).toBe('noi dung chuyen khoan');
+  });
+
+  it('keeps Vietnamese payer names readable while removing unsafe control characters', () => {
+    expect(VIETQR_MAX_PAYER_NAME_LENGTH).toBe(60);
+    expect(sanitizeVietQrPayerNameInput('Nguyễn   Văn\nA')).toBe('Nguyễn Văn A');
+    expect(sanitizeVietQrPayerNameInput('  Trần Thị B')).toBe(' Trần Thị B');
+    expect(sanitizeVietQrPayerNameInput('A'.repeat(VIETQR_MAX_PAYER_NAME_LENGTH + 5)))
+      .toHaveLength(VIETQR_MAX_PAYER_NAME_LENGTH);
+  });
+
+  it('keeps payer display metadata out of the VietQR payload', () => {
+    const transfer = {
+      bankId: '970436',
+      accountNo: '123456789',
+      amount: '500000',
+      description: 'thanh toan',
+    };
+    const withPayerMetadata = {
+      ...transfer,
+      payerName: 'Nguyễn Văn A',
+    };
+
+    expect(makeVietQrContent(withPayerMetadata)).toBe(makeVietQrContent(transfer));
   });
 
   it('validates transfer content length and charset separately', () => {
