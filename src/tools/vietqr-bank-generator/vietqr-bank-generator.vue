@@ -1071,20 +1071,20 @@ function scheduleShareImageRefresh() {
   // The export-sized 900x1200 canvas is regenerated only after input settles,
   // preventing stale QR snapshots and unnecessary canvas work on every key.
   if (!qrDataUrl.value || !selectedBank.value) {
-    void refreshShareImage();
+    refreshShareImage();
     return;
   }
 
   shareImageRendering.value = true;
 
   if (typeof window === 'undefined') {
-    void refreshShareImage();
+    refreshShareImage();
     return;
   }
 
   shareImageRefreshTimer = window.setTimeout(() => {
     shareImageRefreshTimer = undefined;
-    void refreshShareImage();
+    refreshShareImage();
   }, SHARE_IMAGE_REFRESH_DELAY_MS);
 }
 
