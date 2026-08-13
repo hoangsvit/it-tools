@@ -42,6 +42,7 @@ export default defineConfig({
         'vue',
         'vue-router',
         '@vueuse/core',
+        'vue-i18n',
         {
           'naive-ui': ['useDialog', 'useMessage', 'useNotification', 'useLoadingBar'],
         },
