@@ -133,6 +133,7 @@ const descriptionInput = computed({
   },
 });
 const qrDataUrl = ref('');
+const qrRendering = ref(false);
 const copyState = ref<CopyState>('idle');
 const selectedTheme = ref<ThemeName>('purple');
 const qrForeground = ref(DEFAULT_QR_FOREGROUND);
@@ -636,8 +637,18 @@ watch(
   [qrPayload, qrForeground, qrBackground, qrModuleStyle, qrEyeStyle, qrErrorCorrection, qrSize, qrCenterLogo],
   async ([payload]) => {
     const renderId = ++qrRenderId;
+
+    // Any QR payload/design change makes the current exported image stale
+    // immediately. Invalidate in-flight exports before awaiting QR work so
+    // stale PNGs can never become visible/copyable during a slow render.
+    shareImageRenderId += 1;
+    shareImageRendering.value = true;
+    qrRendering.value = true;
+
     if (!payload) {
       qrDataUrl.value = '';
+      qrRendering.value = false;
+      await refreshShareImage();
       return;
     }
 
@@ -650,6 +661,11 @@ watch(
     catch {
       if (renderId === qrRenderId) {
         qrDataUrl.value = '';
+      }
+    }
+    finally {
+      if (renderId === qrRenderId) {
+        qrRendering.value = false;
       }
     }
   },
@@ -1067,6 +1083,19 @@ function scheduleShareImageRefresh() {
     shareImageRefreshTimer = undefined;
   }
 
+  // Invalidate any export already in flight before entering the debounce
+  // window. Its generation checks will then prevent it from committing a
+  // stale blob/object URL or clearing the pending rendering state.
+  shareImageRenderId += 1;
+  shareImageRendering.value = true;
+
+  // A payload/design change may still be producing the corresponding QR.
+  // Wait for that render to finish instead of exporting the previous QR.
+  // qrRendering is watched below, so completion schedules the fresh export.
+  if (qrRendering.value) {
+    return;
+  }
+
   // Keep the lightweight live preview responsive while the user is typing.
   // The export-sized 900x1200 canvas is regenerated only after input settles,
   // preventing stale QR snapshots and unnecessary canvas work on every key.
@@ -1074,8 +1103,6 @@ function scheduleShareImageRefresh() {
     refreshShareImage();
     return;
   }
-
-  shareImageRendering.value = true;
 
   if (typeof window === 'undefined') {
     refreshShareImage();
@@ -1180,7 +1207,7 @@ async function downloadQrImage() {
 }
 
 watch(
-  [qrDataUrl, selectedTheme, selectedBankBin, accountNo, payerName, amount, description, locale],
+  [qrDataUrl, qrRendering, selectedTheme, selectedBankBin, accountNo, payerName, amount, description, locale],
   scheduleShareImageRefresh,
   { immediate: true },
 );
@@ -1200,6 +1227,7 @@ onBeforeUnmount(() => {
     window.clearTimeout(shareImageRefreshTimer);
   }
   clearDescriptionNormalizeTimer();
+  qrRenderId += 1;
   shareImageRenderId += 1;
   revokeShareImageUrl();
 });
