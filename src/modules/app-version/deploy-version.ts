@@ -3,13 +3,21 @@ export interface VersionManifestResponse {
   json: () => Promise<unknown>
 }
 
+export interface DeployVersionMismatch {
+  currentVersion?: string
+  serverVersion: string
+}
+
+export const DEPLOY_UPDATE_QUERY_PARAM = '__eplus_update';
+export const DEPLOY_UPDATE_RELOAD_PARAM = '__eplus_reload';
+
 export interface DeployVersionCheckerOptions {
   currentVersion?: string
   versionManifestUrl: string
   origin: string
   isOnline: () => boolean
   fetchVersion: (url: URL, init: RequestInit) => Promise<VersionManifestResponse>
-  reload: () => void
+  onVersionMismatch: (versions: DeployVersionMismatch) => void
   now?: () => number
 }
 
@@ -22,19 +30,57 @@ function getManifestVersion(manifest: unknown) {
   return typeof version === 'string' && version.length > 0 ? version : undefined;
 }
 
+export function shouldCheckDeployVersion(hostname: string) {
+  const normalizedHostname = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  return !['localhost', '127.0.0.1', '::1'].includes(normalizedHostname);
+}
+
+export function createDeployUpdateUrl(currentHref: string, serverVersion: string, reloadNonce = Date.now()) {
+  const url = new URL(currentHref);
+  url.searchParams.set(DEPLOY_UPDATE_QUERY_PARAM, serverVersion);
+  url.searchParams.set(DEPLOY_UPDATE_RELOAD_PARAM, reloadNonce.toString());
+  return url.toString();
+}
+
+export function hasAttemptedDeployUpdate(currentHref: string, serverVersion: string) {
+  try {
+    return new URL(currentHref).searchParams.get(DEPLOY_UPDATE_QUERY_PARAM) === serverVersion;
+  }
+  catch {
+    return false;
+  }
+}
+
+export function clearCompletedDeployUpdateMarker(currentHref: string, currentVersion?: string) {
+  try {
+    const url = new URL(currentHref);
+    if (!currentVersion || url.searchParams.get(DEPLOY_UPDATE_QUERY_PARAM) !== currentVersion) {
+      return undefined;
+    }
+
+    url.searchParams.delete(DEPLOY_UPDATE_QUERY_PARAM);
+    url.searchParams.delete(DEPLOY_UPDATE_RELOAD_PARAM);
+    return `${url.pathname}${url.search}${url.hash}`;
+  }
+  catch {
+    return undefined;
+  }
+}
+
 export function createDeployVersionChecker({
   currentVersion,
   versionManifestUrl,
   origin,
   isOnline,
   fetchVersion,
-  reload,
+  onVersionMismatch,
   now = Date.now,
 }: DeployVersionCheckerOptions) {
   let versionCheckRunning = false;
+  let versionMismatchNotified = false;
 
   return async function checkDeployVersion() {
-    if (versionCheckRunning || !isOnline()) {
+    if (versionCheckRunning || versionMismatchNotified || !isOnline()) {
       return;
     }
 
@@ -61,10 +107,8 @@ export function createDeployVersionChecker({
         return;
       }
 
-      // HTML is served with no-store and application assets are content-hashed.
-      // Reloading directly is therefore enough to move the browser to the new
-      // deploy without depending on Service Worker lifecycle timing.
-      reload();
+      versionMismatchNotified = true;
+      onVersionMismatch({ currentVersion, serverVersion });
     }
     catch {
       // Keep the current app usable if the version endpoint is temporarily unavailable.
