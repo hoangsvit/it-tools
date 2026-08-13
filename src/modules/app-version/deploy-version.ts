@@ -9,6 +9,7 @@ export interface DeployVersionMismatch {
 }
 
 export const DEPLOY_UPDATE_EVENT = 'it-tools:deploy-update-available';
+export const DEPLOY_UPDATE_QUERY_PARAM = '__eplus_update';
 
 export interface DeployVersionCheckerOptions {
   currentVersion?: string
@@ -27,6 +28,41 @@ function getManifestVersion(manifest: unknown) {
 
   const { version } = manifest as { version?: unknown };
   return typeof version === 'string' && version.length > 0 ? version : undefined;
+}
+
+export function shouldCheckDeployVersion(hostname: string) {
+  const normalizedHostname = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  return !['localhost', '127.0.0.1', '::1'].includes(normalizedHostname);
+}
+
+export function createDeployUpdateUrl(currentHref: string, serverVersion: string) {
+  const url = new URL(currentHref);
+  url.searchParams.set(DEPLOY_UPDATE_QUERY_PARAM, serverVersion);
+  return url.toString();
+}
+
+export function hasAttemptedDeployUpdate(currentHref: string, serverVersion: string) {
+  try {
+    return new URL(currentHref).searchParams.get(DEPLOY_UPDATE_QUERY_PARAM) === serverVersion;
+  }
+  catch {
+    return false;
+  }
+}
+
+export function clearCompletedDeployUpdateMarker(currentHref: string, currentVersion?: string) {
+  try {
+    const url = new URL(currentHref);
+    if (!currentVersion || url.searchParams.get(DEPLOY_UPDATE_QUERY_PARAM) !== currentVersion) {
+      return undefined;
+    }
+
+    url.searchParams.delete(DEPLOY_UPDATE_QUERY_PARAM);
+    return `${url.pathname}${url.search}${url.hash}`;
+  }
+  catch {
+    return undefined;
+  }
 }
 
 export function createDeployVersionChecker({
