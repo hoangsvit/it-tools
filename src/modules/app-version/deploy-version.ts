@@ -3,13 +3,20 @@ export interface VersionManifestResponse {
   json: () => Promise<unknown>
 }
 
+export interface DeployVersionMismatch {
+  currentVersion?: string
+  serverVersion: string
+}
+
+export const DEPLOY_UPDATE_EVENT = 'it-tools:deploy-update-available';
+
 export interface DeployVersionCheckerOptions {
   currentVersion?: string
   versionManifestUrl: string
   origin: string
   isOnline: () => boolean
   fetchVersion: (url: URL, init: RequestInit) => Promise<VersionManifestResponse>
-  reload: () => void
+  onVersionMismatch: (versions: DeployVersionMismatch) => void
   now?: () => number
 }
 
@@ -28,13 +35,14 @@ export function createDeployVersionChecker({
   origin,
   isOnline,
   fetchVersion,
-  reload,
+  onVersionMismatch,
   now = Date.now,
 }: DeployVersionCheckerOptions) {
   let versionCheckRunning = false;
+  let versionMismatchNotified = false;
 
   return async function checkDeployVersion() {
-    if (versionCheckRunning || !isOnline()) {
+    if (versionCheckRunning || versionMismatchNotified || !isOnline()) {
       return;
     }
 
@@ -61,10 +69,10 @@ export function createDeployVersionChecker({
         return;
       }
 
-      // HTML is served with no-store and application assets are content-hashed.
-      // Reloading directly is therefore enough to move the browser to the new
-      // deploy without depending on Service Worker lifecycle timing.
-      reload();
+      // Let the UI explain the update and show a short countdown instead of
+      // surprising the user with an immediate reload while they are working.
+      versionMismatchNotified = true;
+      onVersionMismatch({ currentVersion, serverVersion });
     }
     catch {
       // Keep the current app usable if the version endpoint is temporarily unavailable.
