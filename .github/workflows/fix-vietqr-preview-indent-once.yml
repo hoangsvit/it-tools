@@ -26,18 +26,22 @@ jobs:
 
           path = Path('src/tools/vietqr-bank-generator/vietqr-bank-generator.vue')
           source = path.read_text()
-          old = '''                    <img
-        :src="qrDataUrl"
-        alt="VietQR bank transfer code"
-        class="qr-code-image"
-        :style="{ visibility: qrRendering ? 'hidden' : 'visible' }"
-      >'''
-          new = '''                    <img
-                      :src="qrDataUrl"
-                      alt="VietQR bank transfer code"
-                      class="qr-code-image"
-                      :style="{ visibility: qrRendering ? 'hidden' : 'visible' }"
-                    >'''
+          old = (
+              '                    <img\n'
+              '        :src="qrDataUrl"\n'
+              '        alt="VietQR bank transfer code"\n'
+              '        class="qr-code-image"\n'
+              '        :style="{ visibility: qrRendering ? \'hidden\' : \'visible\' }"\n'
+              '      >'
+          )
+          new = (
+              '                    <img\n'
+              '                      :src="qrDataUrl"\n'
+              '                      alt="VietQR bank transfer code"\n'
+              '                      class="qr-code-image"\n'
+              '                      :style="{ visibility: qrRendering ? \'hidden\' : \'visible\' }"\n'
+              '                    >'
+          )
 
           count = source.count(old)
           if count != 1:
