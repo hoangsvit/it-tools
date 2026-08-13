@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterView, useRoute } from 'vue-router';
 import {
+  NAlert,
   NButton,
   NCard,
   NGlobalStyle,
@@ -16,6 +17,8 @@ import { useStyleStore } from './stores/style.store';
 import {
   DEPLOY_UPDATE_EVENT,
   type DeployVersionMismatch,
+  createDeployUpdateUrl,
+  hasAttemptedDeployUpdate,
 } from './modules/app-version/deploy-version';
 
 const UPDATE_COUNTDOWN_SECONDS = 8;
@@ -41,6 +44,8 @@ const appUpdateText = computed(() => locale.value === 'vi'
       legacyVersion: 'bản cũ',
       reloadCountdown: (seconds: number) => `Tự động tải lại sau ${seconds} giây`,
       updateNow: 'Cập nhật ngay',
+      reloadLoopStopped: 'Trình duyệt vẫn đang giữ phiên bản cũ sau lần tải lại trước. Hệ thống đã dừng tự động tải lại để tránh vòng lặp và trang trắng. Bạn có thể thử tải phiên bản mới lại một lần nữa.',
+      retryUpdate: 'Thử tải phiên bản mới',
     }
   : {
       title: 'A new version is available',
@@ -48,11 +53,14 @@ const appUpdateText = computed(() => locale.value === 'vi'
       legacyVersion: 'legacy',
       reloadCountdown: (seconds: number) => `Automatically reloading in ${seconds} seconds`,
       updateNow: 'Update now',
+      reloadLoopStopped: 'The browser is still holding the previous version after a reload. Automatic reloads have been stopped to prevent a loop or blank page. You can try loading the new version once more.',
+      retryUpdate: 'Try loading the new version',
     });
 
 const updateDialogVisible = ref(false);
 const updateCountdown = ref(UPDATE_COUNTDOWN_SECONDS);
 const pendingUpdate = ref<DeployVersionMismatch>();
+const automaticReloadBlocked = ref(false);
 let updateTimer: ReturnType<typeof setInterval> | undefined;
 
 const updateProgress = computed(() => (
@@ -76,7 +84,17 @@ function clearUpdateTimer() {
 
 function reloadForUpdate() {
   clearUpdateTimer();
-  window.location.reload();
+
+  const serverVersion = pendingUpdate.value?.serverVersion;
+  if (!serverVersion) {
+    return;
+  }
+
+  // A normal location.reload() can reuse stale HTML in some browsers. Put the
+  // target deploy in the URL so the navigation is a fresh document request.
+  // If that exact deploy still does not load, the next app boot detects this
+  // marker and stops auto-reloading instead of entering a refresh loop.
+  window.location.replace(createDeployUpdateUrl(window.location.href, serverVersion));
 }
 
 function startUpdateCountdown(versions: DeployVersionMismatch) {
@@ -85,9 +103,14 @@ function startUpdateCountdown(versions: DeployVersionMismatch) {
   }
 
   pendingUpdate.value = versions;
-  updateCountdown.value = UPDATE_COUNTDOWN_SECONDS;
+  automaticReloadBlocked.value = hasAttemptedDeployUpdate(window.location.href, versions.serverVersion);
+  updateCountdown.value = automaticReloadBlocked.value ? 0 : UPDATE_COUNTDOWN_SECONDS;
   updateDialogVisible.value = true;
   clearUpdateTimer();
+
+  if (automaticReloadBlocked.value) {
+    return;
+  }
 
   updateTimer = setInterval(() => {
     // Do not consume the countdown while the tab is hidden. The user should
@@ -154,21 +177,27 @@ onBeforeUnmount(() => {
                 <strong>{{ shortVersion(pendingUpdate.serverVersion) }}</strong>
               </div>
 
-              <NProgress
-                type="line"
-                :percentage="updateProgress"
-                :show-indicator="false"
-                processing
-              />
+              <NAlert v-if="automaticReloadBlocked" type="warning" :show-icon="true">
+                {{ appUpdateText.reloadLoopStopped }}
+              </NAlert>
 
-              <p class="app-update-countdown" aria-live="polite">
-                {{ appUpdateText.reloadCountdown(updateCountdown) }}
-              </p>
+              <template v-else>
+                <NProgress
+                  type="line"
+                  :percentage="updateProgress"
+                  :show-indicator="false"
+                  processing
+                />
+
+                <p class="app-update-countdown" aria-live="polite">
+                  {{ appUpdateText.reloadCountdown(updateCountdown) }}
+                </p>
+              </template>
             </div>
 
             <template #footer>
               <NButton type="primary" block @click="reloadForUpdate">
-                {{ appUpdateText.updateNow }}
+                {{ automaticReloadBlocked ? appUpdateText.retryUpdate : appUpdateText.updateNow }}
               </NButton>
             </template>
           </NCard>
