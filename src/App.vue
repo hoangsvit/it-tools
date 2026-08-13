@@ -27,12 +27,28 @@ const styleStore = useStyleStore();
 const theme = computed(() => (styleStore.isDarkTheme ? darkTheme : null));
 const themeOverrides = computed(() => (styleStore.isDarkTheme ? darkThemeOverrides : lightThemeOverrides));
 
-const { locale, t } = useI18n();
+const { locale } = useI18n();
 
 syncRef(
   locale,
   useStorage('locale', locale),
 );
+
+const appUpdateText = computed(() => locale.value === 'vi'
+  ? {
+      title: 'Đã có phiên bản mới',
+      description: 'ePlus.DEV Tools vừa được cập nhật. Trang sẽ đồng bộ phiên bản mới và tải lại để bạn luôn sử dụng tính năng mới nhất.',
+      legacyVersion: 'bản cũ',
+      reloadCountdown: (seconds: number) => `Tự động tải lại sau ${seconds} giây`,
+      updateNow: 'Cập nhật ngay',
+    }
+  : {
+      title: 'A new version is available',
+      description: 'ePlus.DEV Tools has just been updated. The page will sync the new version and reload so you always use the latest features.',
+      legacyVersion: 'legacy',
+      reloadCountdown: (seconds: number) => `Automatically reloading in ${seconds} seconds`,
+      updateNow: 'Update now',
+    });
 
 const updateDialogVisible = ref(false);
 const updateCountdown = ref(UPDATE_COUNTDOWN_SECONDS);
@@ -45,7 +61,7 @@ const updateProgress = computed(() => (
 
 function shortVersion(version?: string) {
   if (!version) {
-    return t('appUpdate.legacyVersion');
+    return appUpdateText.value.legacyVersion;
   }
 
   return version.length > 10 ? version.slice(0, 8) : version;
@@ -125,11 +141,11 @@ onBeforeUnmount(() => {
             :bordered="false"
             role="dialog"
             aria-modal="true"
-            :title="t('appUpdate.title')"
+            :title="appUpdateText.title"
           >
             <div class="app-update-content">
               <p class="app-update-description">
-                {{ t('appUpdate.description') }}
+                {{ appUpdateText.description }}
               </p>
 
               <div v-if="pendingUpdate" class="app-update-version">
@@ -146,13 +162,13 @@ onBeforeUnmount(() => {
               />
 
               <p class="app-update-countdown" aria-live="polite">
-                {{ t('appUpdate.reloadCountdown', { seconds: updateCountdown }) }}
+                {{ appUpdateText.reloadCountdown(updateCountdown) }}
               </p>
             </div>
 
             <template #footer>
               <NButton type="primary" block @click="reloadForUpdate">
-                {{ t('appUpdate.updateNow') }}
+                {{ appUpdateText.updateNow }}
               </NButton>
             </template>
           </NCard>
