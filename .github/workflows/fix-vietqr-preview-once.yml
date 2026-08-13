@@ -1,0 +1,75 @@
+name: Apply VietQR preview stabilization
+
+on:
+  push:
+    branches:
+      - fix/vietqr-preview-input
+    paths:
+      - .github/workflows/fix-vietqr-preview-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: fix/vietqr-preview-input
+
+      - name: Stabilize preview rendering while typing
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path('src/tools/vietqr-bank-generator/vietqr-bank-generator.vue')
+          source = path.read_text()
+
+          replacements = [
+              (
+                  "let descriptionNormalizeTimer: number | undefined;\nconst DESCRIPTION_NORMALIZE_DELAY_MS = 600;",
+                  "let descriptionNormalizeTimer: number | undefined;\nlet shareImageRefreshTimer: number | undefined;\nconst DESCRIPTION_NORMALIZE_DELAY_MS = 600;\nconst SHARE_IMAGE_REFRESH_DELAY_MS = 180;",
+              ),
+              (
+                  "}\n\nfunction isIosFamily() {",
+                  "}\n\nfunction scheduleShareImageRefresh() {\n  if (shareImageRefreshTimer !== undefined && typeof window !== 'undefined') {\n    window.clearTimeout(shareImageRefreshTimer);\n    shareImageRefreshTimer = undefined;\n  }\n\n  // Keep the lightweight live preview responsive while the user is typing.\n  // The export-sized 900x1200 canvas is regenerated only after input settles,\n  // preventing stale QR snapshots and unnecessary canvas work on every key.\n  if (!qrDataUrl.value || !selectedBank.value) {\n    void refreshShareImage();\n    return;\n  }\n\n  shareImageRendering.value = true;\n\n  if (typeof window === 'undefined') {\n    void refreshShareImage();\n    return;\n  }\n\n  shareImageRefreshTimer = window.setTimeout(() => {\n    shareImageRefreshTimer = undefined;\n    void refreshShareImage();\n  }, SHARE_IMAGE_REFRESH_DELAY_MS);\n}\n\nfunction isIosFamily() {",
+              ),
+              (
+                  "watch(\n  [qrDataUrl, selectedTheme, selectedBankBin, accountNo, payerName, amount, description, locale],\n  refreshShareImage,\n  { immediate: true },\n);",
+                  "watch(\n  [qrDataUrl, selectedTheme, selectedBankBin, accountNo, payerName, amount, description, locale],\n  scheduleShareImageRefresh,\n  { immediate: true },\n);",
+              ),
+              (
+                  "  if (urlSyncTimer !== undefined) {\n    window.clearTimeout(urlSyncTimer);\n  }\n  clearDescriptionNormalizeTimer();",
+                  "  if (urlSyncTimer !== undefined) {\n    window.clearTimeout(urlSyncTimer);\n  }\n  if (shareImageRefreshTimer !== undefined) {\n    window.clearTimeout(shareImageRefreshTimer);\n  }\n  clearDescriptionNormalizeTimer();",
+              ),
+              (
+                  ":class=\"{ 'preview-stage-exported': qrDataUrl && selectedBank && shareImageObjectUrl }\"",
+                  ":class=\"{ 'preview-stage-exported': qrDataUrl && selectedBank && shareImageObjectUrl && !shareImageRendering }\"",
+              ),
+              (
+                  "<template v-if=\"qrDataUrl && selectedBank && shareImageObjectUrl\">",
+                  "<template v-if=\"qrDataUrl && selectedBank && shareImageObjectUrl && !shareImageRendering\">",
+              ),
+          ]
+
+          for old, new in replacements:
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one match, found {count}: {old[:100]!r}')
+              source = source.replace(old, new, 1)
+
+          path.write_text(source)
+          PY
+
+      - name: Commit source fix and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "ePlus.DEV Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git rm .github/workflows/fix-vietqr-preview-once.yml
+          git add src/tools/vietqr-bank-generator/vietqr-bank-generator.vue
+          git commit -m "fix: stabilize VietQR preview while typing"
+          git push origin HEAD:fix/vietqr-preview-input
