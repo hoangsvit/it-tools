@@ -10,6 +10,7 @@ export interface DeployVersionMismatch {
 
 export const DEPLOY_UPDATE_EVENT = 'it-tools:deploy-update-available';
 export const DEPLOY_UPDATE_QUERY_PARAM = '__eplus_update';
+export const DEPLOY_UPDATE_RELOAD_PARAM = '__eplus_reload';
 
 export interface DeployVersionCheckerOptions {
   currentVersion?: string
@@ -35,9 +36,10 @@ export function shouldCheckDeployVersion(hostname: string) {
   return !['localhost', '127.0.0.1', '::1'].includes(normalizedHostname);
 }
 
-export function createDeployUpdateUrl(currentHref: string, serverVersion: string) {
+export function createDeployUpdateUrl(currentHref: string, serverVersion: string, reloadNonce = Date.now()) {
   const url = new URL(currentHref);
   url.searchParams.set(DEPLOY_UPDATE_QUERY_PARAM, serverVersion);
+  url.searchParams.set(DEPLOY_UPDATE_RELOAD_PARAM, reloadNonce.toString());
   return url.toString();
 }
 
@@ -58,6 +60,7 @@ export function clearCompletedDeployUpdateMarker(currentHref: string, currentVer
     }
 
     url.searchParams.delete(DEPLOY_UPDATE_QUERY_PARAM);
+    url.searchParams.delete(DEPLOY_UPDATE_RELOAD_PARAM);
     return `${url.pathname}${url.search}${url.hash}`;
   }
   catch {
