@@ -26,23 +26,29 @@ jobs:
         id: changes
         shell: bash
         run: |
-          # Keep full validation on protected deployment branches. The change
-          # filter only reduces work for pull requests.
-          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
-            echo "run_ci=true" >> "$GITHUB_OUTPUT"
-            exit 0
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            HEAD="${{ github.sha }}"
           fi
 
-          git diff --name-only \
-            "${{ github.event.pull_request.base.sha }}" \
-            "${{ github.event.pull_request.head.sha }}" > changed.txt
+          # A zero SHA can occur on the first push of a ref. Fall back to the
+          # files contained in HEAD so an app/tooling change is never missed.
+          if [[ -z "$BASE" || "$BASE" =~ ^0+$ ]]; then
+            git diff-tree --no-commit-id --name-only -r "$HEAD" > changed.txt
+          else
+            git diff --name-only "$BASE" "$HEAD" > changed.txt
+          fi
 
           echo "Changed files:"
           cat changed.txt
 
           # App source, tests, build scripts, dependencies, and tooling configs
           # can affect lint/typecheck/unit/build results. Docs, GitHub workflow
-          # files and repository metadata do not require the expensive app CI.
+          # files and repository metadata do not require expensive app CI,
+          # including after they are merged into main/netlify.
           if grep -Eq '^(src/|public/|scripts/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|index\.html$|\.nvmrc$|env\.d\.ts$|vite\.config\.[^/]+$|vitest\.config\.[^/]+$|tsconfig(\.[^/]+)?\.json$|eslint\.config\.[^/]+$|stylelint\.config\.[^/]+$|prettier\.config\.[^/]+$|\.eslintrc([^/]*)$|\.stylelintrc([^/]*)$|\.prettierrc([^/]*)$)' changed.txt; then
             echo "run_ci=true" >> "$GITHUB_OUTPUT"
           else
