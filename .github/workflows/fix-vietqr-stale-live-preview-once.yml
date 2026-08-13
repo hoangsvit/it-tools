@@ -1,0 +1,75 @@
+name: Fix VietQR stale live preview once
+
+on:
+  push:
+    branches:
+      - fix/vietqr-stale-live-preview
+    paths:
+      - .github/workflows/fix-vietqr-stale-live-preview-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: fix/vietqr-stale-live-preview
+
+      - name: Apply stale-preview fix
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/tools/vietqr-bank-generator/vietqr-bank-generator.vue')
+          source = path.read_text()
+
+          replacements = [
+              (
+                  ":class=\"{ 'preview-stage-exported': qrDataUrl && selectedBank && shareImageObjectUrl && !shareImageRendering }\"",
+                  ":class=\"{ 'preview-stage-exported': qrDataUrl && selectedBank && shareImageObjectUrl && !shareImageRendering && !qrRendering }\"",
+                  1,
+              ),
+              (
+                  '<template v-if="qrDataUrl && selectedBank && shareImageObjectUrl && !shareImageRendering">',
+                  '<template v-if="qrDataUrl && selectedBank && shareImageObjectUrl && !shareImageRendering && !qrRendering">',
+                  1,
+              ),
+              (
+                  '<img :src="qrDataUrl" alt="VietQR bank transfer code" class="qr-code-image">',
+                  '''<img
+                  :src="qrDataUrl"
+                  alt="VietQR bank transfer code"
+                  class="qr-code-image"
+                  :style="{ visibility: qrRendering ? 'hidden' : 'visible' }"
+                >''',
+                  1,
+              ),
+              (
+                  ':disabled="!shareImageBlob || shareImageRendering"',
+                  ':disabled="!shareImageBlob || shareImageRendering || qrRendering"',
+                  2,
+              ),
+          ]
+
+          for index, (old, new, expected) in enumerate(replacements, start=1):
+              actual = source.count(old)
+              if actual != expected:
+                  raise SystemExit(
+                      f'replacement {index}: expected {expected} occurrence(s), found {actual}'
+                  )
+              source = source.replace(old, new)
+
+          path.write_text(source)
+          PY
+
+          rm .github/workflows/fix-vietqr-stale-live-preview-once.yml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: hide stale VietQR during render"
+          git push
