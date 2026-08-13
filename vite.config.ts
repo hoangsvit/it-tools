@@ -42,7 +42,6 @@ export default defineConfig({
         'vue',
         'vue-router',
         '@vueuse/core',
-        'vue-i18n',
         {
           'naive-ui': ['useDialog', 'useMessage', 'useNotification', 'useLoadingBar'],
         },
@@ -164,6 +163,7 @@ export default defineConfig({
     'import.meta.env.PACKAGE_VERSION': JSON.stringify(process.env.npm_package_version),
     'import.meta.env.VITE_DEPLOY_VERSION': JSON.stringify(deployVersion),
     'import.meta.env.VITE_DEPLOY_COMMIT': JSON.stringify(deployCommit),
+    'import.meta.env.VITE_DEPLOY_BUILT_AT': JSON.stringify(deployBuiltAt),
   },
   test: {
     exclude: [...configDefaults.exclude, '**/*.e2e.spec.ts'],
