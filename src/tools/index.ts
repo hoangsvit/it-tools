@@ -58,6 +58,7 @@ import { tool as caseConverter } from './case-converter';
 import { tool as chmodCalculator } from './chmod-calculator';
 import { tool as chronometer } from './chronometer';
 import { tool as colorConverter } from './color-converter';
+import { tool as cssUnitConverter } from './css-unit-converter';
 import { tool as crontabGenerator } from './crontab-generator';
 import { tool as dateTimeConverter } from './date-time-converter';
 import { tool as deviceInformation } from './device-information';
@@ -105,6 +106,7 @@ const coreCategories: ToolCategory[] = [
     name: 'Converter',
     components: [
       dateTimeConverter,
+      cssUnitConverter,
       baseConverter,
       romanNumeralConverter,
       base64StringConverter,
