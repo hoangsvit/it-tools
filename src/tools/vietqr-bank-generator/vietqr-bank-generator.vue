@@ -1492,11 +1492,11 @@ onBeforeUnmount(() => {
                   <span class="qr-guide qr-guide-br" />
                   <div class="qr-surface">
                     <img
-        :src="qrDataUrl"
-        alt="VietQR bank transfer code"
-        class="qr-code-image"
-        :style="{ visibility: qrRendering ? 'hidden' : 'visible' }"
-      >
+                      :src="qrDataUrl"
+                      alt="VietQR bank transfer code"
+                      class="qr-code-image"
+                      :style="{ visibility: qrRendering ? 'hidden' : 'visible' }"
+                    >
                   </div>
                 </div>
 
