@@ -263,10 +263,6 @@ const descriptionValidationRules = computed(() => [
 ]);
 
 const qrPayload = computed(() => {
-  if (!selectedBank.value?.transferSupported) {
-    return '';
-  }
-
   return makeVietQrContent({
     bankId: selectedBankBin.value,
     accountNo: accountNo.value,
