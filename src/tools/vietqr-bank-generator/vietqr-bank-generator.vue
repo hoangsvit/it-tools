@@ -479,24 +479,29 @@ function commitDescriptionInput() {
   description.value = sanitized;
 }
 
-function schedulePayerNameNormalization() {
+function clearPayerNameNormalizeTimer() {
   if (payerNameNormalizeTimer !== undefined && typeof window !== 'undefined') {
     window.clearTimeout(payerNameNormalizeTimer);
+    payerNameNormalizeTimer = undefined;
   }
+}
+
+function commitPayerNameInput() {
+  clearPayerNameNormalizeTimer();
+  const normalized = sanitizeVietQrPayerNameInput(payerNameValue.value);
+  payerNameValue.value = normalized;
+  payerName.value = normalized;
+}
+
+function schedulePayerNameNormalization() {
+  clearPayerNameNormalizeTimer();
 
   if (typeof window === 'undefined') {
-    const normalized = sanitizeVietQrPayerNameInput(payerNameValue.value);
-    payerNameValue.value = normalized;
-    payerName.value = normalized;
+    commitPayerNameInput();
     return;
   }
 
-  payerNameNormalizeTimer = window.setTimeout(() => {
-    payerNameNormalizeTimer = undefined;
-    const normalized = sanitizeVietQrPayerNameInput(payerNameValue.value);
-    payerNameValue.value = normalized;
-    payerName.value = normalized;
-  }, PAYER_NAME_NORMALIZE_DELAY_MS);
+  payerNameNormalizeTimer = window.setTimeout(commitPayerNameInput, PAYER_NAME_NORMALIZE_DELAY_MS);
 }
 
 function scheduleDescriptionNormalization() {
@@ -1248,6 +1253,7 @@ onBeforeUnmount(() => {
   if (shareImageRefreshTimer !== undefined) {
     window.clearTimeout(shareImageRefreshTimer);
   }
+  clearPayerNameNormalizeTimer();
   clearDescriptionNormalizeTimer();
   qrRenderId += 1;
   shareImageRenderId += 1;
