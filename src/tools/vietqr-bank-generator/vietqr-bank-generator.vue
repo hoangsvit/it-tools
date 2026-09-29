@@ -115,11 +115,13 @@ const banks = [...bankDirectory.data]
 
 const selectedBankBin = ref('');
 const accountNo = ref('');
+const payerNameValue = ref('');
 const payerName = ref('');
 const payerNameInput = computed({
-  get: () => payerName.value,
+  get: () => payerNameValue.value,
   set: (value: string) => {
-    payerName.value = sanitizeVietQrPayerNameInput(value);
+    payerNameValue.value = value.slice(0, VIETQR_MAX_PAYER_NAME_LENGTH);
+    schedulePayerNameNormalization();
   },
 });
 const amount = ref('');
@@ -150,8 +152,10 @@ let shareImageRenderId = 0;
 let qrRenderId = 0;
 let urlSyncReady = false;
 let urlSyncTimer: number | undefined;
+let payerNameNormalizeTimer: number | undefined;
 let descriptionNormalizeTimer: number | undefined;
 let shareImageRefreshTimer: number | undefined;
+const PAYER_NAME_NORMALIZE_DELAY_MS = 600;
 const DESCRIPTION_NORMALIZE_DELAY_MS = 600;
 const SHARE_IMAGE_REFRESH_DELAY_MS = 180;
 
@@ -211,7 +215,7 @@ const amountPlaceholder = computed(() => isVietnameseLocale.value
 const amountValidationMessage = computed(() => isVietnameseLocale.value
   ? `Số tiền phải là số nguyên VND dương, tối đa ${formattedMaximumAmount.value}.`
   : t('validation.amount'));
-const payerNameCharacterCount = computed(() => payerName.value.length);
+const payerNameCharacterCount = computed(() => payerNameValue.value.length);
 const previewPayerName = computed(() => payerName.value.trim());
 const descriptionCharacterCount = computed(() => descriptionValue.value.length);
 
@@ -341,7 +345,8 @@ function applyUrlParameters() {
   }
 
   if (payerParam) {
-    payerName.value = sanitizeVietQrPayerNameInput(payerParam.trim());
+    payerNameValue.value = sanitizeVietQrPayerNameInput(payerParam.trim());
+    payerName.value = payerNameValue.value;
   }
 
   if (amountParam) {
@@ -472,6 +477,26 @@ function commitDescriptionInput() {
   const sanitized = sanitizeVietQrDescriptionInput(descriptionValue.value);
   descriptionValue.value = sanitized;
   description.value = sanitized;
+}
+
+function schedulePayerNameNormalization() {
+  if (payerNameNormalizeTimer !== undefined && typeof window !== 'undefined') {
+    window.clearTimeout(payerNameNormalizeTimer);
+  }
+
+  if (typeof window === 'undefined') {
+    const normalized = sanitizeVietQrPayerNameInput(payerNameValue.value);
+    payerNameValue.value = normalized;
+    payerName.value = normalized;
+    return;
+  }
+
+  payerNameNormalizeTimer = window.setTimeout(() => {
+    payerNameNormalizeTimer = undefined;
+    const normalized = sanitizeVietQrPayerNameInput(payerNameValue.value);
+    payerNameValue.value = normalized;
+    payerName.value = normalized;
+  }, PAYER_NAME_NORMALIZE_DELAY_MS);
 }
 
 function scheduleDescriptionNormalization() {
@@ -728,6 +753,7 @@ function restoreForm() {
 function resetForm() {
   selectedBankBin.value = '';
   accountNo.value = '';
+  payerNameValue.value = '';
   payerName.value = '';
   amount.value = '';
   setDescriptionFromExternal('');
